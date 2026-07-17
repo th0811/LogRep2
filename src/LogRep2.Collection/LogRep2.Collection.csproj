@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\LogRep2.Contracts\LogRep2.Contracts.csproj" />
+  </ItemGroup>
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>LogRep2.Collection</AssemblyName>
+    <RootNamespace>LogRep2.Collection</RootNamespace>
+  </PropertyGroup>
+</Project>

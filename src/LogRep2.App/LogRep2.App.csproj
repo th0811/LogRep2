@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\LogRep2.Collection\LogRep2.Collection.csproj" />
+    <ProjectReference Include="..\LogRep2.Analysis\LogRep2.Analysis.csproj" />
+    <ProjectReference Include="..\LogRep2.Infrastructure\LogRep2.Infrastructure.csproj" />
+    <ProjectReference Include="..\LogRep2.Ipc\LogRep2.Ipc.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <AssemblyName>LogRep2</AssemblyName>
+    <Product>LogRep2</Product>
+    <Version>0.1.0</Version>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <StartupObject>FfxiTempLogCollector.App.Program</StartupObject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="..\..\config.example.json"
+             Link="config.example.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\README.md"
+             Link="README.md">
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\..\AssistantTool\index.html"
+             Link="AssistantTool\index.html">
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\..\AssistantTool\app.js"
+             Link="AssistantTool\app.js">
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\..\AssistantTool\style.css"
+             Link="AssistantTool\style.css">
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+    <Content Include="..\..\..\AssistantTool\README.md"
+             Link="AssistantTool\README.md">
+      <CopyToPublishDirectory>Always</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

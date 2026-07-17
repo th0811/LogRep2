@@ -1,0 +1,10 @@
+{
+  "raw_records_written": 14,
+  "canonical_records_written": 14,
+  "duplicate_raw_records_skipped": 0,
+  "duplicate_canonical_records_skipped": 0,
+  "parse_errors": 0,
+  "decode_errors": 0,
+  "gap_warnings": 0,
+  "last_seen_at": "2026-06-23T21:35:40+09:00"
+}

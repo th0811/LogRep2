@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "collection": {
+    "temp_directory": "",
+    "output_directory": "sessions",
+    "encoding": "cp932",
+    "polling_interval_ms": 1000,
+    "watch_window1": true,
+    "watch_window2": true,
+    "rotation_slots": 20,
+    "raw_output": true,
+    "canonical_output": true,
+    "dedupe_raw": true,
+    "dedupe_canonical": true,
+    "marker_detection": true,
+    "marker_prefix": "###",
+    "timezone": "Asia/Tokyo",
+    "flush_interval_ms": 1000,
+    "hash_algorithm": "sha1"
+  },
+  "analysis": {
+    "known_pc_names": [],
+    "known_npc_names": [],
+    "realtime_refresh_interval_ms": 500
+  },
+  "overlay": {
+    "enabled": false,
+    "opacity": 0.8,
+    "topmost": true,
+    "left": 100,
+    "top": 100,
+    "width": 420,
+    "height": 300,
+    "position_locked": true,
+    "monitor_device_name": null,
+    "font_size": 16,
+    "display_row_count": 10,
+    "display_items": [
+      "total_damage",
+      "dps",
+      "hit_rate",
+      "actor_ranking",
+      "analysis_state"
+    ]
+  },
+  "application": {
+    "log_level": "info",
+    "auto_start_collection_on_launch": false,
+    "minimize_to_tray_while_collecting": false,
+    "minimize_button_behavior": "tray",
+    "close_button_behavior": "tray_when_collecting",
+    "show_tray_notifications": true
+  }
+}

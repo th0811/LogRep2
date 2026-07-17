@@ -1,0 +1,78 @@
+<UserControl x:Class="FFXI_LogAnalyzer.App.AnalysisRangeSelectionView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d"
+             d:DesignHeight="420"
+             d:DesignWidth="900">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0"
+                   Margin="0,0,0,8"
+                   Text="開始・終了にmarkerを指定した場合、marker行自体は集計対象外です。"
+                   TextWrapping="Wrap" />
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <DataGrid Grid.Column="0"
+                      ItemsSource="{Binding Markers}"
+                      AutoGenerateColumns="False"
+                      CanUserAddRows="False"
+                      IsReadOnly="True"
+                      HeadersVisibility="Column">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="session_id" Binding="{Binding SessionId}" Width="140" />
+                    <DataGridTextColumn Header="order" Binding="{Binding Order}" Width="70" />
+                    <DataGridTextColumn Header="marker_keyword" Binding="{Binding MarkerKeyword}" Width="140" />
+                    <DataGridTextColumn Header="visible_text" Binding="{Binding VisibleText}" Width="*" />
+                    <DataGridTextColumn Header="message_time_text" Binding="{Binding MessageTimeText}" Width="140" />
+                    <DataGridTextColumn Header="first_seen_at" Binding="{Binding FirstSeenAt}" Width="180" />
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <StackPanel Grid.Column="1" Margin="12,0,0,0">
+                <GroupBox Header="開始ポイント" Margin="0,0,0,10">
+                    <StackPanel Margin="8">
+                        <RadioButton Content="ログ先頭" IsChecked="{Binding IsStartLogStart}" Margin="0,0,0,6" />
+                        <RadioButton Content="marker" IsChecked="{Binding IsStartMarker}" Margin="0,0,0,6" />
+                        <ComboBox ItemsSource="{Binding Markers}"
+                                  SelectedItem="{Binding SelectedStartMarker}"
+                                  DisplayMemberPath="VisibleText"
+                                  IsEnabled="{Binding IsStartMarker}" />
+                    </StackPanel>
+                </GroupBox>
+
+                <GroupBox Header="終了ポイント" Margin="0,0,0,10">
+                    <StackPanel Margin="8">
+                        <RadioButton Content="marker" IsChecked="{Binding IsEndMarker}" Margin="0,0,0,6" />
+                        <ComboBox ItemsSource="{Binding EndMarkerCandidates}"
+                                  SelectedItem="{Binding SelectedEndMarker}"
+                                  DisplayMemberPath="VisibleText"
+                                  IsEnabled="{Binding IsEndMarker}"
+                                  Margin="0,0,0,8" />
+                        <RadioButton Content="ログ最後尾" IsChecked="{Binding IsEndLogEnd}" />
+                    </StackPanel>
+                </GroupBox>
+
+                <TextBlock Text="{Binding ValidationMessage}" TextWrapping="Wrap" Margin="0,0,0,10" />
+                <Button Content="分析実行" Command="{Binding RunAnalysisCommand}" />
+                <TextBlock Text="{Binding RangeSummary}" TextWrapping="Wrap" Margin="0,10,0,0" />
+            </StackPanel>
+        </Grid>
+
+        <TextBlock Grid.Row="2"
+                   Margin="0,8,0,0"
+                   Text="終了marker候補には、開始markerより後ろのmarkerのみ表示されます。"
+                   TextWrapping="Wrap" />
+    </Grid>
+</UserControl>

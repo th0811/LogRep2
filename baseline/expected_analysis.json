@@ -1,0 +1,60 @@
+{
+  "source": "a2743f2^:logAnalyzer/tests/FFXI_LogAnalyzer.Tests/SampleSessionIntegrationTests.cs",
+  "session_id": "sample-session",
+  "canonical_record_count": 14,
+  "markers": ["#start", "#end"],
+  "analysis_record_count": 12,
+  "analysis_duration_seconds": 30,
+  "time_confidence": "exact",
+  "action_group_count": 8,
+  "parsed_action_group_count": 7,
+  "unparsed_action_group_count": 1,
+  "unknown_action_group_count": 1,
+  "actors": [
+    {
+      "actor": "Xitra",
+      "total_damage": 1117,
+      "dps": 37.233333333333334,
+      "total_use_count": 6,
+      "total_hit_count": 4,
+      "total_miss_count": 1,
+      "unknown_count": 1,
+      "normal_attack_hit_rate": 0.75,
+      "normal_attack_critical_rate": 0.3333333333333333
+    },
+    {
+      "actor": "Boro",
+      "total_damage": 200,
+      "dps": 6.666666666666667
+    }
+  ],
+  "actions": [
+    {
+      "actor": "Xitra",
+      "action_type": "normal_attack",
+      "use_count": 4,
+      "hit_count": 2,
+      "miss_count": 1,
+      "unknown_count": 1,
+      "total_damage": 123,
+      "max_damage": 123,
+      "min_damage": 0,
+      "average_damage": 61.5
+    },
+    {
+      "actor": "Xitra",
+      "action_type": "normal_attack_critical",
+      "total_damage": 573
+    },
+    {
+      "actor": "Xitra",
+      "action_type": "skill",
+      "use_count": 1,
+      "total_damage": 421,
+      "max_damage": 321,
+      "min_damage": 100,
+      "average_damage": 210.5
+    }
+  ]
+}
+
