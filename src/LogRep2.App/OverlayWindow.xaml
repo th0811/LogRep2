@@ -12,6 +12,9 @@
         ShowInTaskbar="False"
         Opacity="{Binding OverlayOpacity}"
         Topmost="{Binding Topmost}">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+    </Window.Resources>
     <Border x:Name="DragSurface"
             Background="#E6121B26"
             BorderBrush="#809BB0C2"
@@ -42,7 +45,9 @@
                 </StackPanel>
             </DockPanel>
 
-            <Grid Grid.Row="1" Margin="0,12,0,0">
+            <Grid Grid.Row="1"
+                  Margin="0,12,0,0"
+                  Visibility="{Binding HasPartyMembers, Converter={StaticResource BooleanToVisibility}}">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="*" />
@@ -79,6 +84,34 @@
                 </ItemsControl.ItemTemplate>
                 </ItemsControl>
             </Grid>
+
+            <Border Grid.Row="1"
+                    Margin="0,12,0,0"
+                    Padding="18"
+                    Background="#802A3542"
+                    CornerRadius="4"
+                    Visibility="{Binding ShowEmptyPartyState, Converter={StaticResource BooleanToVisibility}}">
+                <StackPanel HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Cursor="Arrow">
+                    <TextBlock HorizontalAlignment="Center"
+                               Foreground="#FFD166"
+                               FontSize="{Binding FontSize}"
+                               FontWeight="SemiBold"
+                               Text="PTメンバーが設定されていません" />
+                    <TextBlock Margin="0,8,0,12"
+                               HorizontalAlignment="Center"
+                               Foreground="White"
+                               Text="DPS／通常命中率を表示するには、PTメンバーを登録してください。"
+                               TextAlignment="Center"
+                               TextWrapping="Wrap" />
+                    <Button Width="176"
+                            Height="32"
+                            HorizontalAlignment="Center"
+                            Command="{Binding OpenPartyMemberSettingsCommand}"
+                            Content="PTメンバー設定を開く" />
+                </StackPanel>
+            </Border>
 
             <StackPanel Grid.Row="2"
                         Margin="0,8,0,0"

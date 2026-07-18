@@ -52,6 +52,45 @@ public sealed class OverlayViewModelTests
         Assert.Equal(0.25, settings.Opacity);
     }
 
+    [Fact]
+    public void PT未設定時は空状態を表示し設定画面を開ける()
+    {
+        var openCount = 0;
+        var viewModel = new OverlayViewModel(
+            new OverlaySettings(),
+            [],
+            () => { },
+            () => { },
+            () => openCount++);
+
+        Assert.False(viewModel.HasPartyMembers);
+        Assert.True(viewModel.ShowEmptyPartyState);
+
+        viewModel.OpenPartyMemberSettingsCommand.Execute(null);
+
+        Assert.Equal(1, openCount);
+    }
+
+    [Fact]
+    public void PTメンバー変更時に空状態を切り替える()
+    {
+        var changedProperties = new List<string?>();
+        var viewModel = new OverlayViewModel(
+            new OverlaySettings(),
+            [],
+            () => { },
+            () => { });
+        viewModel.PropertyChanged += (_, eventArgs) =>
+            changedProperties.Add(eventArgs.PropertyName);
+
+        viewModel.SetPartyMembers(["Alice"]);
+
+        Assert.True(viewModel.HasPartyMembers);
+        Assert.False(viewModel.ShowEmptyPartyState);
+        Assert.Contains(nameof(OverlayViewModel.HasPartyMembers), changedProperties);
+        Assert.Contains(nameof(OverlayViewModel.ShowEmptyPartyState), changedProperties);
+    }
+
     private static ActorSummary CreateActor(
         string actor,
         int damage,

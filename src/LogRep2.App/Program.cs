@@ -59,7 +59,11 @@ public static class Program
             application.Dispatcher,
             message => controller.ShowOperationError(
                 "オーバーレイでエラーが発生しました。",
-                new InvalidOperationException(message)));
+                new InvalidOperationException(message)),
+            () => controller.ShowPartyMemberSettings(
+                realtimeAnalysis.Current.Result?.ActorSummaries
+                    .Select(actor => actor.Actor)
+                    ?? []));
         controller.AttachOverlayManager(overlayManager);
         controller.StartOverlayNotifications();
         var viewModel = new MainViewModel(

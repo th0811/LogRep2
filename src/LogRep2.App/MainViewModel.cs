@@ -22,6 +22,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _lastError = "-";
     private bool _isShuttingDown;
     private string _realtimeStateText = "停止中";
+    private string _realtimeStateForeground = "#FFFFFF";
+    private string _realtimeStateBackground = "#162331";
     private int _realtimeTargetCount;
     private int _realtimeCanonicalCount;
     private long _realtimeTotalDamage;
@@ -116,6 +118,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string RealtimeStateText { get => _realtimeStateText; private set => SetProperty(ref _realtimeStateText, value); }
 
+    public string RealtimeStateForeground { get => _realtimeStateForeground; private set => SetProperty(ref _realtimeStateForeground, value); }
+
+    public string RealtimeStateBackground { get => _realtimeStateBackground; private set => SetProperty(ref _realtimeStateBackground, value); }
+
     public int RealtimeTargetCount { get => _realtimeTargetCount; private set => SetProperty(ref _realtimeTargetCount, value); }
 
     public int RealtimeCanonicalCount { get => _realtimeCanonicalCount; private set => SetProperty(ref _realtimeCanonicalCount, value); }
@@ -170,6 +176,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 : $"{members.Count}名: {string.Join(" / ", members)}";
         }
     }
+
+    public bool HasPartyMembers => _controller.GetPartyMembers().Count > 0;
+
+    public bool ShowPartyMemberWarning => !HasPartyMembers;
+
+    public string PartyMemberSummaryForeground =>
+        HasPartyMembers ? "#1F2937" : "#B45309";
 
     public string SessionId
     {
@@ -244,6 +257,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string OverlayButtonText => _controller.IsOverlayVisible
         ? "オーバーレイ非表示"
         : "オーバーレイ表示";
+
+    public string OverlayStateText => _controller.IsOverlayVisible
+        ? "表示中"
+        : "非表示";
 
     public async Task InitializeAsync()
     {
@@ -341,7 +358,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void OnPartyMembersChanged(object? sender, EventArgs eventArgs)
     {
-        _dispatcher.InvokeAsync(() => OnPropertyChanged(nameof(PartyMemberSummary)));
+        _dispatcher.InvokeAsync(() =>
+        {
+            OnPropertyChanged(nameof(PartyMemberSummary));
+            OnPropertyChanged(nameof(HasPartyMembers));
+            OnPropertyChanged(nameof(ShowPartyMemberWarning));
+            OnPropertyChanged(nameof(PartyMemberSummaryForeground));
+        });
     }
 
     private void ShowPartyMemberSettings()
@@ -361,7 +384,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void OnOverlayVisibilityChanged(object? sender, EventArgs eventArgs)
     {
-        _dispatcher.InvokeAsync(() => OnPropertyChanged(nameof(OverlayButtonText)));
+        _dispatcher.InvokeAsync(() =>
+        {
+            OnPropertyChanged(nameof(OverlayButtonText));
+            OnPropertyChanged(nameof(OverlayStateText));
+        });
     }
 
     private void ApplyRealtimeAnalysis(RealtimeAnalysisSnapshot snapshot)
@@ -373,6 +400,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
             RealtimeAnalysisState.Completed => "分析終了",
             _ => "停止中",
         };
+        RealtimeStateForeground = snapshot.State == RealtimeAnalysisState.Running
+            ? "#ECFDF5"
+            : "#FFFFFF";
+        RealtimeStateBackground = snapshot.State == RealtimeAnalysisState.Running
+            ? "#047857"
+            : "#162331";
         RealtimeTargetCount = snapshot.TargetRecordCount;
         RealtimeCanonicalCount = snapshot.CanonicalRecordCount;
         RealtimeTotalDamage = snapshot.Result?.ActorSummaries.Sum(actor => (long)actor.TotalDamage) ?? 0;

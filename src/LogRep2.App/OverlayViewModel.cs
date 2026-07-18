@@ -11,6 +11,7 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
     private readonly OverlaySettings _settings;
     private readonly Action _hide;
     private readonly Action _settingsChanged;
+    private readonly Action _openPartyMemberSettings;
     private List<string> _partyMemberNames;
     private string _lastUpdated = "-";
 
@@ -18,20 +19,29 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
         OverlaySettings settings,
         IEnumerable<string> partyMemberNames,
         Action hide,
-        Action settingsChanged)
+        Action settingsChanged,
+        Action? openPartyMemberSettings = null)
     {
         _settings = settings ?? throw new ArgumentNullException(nameof(settings));
         _partyMemberNames = [.. partyMemberNames];
         _hide = hide ?? throw new ArgumentNullException(nameof(hide));
         _settingsChanged = settingsChanged ?? throw new ArgumentNullException(nameof(settingsChanged));
+        _openPartyMemberSettings = openPartyMemberSettings ?? (() => { });
         HideCommand = new RelayCommand(_hide);
+        OpenPartyMemberSettingsCommand = new RelayCommand(_openPartyMemberSettings);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public RelayCommand HideCommand { get; }
 
+    public RelayCommand OpenPartyMemberSettingsCommand { get; }
+
     public ObservableCollection<PartyMemberMetric> PartyMembers { get; } = [];
+
+    public bool HasPartyMembers => _partyMemberNames.Count > 0;
+
+    public bool ShowEmptyPartyState => !HasPartyMembers;
 
     public string LastUpdated { get => _lastUpdated; private set => SetProperty(ref _lastUpdated, value); }
 
@@ -94,6 +104,8 @@ public sealed class OverlayViewModel : INotifyPropertyChanged
     public void SetPartyMembers(IEnumerable<string> partyMemberNames)
     {
         _partyMemberNames = [.. partyMemberNames];
+        OnPropertyChanged(nameof(HasPartyMembers));
+        OnPropertyChanged(nameof(ShowEmptyPartyState));
     }
 
     private void UpdatePartyMembers(AnalysisResult? result)

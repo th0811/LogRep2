@@ -38,6 +38,11 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
         MoveUpCommand = new RelayCommand(MoveUp, CanMoveUp);
         MoveDownCommand = new RelayCommand(MoveDown, CanMoveDown);
         ClearCommand = new RelayCommand(Clear, () => Members.Count > 0);
+
+        if (Members.Count < MaximumPartyMembers && Candidates.Count > 0)
+        {
+            SelectedCandidate = Candidates[0];
+        }
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -111,8 +116,11 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
             string.Equals(item, name, StringComparison.OrdinalIgnoreCase));
         if (candidate is not null)
         {
-            Candidates.Remove(candidate);
-            SelectedCandidate = null;
+            var candidateIndex = Candidates.IndexOf(candidate);
+            Candidates.RemoveAt(candidateIndex);
+            SelectedCandidate = Members.Count >= MaximumPartyMembers
+                ? null
+                : SelectAtSameIndex(Candidates, candidateIndex);
         }
 
         Save();
@@ -126,13 +134,14 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
         }
 
         var removed = SelectedMember;
-        Members.Remove(removed);
+        var memberIndex = Members.IndexOf(removed);
+        Members.RemoveAt(memberIndex);
         if (!Contains(Candidates, removed))
         {
             Candidates.Add(removed);
         }
 
-        SelectedMember = null;
+        SelectedMember = SelectAtSameIndex(Members, memberIndex);
         Save();
     }
 
@@ -201,6 +210,9 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
 
     private static bool Contains(IEnumerable<string> names, string name) =>
         names.Contains(name, StringComparer.OrdinalIgnoreCase);
+
+    private static string? SelectAtSameIndex(IReadOnlyList<string> items, int previousIndex) =>
+        items.Count == 0 ? null : items[Math.Min(previousIndex, items.Count - 1)];
 
     private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {

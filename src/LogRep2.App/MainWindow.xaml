@@ -13,6 +13,9 @@
         Loaded="OnLoaded"
         StateChanged="OnStateChanged"
         Closing="OnClosing">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+    </Window.Resources>
     <Grid Background="#F4F6F8">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -23,8 +26,8 @@
         <Border Grid.Row="0"
                 Padding="24,18"
                 Background="#243447">
-            <DockPanel LastChildFill="True">
-                <StackPanel DockPanel.Dock="Left">
+            <DockPanel>
+                <StackPanel>
                     <TextBlock Foreground="White"
                                FontSize="24"
                                FontWeight="SemiBold"
@@ -33,17 +36,6 @@
                                Foreground="#C9D4DF"
                                Text="TEMPログを継続的に退避します" />
                 </StackPanel>
-                <Border DockPanel.Dock="Right"
-                        Margin="24,0,0,0"
-                        Padding="16,8"
-                        VerticalAlignment="Center"
-                        Background="{Binding StatusBackground}"
-                        CornerRadius="4">
-                    <TextBlock Foreground="{Binding StatusForeground}"
-                               FontSize="16"
-                               FontWeight="SemiBold"
-                               Text="{Binding StatusText}" />
-                </Border>
             </DockPanel>
         </Border>
 
@@ -51,7 +43,112 @@
                       Padding="24"
                       VerticalScrollBarVisibility="Auto">
             <StackPanel>
+                <GroupBox Header="稼働コントロール"
+                          Padding="16">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <Border Grid.Column="0"
+                                Padding="16"
+                                Background="White"
+                                BorderBrush="#D9DEE5"
+                                BorderThickness="1"
+                                CornerRadius="6">
+                            <StackPanel>
+                                <DockPanel LastChildFill="False">
+                                    <TextBlock DockPanel.Dock="Left"
+                                               VerticalAlignment="Center"
+                                               FontSize="17"
+                                               FontWeight="SemiBold"
+                                               Text="TEMPログ収集" />
+                                    <Border DockPanel.Dock="Right"
+                                            Padding="12,6"
+                                            Background="{Binding StatusBackground}"
+                                            CornerRadius="12">
+                                        <TextBlock Foreground="{Binding StatusForeground}"
+                                                   FontWeight="SemiBold"
+                                                   Text="{Binding StatusText}" />
+                                    </Border>
+                                </DockPanel>
+                                <StackPanel Margin="0,16,0,0"
+                                            Orientation="Horizontal">
+                                    <Button Width="104"
+                                            Height="34"
+                                            Margin="0,0,8,0"
+                                            Command="{Binding StartCommand}"
+                                            Content="収集開始" />
+                                    <Button Width="104"
+                                            Height="34"
+                                            Command="{Binding StopCommand}"
+                                            Content="収集停止" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Grid.Column="2"
+                                Padding="16"
+                                Background="White"
+                                BorderBrush="#D9DEE5"
+                                BorderThickness="1"
+                                CornerRadius="6">
+                            <StackPanel>
+                                <DockPanel LastChildFill="False">
+                                    <TextBlock DockPanel.Dock="Left"
+                                               VerticalAlignment="Center"
+                                               FontSize="17"
+                                               FontWeight="SemiBold"
+                                               Text="リアルタイム分析" />
+                                    <Border DockPanel.Dock="Right"
+                                            Padding="12,6"
+                                            Background="{Binding RealtimeStateBackground}"
+                                            CornerRadius="12">
+                                        <TextBlock Foreground="{Binding RealtimeStateForeground}"
+                                                   FontWeight="SemiBold"
+                                                   Text="{Binding RealtimeStateText}" />
+                                    </Border>
+                                </DockPanel>
+                                <StackPanel Margin="0,16,0,0"
+                                            Orientation="Horizontal">
+                                    <Button Width="96"
+                                            Height="34"
+                                            Margin="0,0,8,0"
+                                            Command="{Binding StartRealtimeAnalysisCommand}"
+                                            Content="分析開始" />
+                                    <Button Width="96"
+                                            Height="34"
+                                            Margin="0,0,8,0"
+                                            Command="{Binding StopRealtimeAnalysisCommand}"
+                                            Content="分析停止" />
+                                    <Button Width="104"
+                                            Height="34"
+                                            Command="{Binding ResetRealtimeAnalysisCommand}"
+                                            Content="分析リセット" />
+                                </StackPanel>
+                                <DockPanel Margin="0,14,0,0">
+                                    <Button DockPanel.Dock="Right"
+                                            Width="144"
+                                            Height="30"
+                                            Command="{Binding ToggleOverlayCommand}"
+                                            Content="{Binding OverlayButtonText}" />
+                                    <TextBlock Margin="0,0,8,0"
+                                               VerticalAlignment="Center"
+                                               FontWeight="SemiBold"
+                                               Text="オーバーレイ" />
+                                    <TextBlock VerticalAlignment="Center"
+                                               Foreground="#4B5563"
+                                               Text="{Binding OverlayStateText}" />
+                                </DockPanel>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                </GroupBox>
+
                 <GroupBox Header="収集設定"
+                          Margin="0,16,0,0"
                           Padding="16">
                     <Grid>
                         <Grid.ColumnDefinitions>
@@ -118,28 +215,7 @@
                           Header="リアルタイム分析"
                           Padding="16">
                     <StackPanel>
-                        <StackPanel Orientation="Horizontal">
-                            <Button Width="104"
-                                    Height="32"
-                                    Margin="0,0,8,0"
-                                    Command="{Binding StartRealtimeAnalysisCommand}"
-                                    Content="分析開始" />
-                            <Button Width="104"
-                                    Height="32"
-                                    Margin="0,0,8,0"
-                                    Command="{Binding StopRealtimeAnalysisCommand}"
-                                    Content="分析終了" />
-                            <Button Width="104"
-                                    Height="32"
-                                    Command="{Binding ResetRealtimeAnalysisCommand}"
-                                    Content="分析リセット" />
-                            <TextBlock Margin="20,0,0,0"
-                                       VerticalAlignment="Center"
-                                       FontSize="16"
-                                       FontWeight="SemiBold"
-                                       Text="{Binding RealtimeStateText}" />
-                        </StackPanel>
-                        <DockPanel Margin="0,12,0,0">
+                        <DockPanel>
                             <Button DockPanel.Dock="Right"
                                     Width="128"
                                     Height="30"
@@ -150,9 +226,22 @@
                                        FontWeight="SemiBold"
                                        Text="PTメンバー" />
                             <TextBlock VerticalAlignment="Center"
+                                       Foreground="{Binding PartyMemberSummaryForeground}"
+                                       FontWeight="SemiBold"
                                        Text="{Binding PartyMemberSummary}"
                                        TextTrimming="CharacterEllipsis" />
                         </DockPanel>
+                        <Border Margin="0,8,0,0"
+                                Padding="10,7"
+                                Background="#FFFBEB"
+                                BorderBrush="#F59E0B"
+                                BorderThickness="1"
+                                CornerRadius="4"
+                                Visibility="{Binding ShowPartyMemberWarning, Converter={StaticResource BooleanToVisibility}}">
+                            <TextBlock Foreground="#92400E"
+                                       Text="PTメンバーが未設定のため、オーバーレイに個人別結果は表示されません。右の「PTメンバー設定...」から登録してください。"
+                                       TextWrapping="Wrap" />
+                        </Border>
                         <Grid Margin="0,16,0,0">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="150" />
@@ -272,16 +361,6 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Left"
                             Orientation="Horizontal">
-                    <Button Width="104"
-                            Height="34"
-                            Margin="0,0,8,0"
-                            Command="{Binding StartCommand}"
-                            Content="収集開始" />
-                    <Button Width="104"
-                            Height="34"
-                            Margin="0,0,16,0"
-                            Command="{Binding StopCommand}"
-                            Content="収集停止" />
                     <Button Width="90"
                             Height="34"
                             Margin="0,0,8,0"
@@ -292,11 +371,6 @@
                             Margin="0,0,8,0"
                             Command="{Binding AnalysisCommand}"
                             Content="過去ログ分析" />
-                    <Button Width="144"
-                            Height="34"
-                            Margin="0,0,8,0"
-                            Command="{Binding ToggleOverlayCommand}"
-                            Content="{Binding OverlayButtonText}" />
                 </StackPanel>
 
                 <StackPanel DockPanel.Dock="Right"

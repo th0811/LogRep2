@@ -13,6 +13,7 @@ public sealed class OverlayManager : IDisposable
     private readonly RealtimeAnalysisController _realtimeAnalysis;
     private readonly Dispatcher _dispatcher;
     private readonly Action<string> _reportError;
+    private readonly Action _openPartyMemberSettings;
     private readonly DispatcherTimer _saveTimer;
     private OverlaySettings _settings;
     private OverlayWindow? _window;
@@ -25,12 +26,14 @@ public sealed class OverlayManager : IDisposable
         LogRep2SettingsStore settingsStore,
         RealtimeAnalysisController realtimeAnalysis,
         Dispatcher dispatcher,
-        Action<string> reportError)
+        Action<string> reportError,
+        Action? openPartyMemberSettings = null)
     {
         _settingsStore = settingsStore ?? throw new ArgumentNullException(nameof(settingsStore));
         _realtimeAnalysis = realtimeAnalysis ?? throw new ArgumentNullException(nameof(realtimeAnalysis));
         _dispatcher = dispatcher ?? throw new ArgumentNullException(nameof(dispatcher));
         _reportError = reportError ?? throw new ArgumentNullException(nameof(reportError));
+        _openPartyMemberSettings = openPartyMemberSettings ?? (() => { });
         _settings = _settingsStore.Load().Overlay;
         _saveTimer = new DispatcherTimer(TimeSpan.FromMilliseconds(350), DispatcherPriority.Background, OnSaveTimerTick, dispatcher)
         {
@@ -145,7 +148,12 @@ public sealed class OverlayManager : IDisposable
         }
 
         var partyMembers = _settingsStore.Load().Analysis.RealtimePartyMembers;
-        _viewModel = new OverlayViewModel(_settings, partyMembers, Hide, ScheduleSave);
+        _viewModel = new OverlayViewModel(
+            _settings,
+            partyMembers,
+            Hide,
+            ScheduleSave,
+            _openPartyMemberSettings);
         _window = new OverlayWindow
         {
             DataContext = _viewModel,
