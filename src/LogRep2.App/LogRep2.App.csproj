@@ -27,19 +27,19 @@
              Link="README.md">
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
-    <Content Include="..\..\..\AssistantTool\index.html"
+    <Content Include="..\..\AssistantTool\index.html"
              Link="AssistantTool\index.html">
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
-    <Content Include="..\..\..\AssistantTool\app.js"
+    <Content Include="..\..\AssistantTool\app.js"
              Link="AssistantTool\app.js">
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
-    <Content Include="..\..\..\AssistantTool\style.css"
+    <Content Include="..\..\AssistantTool\style.css"
              Link="AssistantTool\style.css">
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
-    <Content Include="..\..\..\AssistantTool\README.md"
+    <Content Include="..\..\AssistantTool\README.md"
              Link="AssistantTool\README.md">
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>

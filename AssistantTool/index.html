@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>raw_records.jsonl 表示ツール</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div>
+      <h1>raw_records.jsonl 表示ツール</h1>
+      <p>LogRep_r が出力した JSONL を展開して確認します。</p>
+    </div>
+    <div class="header-actions">
+      <button id="copySelectedButton" type="button" disabled>選択範囲をコピー</button>
+      <button id="exportCsvButton" type="button" disabled>CSV出力</button>
+      <button id="clearButton" type="button" disabled>クリア</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="dropZone" class="drop-zone">
+      <div>
+        <strong>raw_records.jsonl をここにドロップ</strong>
+        <span>または</span>
+        <label class="file-button">
+          ファイルを選択
+          <input id="fileInput" type="file" accept=".jsonl,.txt,application/json">
+        </label>
+      </div>
+    </section>
+
+    <nav class="tabs" aria-label="表示切替">
+      <button id="replayTabButton" class="tab-button active" type="button" aria-controls="replayTabPanel" aria-selected="true">元ログ再現</button>
+      <button id="tableTabButton" class="tab-button" type="button" aria-controls="tableTabPanel" aria-selected="false">RAW</button>
+    </nav>
+
+    <section class="status-bar" aria-live="polite">
+      <span id="statusText">ファイル未読込</span>
+      <span id="copyStatusText"></span>
+    </section>
+
+    <section id="replayTabPanel" class="tab-panel active" aria-label="元ログ再現">
+      <div class="log-replay">
+        <section class="log-window" aria-label="window_1">
+          <header>window_1</header>
+          <div id="window1Log" class="log-window-body"></div>
+        </section>
+        <section class="log-window" aria-label="window_2">
+          <header>window_2</header>
+          <div id="window2Log" class="log-window-body"></div>
+        </section>
+      </div>
+    </section>
+
+    <section id="tableTabPanel" class="tab-panel" aria-label="RAW" hidden>
+      <section class="controls" aria-label="表示条件">
+        <label>
+          1ページ行数
+          <select id="pageSizeSelect">
+            <option value="100">100</option>
+            <option value="250" selected>250</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+          </select>
+        </label>
+        <div class="pager">
+          <button id="prevPageButton" type="button" disabled>前へ</button>
+          <span id="pageInfo">0 / 0</span>
+          <button id="nextPageButton" type="button" disabled>次へ</button>
+        </div>
+      </section>
+
+      <section class="table-shell" aria-label="raw_records 表">
+        <table id="recordsTable">
+          <thead id="tableHead"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </section>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

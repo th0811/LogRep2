@@ -1,0 +1,65 @@
+# .NET build outputs
+**/bin/
+**/obj/
+artifacts/
+publish/
+
+# Test and coverage outputs
+TestResults/
+**/TestResults/
+*.trx
+*.coverage
+*.coveragexml
+coverage/
+coverage.*
+
+# NuGet packages and generated packages
+packages/
+*.nupkg
+*.snupkg
+
+# Visual Studio and IDE user settings
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.rsuser
+
+# JetBrains/ReSharper
+_ReSharper*/
+*.DotSettings.user
+
+# Local application settings
+config.json
+config.*.local.json
+LogRep2.settings.json
+
+# Local runtime outputs
+.tmp/
+collector.log
+sessions/
+
+# Local documentation outputs
+docs/
+
+# Temporary and backup files
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*~
+
+# Windows and macOS metadata
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Crash dumps
+*.dmp
+*.mdmp

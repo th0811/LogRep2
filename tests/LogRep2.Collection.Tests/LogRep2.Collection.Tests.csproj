@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\..\..\AssistantTool\app.js"
+    <None Include="..\..\AssistantTool\app.js"
           Link="compatibility\AssistantTool\app.js"
           CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
