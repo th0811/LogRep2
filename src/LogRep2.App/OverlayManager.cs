@@ -106,6 +106,12 @@ public sealed class OverlayManager : IDisposable
         ScheduleSave();
     }
 
+    public void UpdatePartyMembers(IEnumerable<string> partyMembers)
+    {
+        _viewModel?.SetPartyMembers(partyMembers);
+        _viewModel?.Apply(_realtimeAnalysis.Current);
+    }
+
     public void Dispose()
     {
         if (_disposed)
@@ -138,13 +144,12 @@ public sealed class OverlayManager : IDisposable
             return;
         }
 
-        _viewModel = new OverlayViewModel(_settings, Hide, ResetPosition, ScheduleSave);
-        _viewModel.EditingChanged += (_, _) => _window?.ApplyEditingState(_viewModel.IsEditing);
+        var partyMembers = _settingsStore.Load().Analysis.RealtimePartyMembers;
+        _viewModel = new OverlayViewModel(_settings, partyMembers, Hide, ScheduleSave);
         _window = new OverlayWindow
         {
             DataContext = _viewModel,
         };
-        _window.ApplyEditingState(_viewModel.IsEditing);
         _window.LocationChanged += OnWindowBoundsChanged;
         _window.SizeChanged += OnWindowBoundsChanged;
         _window.SourceInitialized += OnSourceInitialized;
@@ -243,7 +248,7 @@ public sealed class OverlayManager : IDisposable
 
     private void OnWindowBoundsChanged(object? sender, EventArgs eventArgs)
     {
-        if (!_applyingPlacement && _viewModel?.IsEditing == true)
+        if (!_applyingPlacement)
         {
             CaptureWindowSettings();
             ScheduleSave();

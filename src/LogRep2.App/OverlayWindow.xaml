@@ -12,16 +12,14 @@
         ShowInTaskbar="False"
         Opacity="{Binding OverlayOpacity}"
         Topmost="{Binding Topmost}">
-    <Window.Resources>
-        <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
-    </Window.Resources>
-    <Border Background="#E6121B26"
+    <Border x:Name="DragSurface"
+            Background="#E6121B26"
             BorderBrush="#809BB0C2"
             BorderThickness="1"
-            CornerRadius="6">
+            CornerRadius="6"
+            MouseLeftButtonDown="OnDragSurfaceMouseLeftButtonDown">
         <Grid Margin="12">
             <Grid.RowDefinitions>
-                <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
@@ -32,20 +30,10 @@
                            Foreground="White"
                            FontSize="{Binding FontSize}"
                            FontWeight="Bold"
-                           MouseLeftButtonDown="OnDragAreaMouseLeftButtonDown"
                            Text="LogRep2" />
                 <StackPanel DockPanel.Dock="Right"
+                            Cursor="Arrow"
                             Orientation="Horizontal">
-                    <Button MinWidth="48"
-                            Height="26"
-                            Margin="4,0,0,0"
-                            Command="{Binding ToggleEditingCommand}"
-                            Content="{Binding EditButtonText}" />
-                    <Button MinWidth="72"
-                            Height="26"
-                            Margin="4,0,0,0"
-                            Command="{Binding ResetPositionCommand}"
-                            Content="位置リセット" />
                     <Button MinWidth="48"
                             Height="26"
                             Margin="4,0,0,0"
@@ -54,46 +42,47 @@
                 </StackPanel>
             </DockPanel>
 
-            <Grid Grid.Row="1" Margin="0,12,0,8">
+            <Grid Grid.Row="1" Margin="0,12,0,0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="100" />
                 </Grid.ColumnDefinitions>
-                <StackPanel Grid.Column="0"
-                            Visibility="{Binding ShowAnalysisState, Converter={StaticResource BooleanToVisibility}}">
-                    <TextBlock Foreground="#B8C7D5" Text="状態" />
-                    <TextBlock Foreground="White" FontSize="{Binding FontSize}" FontWeight="SemiBold" Text="{Binding StateText}" />
-                </StackPanel>
-                <StackPanel Grid.Column="1"
-                            Visibility="{Binding ShowTotalDamage, Converter={StaticResource BooleanToVisibility}}">
-                    <TextBlock Foreground="#B8C7D5" Text="合計ダメージ" />
-                    <TextBlock Foreground="White" FontSize="{Binding FontSize}" FontWeight="SemiBold" Text="{Binding TotalDamage, StringFormat=N0}" />
-                </StackPanel>
-                <StackPanel Grid.Column="2"
-                            Visibility="{Binding ShowDpsOrHitRate, Converter={StaticResource BooleanToVisibility}}">
-                    <TextBlock Foreground="#B8C7D5" Text="DPS / 命中率" />
-                    <TextBlock Foreground="White" FontSize="{Binding FontSize}" FontWeight="SemiBold">
-                        <Run Text="{Binding Dps, Mode=OneWay}" /><Run Text=" / " /><Run Text="{Binding HitRate, Mode=OneWay}" />
-                    </TextBlock>
-                </StackPanel>
-            </Grid>
-
-            <ItemsControl Grid.Row="2"
-                          ItemsSource="{Binding ActorRankings}"
-                          Visibility="{Binding ShowActorRanking, Converter={StaticResource BooleanToVisibility}}">
+                <TextBlock Grid.Column="0" Foreground="#B8C7D5" FontWeight="SemiBold" Text="メンバー" />
+                <TextBlock Grid.Column="1" Foreground="#B8C7D5" FontWeight="SemiBold" TextAlignment="Right" Text="DPS" />
+                <TextBlock Grid.Column="2" Foreground="#B8C7D5" FontWeight="SemiBold" TextAlignment="Right" Text="通常命中率" />
+                <ItemsControl Grid.Row="1" Grid.ColumnSpan="3" Margin="0,6,0,0"
+                              ItemsSource="{Binding PartyMembers}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
-                        <TextBlock Margin="0,2"
-                                   Foreground="White"
-                                   FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
-                                   Text="{Binding}" />
+                        <Grid Margin="0,2">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="100" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Foreground="White"
+                                       FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                            <TextBlock Grid.Column="1" Foreground="White" TextAlignment="Right"
+                                       FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Text="{Binding Dps}" />
+                            <TextBlock Grid.Column="2" Foreground="White" TextAlignment="Right"
+                                       FontSize="{Binding DataContext.FontSize, RelativeSource={RelativeSource AncestorType=Window}}"
+                                       Text="{Binding HitRate}" />
+                        </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                </ItemsControl>
+            </Grid>
 
-            <StackPanel Grid.Row="3"
+            <StackPanel Grid.Row="2"
                         Margin="0,8,0,0"
+                        Cursor="Arrow"
                         Orientation="Horizontal">
                 <TextBlock VerticalAlignment="Center" Foreground="#B8C7D5" Text="更新: " />
                 <TextBlock VerticalAlignment="Center" Foreground="#B8C7D5" Text="{Binding LastUpdated}" />

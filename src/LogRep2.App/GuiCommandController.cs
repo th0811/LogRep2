@@ -52,6 +52,8 @@ public sealed class GuiCommandController : IAsyncDisposable
 
     public event EventHandler? ConfigChanged;
 
+    public event EventHandler? PartyMembersChanged;
+
     public void AttachWindow(Window window)
     {
         ArgumentNullException.ThrowIfNull(window);
@@ -120,7 +122,12 @@ public sealed class GuiCommandController : IAsyncDisposable
 
     public void ShowSettings()
     {
-        var settingsWindow = new SettingsWindow
+        ShowSettings(SettingsFocusTarget.None);
+    }
+
+    public void ShowSettings(SettingsFocusTarget focusTarget)
+    {
+        var settingsWindow = new SettingsWindow(focusTarget)
         {
             Owner = GetWindow(),
         };
@@ -136,6 +143,58 @@ public sealed class GuiCommandController : IAsyncDisposable
         };
         settingsWindow.DataContext = viewModel;
         settingsWindow.ShowDialog();
+    }
+
+    public IReadOnlyList<string> GetPartyMembers()
+    {
+        return _unifiedSettingsStore?.Load().Analysis.RealtimePartyMembers ?? [];
+    }
+
+    public void ShowPartyMemberSettings(IEnumerable<string> detectedActors)
+    {
+        var store = _unifiedSettingsStore
+            ?? throw new InvalidOperationException("統合設定を利用できません。");
+        var settings = store.Load();
+        var classifier = new FFXI_LogAnalyzer.Core.ActorNameClassifier();
+        var candidates = detectedActors
+            .Where(actor => classifier.Classify(
+                actor,
+                settings.Analysis.KnownPcNames,
+                settings.Analysis.KnownNpcNames)
+                is FFXI_LogAnalyzer.Core.ActorNameKind.RegisteredPc
+                    or FFXI_LogAnalyzer.Core.ActorNameKind.PcCandidate)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var window = new PartyMemberManagerWindow
+        {
+            Owner = GetWindow(),
+        };
+        window.DataContext = new PartyMemberManagerViewModel(
+            settings.Analysis.RealtimePartyMembers,
+            candidates,
+            members => SavePartyMembers(store, members));
+        window.ShowDialog();
+    }
+
+    private void SavePartyMembers(
+        LogRep2SettingsStore store,
+        IReadOnlyList<string> members)
+    {
+        var settings = store.Load();
+        settings.Analysis.RealtimePartyMembers = [.. members];
+        foreach (var member in members)
+        {
+            if (!settings.Analysis.KnownPcNames.Contains(
+                    member,
+                    StringComparer.OrdinalIgnoreCase))
+            {
+                settings.Analysis.KnownPcNames.Add(member);
+            }
+        }
+
+        store.Save(settings);
+        _overlayManager?.UpdatePartyMembers(settings.Analysis.RealtimePartyMembers);
+        PartyMembersChanged?.Invoke(this, EventArgs.Empty);
     }
 
     public void AttachOverlayManager(OverlayManager overlayManager)

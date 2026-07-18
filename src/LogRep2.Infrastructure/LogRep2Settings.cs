@@ -127,6 +127,8 @@ public sealed class AnalysisSettings
     public List<string> KnownNpcNames { get; set; } = [];
 
     public int RealtimeRefreshIntervalMs { get; set; } = 500;
+
+    public List<string> RealtimePartyMembers { get; set; } = [];
 }
 
 public sealed class OverlaySettings
@@ -145,7 +147,7 @@ public sealed class OverlaySettings
 
     public double Height { get; set; } = 300;
 
-    public bool PositionLocked { get; set; } = true;
+    public bool PositionLocked { get; set; }
 
     public string? MonitorDeviceName { get; set; }
 

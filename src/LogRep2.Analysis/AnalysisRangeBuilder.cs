@@ -39,6 +39,7 @@ public sealed class AnalysisRangeBuilder
         return records
             .Where(record => IsInRange(record, startExclusiveOrder, endExclusiveOrder))
             .Where(record => !record.IsMarker)
+            .Where(record => !AreaChangeExtractor.IsAreaChange(record.VisibleText))
             .OrderBy(record => record.Order ?? long.MaxValue)
             .ToArray();
     }

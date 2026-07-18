@@ -215,6 +215,9 @@ public sealed class LogRep2SettingsStore
             settings.Analysis.KnownPcNames);
         settings.Analysis.KnownNpcNames = NormalizeNames(
             settings.Analysis.KnownNpcNames);
+        settings.Analysis.RealtimePartyMembers = NormalizeOrderedNames(
+            settings.Analysis.RealtimePartyMembers,
+            6);
         settings.Overlay.DisplayItems = NormalizeNames(
             settings.Overlay.DisplayItems);
         settings.Overlay.Opacity = Math.Clamp(settings.Overlay.Opacity, 0.25, 1.0);
@@ -232,6 +235,18 @@ public sealed class LogRep2SettingsStore
             .Select(name => name.Trim())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
+            .ToList();
+    }
+
+    private static List<string> NormalizeOrderedNames(
+        IEnumerable<string>? names,
+        int maximumCount)
+    {
+        return (names ?? [])
+            .Where(name => !string.IsNullOrWhiteSpace(name))
+            .Select(name => name.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(maximumCount)
             .ToList();
     }
 

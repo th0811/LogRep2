@@ -162,6 +162,25 @@ public sealed class LogRep2SettingsStoreTests
         Assert.True(document.RootElement
             .GetProperty("analysis")
             .TryGetProperty("realtime_refresh_interval_ms", out _));
+        Assert.True(document.RootElement
+            .GetProperty("analysis")
+            .TryGetProperty("realtime_party_members", out _));
+    }
+
+    [Fact]
+    public void PTメンバーは登録順を維持して最大6名へ正規化する()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var store = new LogRep2SettingsStore(temporaryDirectory.Path);
+        var settings = new LogRep2Settings();
+        settings.Analysis.RealtimePartyMembers =
+            [" Bob ", "Alice", "bob", "C", "D", "E", "F", "G"];
+
+        store.Save(settings);
+        var reloaded = store.Load();
+
+        Assert.Equal(["Bob", "Alice", "C", "D", "E", "F"],
+            reloaded.Analysis.RealtimePartyMembers);
     }
 
     [Fact]

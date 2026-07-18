@@ -13,10 +13,22 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0"
-                   Margin="0,0,0,8"
-                   Text="開始・終了にmarkerを指定した場合、marker行自体は集計対象外です。"
-                   TextWrapping="Wrap" />
+        <StackPanel Grid.Row="0" Margin="0,0,0,8">
+            <TextBlock Text="エリアログ区間は、エリアチェンジ行の直後から次のエリアチェンジ行の直前までです。時刻ではなくログ順序で区切ります。"
+                       TextWrapping="Wrap" />
+            <StackPanel Margin="0,8,0,0" Orientation="Horizontal">
+                <RadioButton GroupName="RangeMode" Margin="0,0,16,0"
+                             Content="手動範囲指定" IsChecked="{Binding IsManualRangeMode}" />
+                <RadioButton GroupName="RangeMode"
+                             Content="エリアログ区間" IsChecked="{Binding IsAreaSegmentMode}"
+                             IsEnabled="{Binding HasAreaSegments}" />
+            </StackPanel>
+            <ComboBox Margin="0,8,0,0"
+                      ItemsSource="{Binding AreaSegments}"
+                      SelectedItem="{Binding SelectedAreaSegment}"
+                      DisplayMemberPath="DisplayText"
+                      IsEnabled="{Binding IsAreaSegmentMode}" />
+        </StackPanel>
 
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
@@ -41,7 +53,8 @@
             </DataGrid>
 
             <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                <GroupBox Header="開始ポイント" Margin="0,0,0,10">
+                <GroupBox Header="開始ポイント" Margin="0,0,0,10"
+                          IsEnabled="{Binding IsManualRangeMode}">
                     <StackPanel Margin="8">
                         <RadioButton Content="ログ先頭" IsChecked="{Binding IsStartLogStart}" Margin="0,0,0,6" />
                         <RadioButton Content="marker" IsChecked="{Binding IsStartMarker}" Margin="0,0,0,6" />
@@ -52,7 +65,8 @@
                     </StackPanel>
                 </GroupBox>
 
-                <GroupBox Header="終了ポイント" Margin="0,0,0,10">
+                <GroupBox Header="終了ポイント" Margin="0,0,0,10"
+                          IsEnabled="{Binding IsManualRangeMode}">
                     <StackPanel Margin="8">
                         <RadioButton Content="marker" IsChecked="{Binding IsEndMarker}" Margin="0,0,0,6" />
                         <ComboBox ItemsSource="{Binding EndMarkerCandidates}"

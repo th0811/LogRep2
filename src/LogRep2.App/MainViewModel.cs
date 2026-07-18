@@ -56,6 +56,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
         SettingsCommand = new RelayCommand(
             _controller.ShowSettings,
             () => !IsShuttingDown);
+        PartyMemberSettingsCommand = new RelayCommand(
+            ShowPartyMemberSettings,
+            () => !IsShuttingDown);
+        ChangeTempDirectoryCommand = new RelayCommand(
+            () => _controller.ShowSettings(SettingsFocusTarget.TempDirectory),
+            () => !IsShuttingDown);
+        ChangeOutputDirectoryCommand = new RelayCommand(
+            () => _controller.ShowSettings(SettingsFocusTarget.OutputDirectory),
+            () => !IsShuttingDown);
         AnalysisCommand = new RelayCommand(
             _controller.ShowAnalysis,
             () => !IsShuttingDown);
@@ -92,6 +101,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         _controller.Events.StatusChanged += OnStatusChanged;
         _controller.ConfigChanged += OnConfigChanged;
+        _controller.PartyMembersChanged += OnPartyMembersChanged;
         _realtimeAnalysis.Updated += OnRealtimeAnalysisUpdated;
         _controller.OverlayVisibilityChanged += OnOverlayVisibilityChanged;
         ApplyStatus(_controller.GetStatus());
@@ -150,6 +160,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string OutputDirectory => _controller.Config.OutputDir;
 
+    public string PartyMemberSummary
+    {
+        get
+        {
+            var members = _controller.GetPartyMembers();
+            return members.Count == 0
+                ? "未登録"
+                : $"{members.Count}名: {string.Join(" / ", members)}";
+        }
+    }
+
     public string SessionId
     {
         get => _sessionId;
@@ -194,6 +215,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public RelayCommand SettingsCommand { get; }
 
+    public RelayCommand PartyMemberSettingsCommand { get; }
+
+    public RelayCommand ChangeTempDirectoryCommand { get; }
+
+    public RelayCommand ChangeOutputDirectoryCommand { get; }
+
     public RelayCommand AnalysisCommand { get; }
 
     public RelayCommand OpenOutputCommand { get; }
@@ -233,6 +260,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         _controller.Events.StatusChanged -= OnStatusChanged;
         _controller.ConfigChanged -= OnConfigChanged;
+        _controller.PartyMembersChanged -= OnPartyMembersChanged;
         _realtimeAnalysis.Updated -= OnRealtimeAnalysisUpdated;
         _controller.OverlayVisibilityChanged -= OnOverlayVisibilityChanged;
         await _realtimeAnalysis.DisposeAsync();
@@ -309,6 +337,19 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         OnPropertyChanged(nameof(TempDirectory));
         OnPropertyChanged(nameof(OutputDirectory));
+    }
+
+    private void OnPartyMembersChanged(object? sender, EventArgs eventArgs)
+    {
+        _dispatcher.InvokeAsync(() => OnPropertyChanged(nameof(PartyMemberSummary)));
+    }
+
+    private void ShowPartyMemberSettings()
+    {
+        var actors = _realtimeAnalysis.Current.Result?.ActorSummaries
+            .Select(actor => actor.Actor)
+            ?? [];
+        _controller.ShowPartyMemberSettings(actors);
     }
 
     private void OnRealtimeAnalysisUpdated(
@@ -422,6 +463,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         StartCommand.RaiseCanExecuteChanged();
         StopCommand.RaiseCanExecuteChanged();
         SettingsCommand.RaiseCanExecuteChanged();
+        PartyMemberSettingsCommand.RaiseCanExecuteChanged();
+        ChangeTempDirectoryCommand.RaiseCanExecuteChanged();
+        ChangeOutputDirectoryCommand.RaiseCanExecuteChanged();
         AnalysisCommand.RaiseCanExecuteChanged();
         OpenOutputCommand.RaiseCanExecuteChanged();
         OpenTempCommand.RaiseCanExecuteChanged();

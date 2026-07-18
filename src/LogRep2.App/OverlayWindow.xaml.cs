@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
+using InputCursors = System.Windows.Input.Cursors;
 
 namespace FfxiTempLogCollector.App;
 
@@ -12,13 +13,8 @@ public partial class OverlayWindow : Window
     {
         InitializeComponent();
         Closing += OnClosing;
-    }
-
-    public void ApplyEditingState(bool isEditing)
-    {
-        ResizeMode = isEditing
-            ? ResizeMode.CanResizeWithGrip
-            : ResizeMode.NoResize;
+        ResizeMode = ResizeMode.CanResizeWithGrip;
+        DragSurface.Cursor = InputCursors.Hand;
     }
 
     public void CloseForShutdown()
@@ -27,14 +23,21 @@ public partial class OverlayWindow : Window
         Close();
     }
 
-    private void OnDragAreaMouseLeftButtonDown(
+    private void OnDragSurfaceMouseLeftButtonDown(
         object sender,
         MouseButtonEventArgs eventArgs)
     {
-        if (eventArgs.ButtonState == MouseButtonState.Pressed
-            && DataContext is OverlayViewModel { IsEditing: true })
+        if (eventArgs.ButtonState == MouseButtonState.Pressed)
         {
-            DragMove();
+            try
+            {
+                Mouse.OverrideCursor = InputCursors.SizeAll;
+                DragMove();
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
         }
     }
 

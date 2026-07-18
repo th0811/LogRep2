@@ -19,6 +19,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     private bool _isEndLogEnd = true;
     private MarkerListViewModel? _selectedStartMarker;
     private MarkerListViewModel? _selectedEndMarker;
+    private AreaStaySegmentListViewModel? _selectedAreaSegment;
+    private bool _isAreaSegmentMode;
     private string _validationMessage = "セッションを読み込むと分析区間を選択できます。";
     private string _rangeSummary = "-";
 
@@ -35,11 +37,57 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
     public ObservableCollection<MarkerListViewModel> EndMarkerCandidates { get; } = [];
 
+    public ObservableCollection<AreaStaySegmentListViewModel> AreaSegments { get; } = [];
+
     public RelayCommand RunAnalysisCommand { get; }
 
     public bool HasMarkers => Markers.Count > 0;
 
+    public bool HasAreaSegments => AreaSegments.Count > 0;
+
     public bool HasRecords => _records.Count > 0;
+
+    public bool IsManualRangeMode
+    {
+        get => !IsAreaSegmentMode;
+        set
+        {
+            if (value)
+            {
+                IsAreaSegmentMode = false;
+            }
+        }
+    }
+
+    public bool IsAreaSegmentMode
+    {
+        get => _isAreaSegmentMode;
+        set
+        {
+            if (SetProperty(ref _isAreaSegmentMode, value))
+            {
+                OnPropertyChanged(nameof(IsManualRangeMode));
+                RefreshValidation();
+            }
+        }
+    }
+
+    public AreaStaySegmentListViewModel? SelectedAreaSegment
+    {
+        get => _selectedAreaSegment;
+        set
+        {
+            if (SetProperty(ref _selectedAreaSegment, value))
+            {
+                if (value is not null)
+                {
+                    IsAreaSegmentMode = true;
+                }
+
+                RefreshValidation();
+            }
+        }
+    }
 
     public bool IsStartLogStart
     {
@@ -167,17 +215,29 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             Markers.Add(new MarkerListViewModel(marker));
         }
 
+        AreaSegments.Clear();
+        foreach (var segment in new AreaStaySegmentBuilder().Build(records))
+        {
+            AreaSegments.Add(new AreaStaySegmentListViewModel(segment));
+        }
+
         _isStartLogStart = true;
         _isEndLogEnd = true;
         _selectedStartMarker = null;
         _selectedEndMarker = null;
+        _selectedAreaSegment = null;
+        _isAreaSegmentMode = false;
         OnPropertyChanged(nameof(IsStartLogStart));
         OnPropertyChanged(nameof(IsStartMarker));
         OnPropertyChanged(nameof(IsEndLogEnd));
         OnPropertyChanged(nameof(IsEndMarker));
         OnPropertyChanged(nameof(SelectedStartMarker));
         OnPropertyChanged(nameof(SelectedEndMarker));
+        OnPropertyChanged(nameof(SelectedAreaSegment));
+        OnPropertyChanged(nameof(IsAreaSegmentMode));
+        OnPropertyChanged(nameof(IsManualRangeMode));
         OnPropertyChanged(nameof(HasMarkers));
+        OnPropertyChanged(nameof(HasAreaSegments));
         OnPropertyChanged(nameof(HasRecords));
         RefreshEndMarkerCandidates();
         RefreshValidation();
@@ -188,11 +248,14 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         _records = [];
         Markers.Clear();
         EndMarkerCandidates.Clear();
+        AreaSegments.Clear();
         SelectedStartMarker = null;
         SelectedEndMarker = null;
+        SelectedAreaSegment = null;
         RangeSummary = "-";
         ValidationMessage = "セッションを読み込むと分析区間を選択できます。";
         OnPropertyChanged(nameof(HasMarkers));
+        OnPropertyChanged(nameof(HasAreaSegments));
         OnPropertyChanged(nameof(HasRecords));
         RunAnalysisCommand.RaiseCanExecuteChanged();
     }
@@ -237,14 +300,18 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         var selection = CreateSelection();
         if (selection is null)
         {
-            ValidationMessage = "開始markerまたは終了markerを選択してください。";
+            ValidationMessage = IsAreaSegmentMode
+                ? "分析するエリアログ区間を選択してください。"
+                : "開始markerまたは終了markerを選択してください。";
             RunAnalysisCommand.RaiseCanExecuteChanged();
             return;
         }
 
         var errors = _rangeValidator.Validate(selection);
         ValidationMessage = errors.Count == 0
-            ? "分析区間を選択できます。marker行自体は集計対象外です。"
+            ? IsAreaSegmentMode
+                ? "選択したエリアログ区間を分析できます。エリアチェンジ行自体は集計対象外です。"
+                : "分析区間を選択できます。marker行自体は集計対象外です。"
             : string.Join(Environment.NewLine, errors);
         RunAnalysisCommand.RaiseCanExecuteChanged();
     }
@@ -289,6 +356,11 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
     private AnalysisRangeSelection? CreateSelection()
     {
+        if (IsAreaSegmentMode)
+        {
+            return SelectedAreaSegment?.Segment.CreateSelection();
+        }
+
         var start = IsStartLogStart
             ? AnalysisEndpoint.LogStart
             : SelectedStartMarker is null
