@@ -20,6 +20,9 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     private bool _showPcCandidateActors = true;
     private bool _showRegisteredNpcActors = true;
     private bool _showUnknownActors = true;
+    private AnalysisTimeResult _analysisTime = AnalysisTimeResult.Unknown([]);
+    private DateTimeOffset? _fallbackSessionTime;
+    private string _rangeName = "指定範囲";
     private string _statusMessage = "分析結果はまだありません。";
 
     public AnalysisResultViewModel()
@@ -195,10 +198,15 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
 
     public void Load(
         AnalysisResult result,
-        IReadOnlyList<SessionInfoRow> sessionRows)
+        IReadOnlyList<SessionInfoRow> sessionRows,
+        DateTimeOffset? fallbackSessionTime = null,
+        string rangeName = "指定範囲")
     {
         ClearVisibilitySubscriptions();
         _settings = _settingsStore.Load();
+        _analysisTime = result.AnalysisTime;
+        _fallbackSessionTime = fallbackSessionTime;
+        _rangeName = rangeName;
 
         _allActorSummaries.Clear();
         _allActorSummaries.AddRange(
@@ -272,6 +280,9 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         FilteredActorVisibilities.Clear();
         UnparsedLogs.Clear();
         SessionRows.Clear();
+        _analysisTime = AnalysisTimeResult.Unknown([]);
+        _fallbackSessionTime = null;
+        _rangeName = "指定範囲";
         HasResult = false;
         StatusMessage = "分析結果はまだありません。";
         OnPropertyChanged(nameof(ActorSelectionSummary));
@@ -380,7 +391,7 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     private void ExportActorSummaries()
     {
         Export(
-            "LogRep2-キャラクター別.csv",
+            BuildExportFileName("キャラクター別"),
             [
                 "キャラクター名", "総与ダメージ", "DPS", "DPS時間信頼度",
                 "通常攻撃命中率", "通常攻撃クリティカル率", "使用回数",
@@ -399,7 +410,7 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     private void ExportActionSummaries()
     {
         Export(
-            "LogRep2-アクション別.csv",
+            BuildExportFileName("アクション別"),
             [
                 "キャラクター名", "アクション名", "種別", "使用回数",
                 "命中回数", "非命中回数", "未分類件数", "命中率",
@@ -417,13 +428,22 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     private void ExportLevelingPoints()
     {
         Export(
-            "LogRep2-レベル上げ.csv",
+            BuildExportFileName("レベル上げ"),
             ["ポイント種別", "総合計", "最大チェーン", "時給"],
             LevelingPointSummaries.Select(summary => (IReadOnlyList<string>)
             [
                 summary.PointName, summary.TotalPoints,
                 summary.MaxChainCount, summary.PointsPerHour,
             ]));
+    }
+
+    private string BuildExportFileName(string outputType)
+    {
+        return CsvExportFileNameBuilder.Build(
+            outputType,
+            _analysisTime,
+            _fallbackSessionTime,
+            _rangeName);
     }
 
     private void Export(

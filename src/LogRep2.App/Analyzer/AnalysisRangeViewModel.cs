@@ -25,6 +25,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     private string _rangeSummary = "-";
     private CancellationTokenSource? _analysisCancellation;
     private bool _isBusy;
+    private string _lastCompletedRangeName = "指定範囲";
 
     public AnalysisRangeViewModel()
     {
@@ -68,6 +69,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     public bool HasAreaSegments => AreaSegments.Count > 0;
 
     public bool HasRecords => _records.Count > 0;
+
+    public string LastCompletedRangeName => _lastCompletedRangeName;
 
     // 分析区間（開始・終了ポイント）が確定し、分析実行が可能かどうか。
     // ステッパーのSTEP2完了判定に利用する。
@@ -377,6 +380,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             return;
         }
 
+        var rangeName = CreateExportRangeName();
+
         _analysisCancellation?.Cancel();
         _analysisCancellation?.Dispose();
         _analysisCancellation = new CancellationTokenSource();
@@ -390,6 +395,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
                 cancellationToken);
             RangeSummary = $"対象レコード: {calculation.RecordCount} 件 / time_confidence: {calculation.Result.AnalysisTime.Confidence} / duration_seconds: {ToDurationText(calculation.Result.AnalysisTime.DurationSeconds)}";
             ValidationMessage = "分析が完了しました。";
+            _lastCompletedRangeName = rangeName;
             AnalysisCompleted?.Invoke(calculation.Result);
         }
         catch (OperationCanceledException)
@@ -468,6 +474,21 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     private static string ToDurationText(double? durationSeconds)
     {
         return durationSeconds?.ToString("0.###") ?? "-";
+    }
+
+    private string CreateExportRangeName()
+    {
+        if (IsAreaSegmentMode && SelectedAreaSegment is not null)
+        {
+            var segment = SelectedAreaSegment.Segment;
+            return segment.AreaOccurrence > 1
+                ? $"{segment.AreaName}_滞在{segment.AreaOccurrence}"
+                : segment.AreaName;
+        }
+
+        return IsStartLogStart && IsEndLogEnd
+            ? "全体"
+            : "指定範囲";
     }
 
     private sealed record PreparedRanges(

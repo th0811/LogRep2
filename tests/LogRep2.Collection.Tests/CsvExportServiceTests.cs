@@ -1,10 +1,46 @@
 using System.Text;
 using FFXI_LogAnalyzer.App;
+using FFXI_LogAnalyzer.Core;
 
 namespace FfxiTempLogCollector.Tests;
 
 public sealed class CsvExportServiceTests
 {
+    [Fact]
+    public void 分析日時と区間名を含むCSVファイル名を生成する()
+    {
+        var time = new AnalysisTimeResult(
+            TimeConfidence.Exact,
+            630,
+            new DateTimeOffset(2026, 7, 21, 20, 30, 15, TimeSpan.FromHours(9)),
+            new DateTimeOffset(2026, 7, 21, 20, 40, 45, TimeSpan.FromHours(9)),
+            []);
+
+        var fileName = CsvExportFileNameBuilder.Build(
+            "キャラクター別",
+            time,
+            null,
+            "西ロンフォール");
+
+        Assert.Equal(
+            "LogRep2_キャラクター別_20260721_203015-204045_西ロンフォール.csv",
+            fileName);
+    }
+
+    [Fact]
+    public void 分析時刻不明時はセッション開始日を使用して禁止文字を置換する()
+    {
+        var fileName = CsvExportFileNameBuilder.Build(
+            "アクション別",
+            AnalysisTimeResult.Unknown([]),
+            new DateTimeOffset(2026, 7, 21, 10, 0, 0, TimeSpan.FromHours(9)),
+            "エリア:テスト/滞在2");
+
+        Assert.Equal(
+            "LogRep2_アクション別_20260721_エリア_テスト_滞在2.csv",
+            fileName);
+    }
+
     [Fact]
     public void Excel向けUTF8BOM付きCSVを正しく出力する()
     {

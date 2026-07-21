@@ -643,7 +643,17 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void OnAnalysisCompleted(AnalysisResult result)
     {
-        AnalysisResult.Load(result, SessionInfoRows.ToArray());
+        var fallbackSessionTime = Sessions
+            .Where(session => session.IsEnabled)
+            .Select(session => session.Session.SessionInfo.StartedAt)
+            .Where(startedAt => startedAt.HasValue)
+            .OrderBy(startedAt => startedAt)
+            .FirstOrDefault();
+        AnalysisResult.Load(
+            result,
+            SessionInfoRows.ToArray(),
+            fallbackSessionTime,
+            AnalysisRange.LastCompletedRangeName);
         StatusMessage = "分析結果を表示しました。";
     }
 
