@@ -7,6 +7,20 @@ namespace FfxiTempLogCollector.Tests;
 public sealed class LogRep2SettingsStoreTests
 {
     [Fact]
+    public void 読み込めない設定を失わずにバックアップできる()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = new LogRep2SettingsStore(directory.Path);
+        File.WriteAllText(store.SettingsPath, "{ invalid json");
+
+        var backupPath = store.BackupInvalidSettings();
+
+        Assert.False(File.Exists(store.SettingsPath));
+        Assert.True(File.Exists(backupPath));
+        Assert.Equal("{ invalid json", File.ReadAllText(backupPath));
+    }
+
+    [Fact]
     public void 新規設定では分析開始時のオーバーレイ表示が有効である()
     {
         var settings = new LogRep2Settings();
@@ -37,7 +51,6 @@ public sealed class LogRep2SettingsStoreTests
         settings.Overlay.Width = 1;
         settings.Overlay.Height = 1;
         settings.Overlay.FontSize = 99;
-        settings.Overlay.DisplayRowCount = 99;
         settings.Overlay.MonitorDeviceName = "DISPLAY2";
 
         store.Save(settings);
@@ -47,7 +60,6 @@ public sealed class LogRep2SettingsStoreTests
         Assert.Equal(280, actual.Width);
         Assert.Equal(180, actual.Height);
         Assert.Equal(40, actual.FontSize);
-        Assert.Equal(30, actual.DisplayRowCount);
         Assert.Equal("DISPLAY2", actual.MonitorDeviceName);
     }
 

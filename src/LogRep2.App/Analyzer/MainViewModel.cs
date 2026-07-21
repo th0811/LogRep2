@@ -39,6 +39,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private bool _showNextStepButton = true;
     private int _nextStepTargetTabIndex = 1;
     private bool _canGoToNextStep;
+    private CancellationTokenSource? _loadCancellation;
+    private bool _isBusy;
+    private string _busyText = string.Empty;
 
     public MainViewModel(SessionOpenService sessionOpenService, DialogService dialogService)
         : this(
@@ -65,21 +68,32 @@ public sealed class MainViewModel : INotifyPropertyChanged
         AnalysisRange.PropertyChanged += OnAnalysisRangePropertyChanged;
         AnalysisResult.PropertyChanged += OnAnalysisResultPropertyChanged;
         GoToNextStepCommand = new RelayCommand(GoToNextStep, () => _canGoToNextStep);
-        SelectSessionRootFolderCommand = new RelayCommand(SelectSessionRootFolder);
-        RefreshSessionsCommand = new RelayCommand(
-            RefreshSessions,
-            () => HasSessionRootFolder);
-        RemoveSelectedSessionCommand = new RelayCommand(RemoveSelectedSession, () => SelectedSession is not null);
-        ClearSessionsCommand = new RelayCommand(ClearSessions, () => Sessions.Count > 0);
-        LoadConfiguredSessionRoot();
+        SelectSessionRootFolderCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
+            SelectSessionRootFolderAsync,
+            () => !IsBusy);
+        RefreshSessionsCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
+            RefreshSessionsAsync,
+            () => HasSessionRootFolder && !IsBusy);
+        CancelLoadingCommand = new RelayCommand(
+            CancelLoading,
+            () => IsBusy);
+        RemoveSelectedSessionCommand = new RelayCommand(
+            RemoveSelectedSession,
+            () => SelectedSession is not null && !IsBusy);
+        ClearSessionsCommand = new RelayCommand(
+            ClearSessions,
+            () => Sessions.Count > 0 && !IsBusy);
+        _ = LoadConfiguredSessionRootAsync();
         RefreshStepStates();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public RelayCommand SelectSessionRootFolderCommand { get; }
+    public FfxiTempLogCollector.App.AsyncRelayCommand SelectSessionRootFolderCommand { get; }
 
-    public RelayCommand RefreshSessionsCommand { get; }
+    public FfxiTempLogCollector.App.AsyncRelayCommand RefreshSessionsCommand { get; }
+
+    public RelayCommand CancelLoadingCommand { get; }
 
     public RelayCommand RemoveSelectedSessionCommand { get; }
 
@@ -182,7 +196,30 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public bool HasSessionRootFolder => !string.IsNullOrWhiteSpace(_settings.SessionsRootFolderPath);
 
-    private void SelectSessionRootFolder()
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set
+        {
+            if (SetProperty(ref _isBusy, value))
+            {
+                OnPropertyChanged(nameof(IsNotBusy));
+                RefreshCommandStates();
+                SelectSessionRootFolderCommand.RaiseCanExecuteChanged();
+                CancelLoadingCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool IsNotBusy => !IsBusy;
+
+    public string BusyText
+    {
+        get => _busyText;
+        private set => SetProperty(ref _busyText, value);
+    }
+
+    private async Task SelectSessionRootFolderAsync()
     {
         var folderPath = _dialogService.SelectSessionsRootFolder();
         if (string.IsNullOrWhiteSpace(folderPath))
@@ -194,21 +231,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _settings.SessionsRootFolderPath = Path.GetFullPath(folderPath);
         SessionRootFolderPath = _settings.SessionsRootFolderPath ?? "未選択";
         RefreshCommandStates();
-        ReloadSessionsFromRoot(preserveEnabledStates: true);
+        await ReloadSessionsFromRootAsync(preserveEnabledStates: true);
     }
 
     public void ReloadSharedSessionRoot()
     {
         _settings = _settingsStore.Load();
-        LoadConfiguredSessionRoot();
+        _ = LoadConfiguredSessionRootAsync();
     }
 
-    private void RefreshSessions()
+    private Task RefreshSessionsAsync()
     {
-        ReloadSessionsFromRoot(preserveEnabledStates: true);
+        return ReloadSessionsFromRootAsync(preserveEnabledStates: true);
     }
 
-    private void LoadConfiguredSessionRoot()
+    private async Task LoadConfiguredSessionRootAsync()
     {
         if (string.IsNullOrWhiteSpace(_settings.SessionsRootFolderPath))
         {
@@ -219,14 +256,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
 
         SessionRootFolderPath = _settings.SessionsRootFolderPath;
-        ReloadSessionsFromRoot(preserveEnabledStates: true);
+        await ReloadSessionsFromRootAsync(preserveEnabledStates: true);
     }
 
-    private void ReloadSessionsFromRoot(bool preserveEnabledStates)
+    private async Task ReloadSessionsFromRootAsync(bool preserveEnabledStates)
     {
         if (string.IsNullOrWhiteSpace(_settings.SessionsRootFolderPath))
         {
             ClearSessionsInternal();
+            ClearCombinedSession();
             StatusMessage = "セッション出力先フォルダを選択してください。";
             return;
         }
@@ -236,6 +274,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (!Directory.Exists(rootFolderPath))
         {
             ClearSessionsInternal();
+            ClearCombinedSession();
             StatusMessage = "設定済みセッションフォルダが見つかりません";
             return;
         }
@@ -252,24 +291,63 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         if (sessionFolders.Length == 0)
         {
+            ClearCombinedSession();
             StatusMessage = "追加可能なセッションフォルダが見つかりませんでした。";
             return;
         }
 
+        _loadCancellation?.Cancel();
+        _loadCancellation?.Dispose();
+        _loadCancellation = new CancellationTokenSource();
+        var cancellationToken = _loadCancellation.Token;
+        IsBusy = true;
         var added = 0;
-        foreach (var sessionFolder in sessionFolders)
+        try
         {
-            var isEnabled = enabledStates.TryGetValue(sessionFolder, out var previousIsEnabled)
-                ? previousIsEnabled
-                : true;
-            if (AddSessionFromPath(sessionFolder, showError: false, isEnabled))
+            for (var index = 0; index < sessionFolders.Length; index++)
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                BusyText = $"セッションを読み込み中... {index + 1:N0}/{sessionFolders.Length:N0}";
+                StatusMessage = BusyText;
+                var sessionFolder = sessionFolders[index];
+                var attempt = await Task.Run(
+                    () => LoadSessionFromPath(sessionFolder),
+                    cancellationToken);
+                if (attempt.Session is null)
+                {
+                    AddWarning(sessionFolder, attempt.Errors);
+                    continue;
+                }
+
+                attempt.Session.IsEnabled = enabledStates.TryGetValue(
+                    sessionFolder,
+                    out var previousIsEnabled)
+                        ? previousIsEnabled
+                        : true;
+                attempt.Session.PropertyChanged += OnSessionSelectionChanged;
+                Sessions.Add(attempt.Session);
+                SelectedSession = attempt.Session;
                 added++;
             }
-        }
 
-        RefreshCombinedSession();
-        StatusMessage = $"{added:N0} 件のセッションを読み込みました。";
+            BusyText = "分析対象を準備中...";
+            await RefreshCombinedSessionAsync(cancellationToken);
+            StatusMessage = $"{added:N0} 件のセッションを読み込みました。";
+        }
+        catch (OperationCanceledException)
+        {
+            StatusMessage = "セッションの読み込みをキャンセルしました。";
+            await RefreshCombinedSessionAsync(CancellationToken.None);
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"セッションの読み込みに失敗しました: {exception.Message}";
+        }
+        finally
+        {
+            BusyText = string.Empty;
+            IsBusy = false;
+        }
     }
 
     private static string[] GetSessionFolders(string rootFolderPath)
@@ -288,69 +366,31 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
-    private bool AddSessionFromPath(
-        string folderPath,
-        bool showError,
-        bool isEnabled)
+    private SessionLoadAttempt LoadSessionFromPath(string folderPath)
     {
         var normalizedFolderPath = Path.GetFullPath(folderPath);
-        if (Sessions.Any(session => string.Equals(
-                session.FolderPath,
-                normalizedFolderPath,
-                StringComparison.OrdinalIgnoreCase)))
-        {
-            StatusMessage = "選択済みのセッションはスキップしました。";
-            return false;
-        }
-
         var result = _sessionOpenService.Open(normalizedFolderPath);
         if (!result.IsSuccess || result.Session is null)
         {
-            if (showError)
-            {
-                _dialogService.ShowError(string.Join(Environment.NewLine, result.Errors));
-            }
-
-            AddWarning(normalizedFolderPath, result.Errors);
-            StatusMessage = "セッションの読み込みに失敗しました。";
-            return false;
-        }
-
-        if (result.Warnings.Count > 0
-            && showError
-            && !_dialogService.ConfirmWarnings(result.Warnings))
-        {
-            StatusMessage = "警告があるセッションの追加をキャンセルしました。";
-            return false;
+            return new SessionLoadAttempt(null, result.Errors);
         }
 
         var canonicalRecords = _canonicalRecordReader.Read(result.Session.CanonicalRecordsPath);
         if (!canonicalRecords.IsSuccess)
         {
-            if (showError)
-            {
-                _dialogService.ShowError(string.Join(Environment.NewLine, canonicalRecords.Errors));
-            }
-
-            AddWarning(normalizedFolderPath, canonicalRecords.Errors);
-            StatusMessage = "canonical_records.jsonl の読み込みに失敗しました。";
-            return false;
+            return new SessionLoadAttempt(null, canonicalRecords.Errors);
         }
 
         var warnings = result.Warnings
             .Concat(canonicalRecords.LineErrors.Select(
                 error => $"canonical_records.jsonl {error.LineNumber}行目: {error.Message}"))
             .ToArray();
-        var session = new SessionSelectionViewModel(
-            result.Session,
-            canonicalRecords.Records,
-            warnings);
-        session.IsEnabled = isEnabled;
-        session.PropertyChanged += OnSessionSelectionChanged;
-        Sessions.Add(session);
-        SelectedSession = session;
-        StatusMessage = "セッションを追加しました。";
-        return true;
+        return new SessionLoadAttempt(
+            new SessionSelectionViewModel(
+                result.Session,
+                canonicalRecords.Records,
+                warnings),
+            []);
     }
 
     private void RemoveSelectedSession()
@@ -363,13 +403,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
         SelectedSession.PropertyChanged -= OnSessionSelectionChanged;
         Sessions.Remove(SelectedSession);
         SelectedSession = Sessions.LastOrDefault();
-        RefreshCombinedSession();
+        _ = RefreshCombinedSessionAsync(CancellationToken.None);
         StatusMessage = "選択中のセッションを解除しました。";
     }
 
     private void ClearSessions()
     {
         ClearSessionsInternal();
+        ClearCombinedSession();
         StatusMessage = "セッション選択をすべて解除しました。";
     }
 
@@ -382,10 +423,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         Sessions.Clear();
         SelectedSession = null;
-        RefreshCombinedSession();
     }
 
-    private void RefreshCombinedSession()
+    private async Task RefreshCombinedSessionAsync(
+        CancellationToken cancellationToken)
     {
         var enabledSessions = Sessions
             .Where(session => session.IsEnabled)
@@ -400,10 +441,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         if (enabledSessions.Length == 0)
         {
-            AnalysisRange.Clear();
-            AnalysisResult.Clear();
-            SelectedFolderPath = "未選択";
-            RefreshCommandStates();
+            ClearCombinedSession();
             return;
         }
 
@@ -416,9 +454,27 @@ public sealed class MainViewModel : INotifyPropertyChanged
             ? enabledSessions[0].FolderPath
             : $"{enabledSessions.Length:N0} 件のセッションを結合";
 
-        AnalysisRange.LoadRecords(BuildCombinedRecords(enabledSessions));
+        var records = await Task.Run(
+            () => BuildCombinedRecords(enabledSessions),
+            cancellationToken);
+        await AnalysisRange.LoadRecordsAsync(records, cancellationToken);
         AnalysisResult.Clear();
         RefreshCommandStates();
+    }
+
+    private void ClearCombinedSession()
+    {
+        SessionInfoRows.Clear();
+        Warnings.Clear();
+        AnalysisRange.Clear();
+        AnalysisResult.Clear();
+        SelectedFolderPath = "未選択";
+        RefreshCommandStates();
+    }
+
+    private void CancelLoading()
+    {
+        _loadCancellation?.Cancel();
     }
 
     private static IReadOnlyList<CanonicalRecord> BuildCombinedRecords(
@@ -460,13 +516,20 @@ public sealed class MainViewModel : INotifyPropertyChanged
         };
     }
 
-    private void OnSessionSelectionChanged(
+    private async void OnSessionSelectionChanged(
         object? sender,
         PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(SessionSelectionViewModel.IsEnabled))
         {
-            RefreshCombinedSession();
+            try
+            {
+                await RefreshCombinedSessionAsync(CancellationToken.None);
+            }
+            catch (Exception exception)
+            {
+                StatusMessage = $"分析対象を更新できませんでした: {exception.Message}";
+            }
         }
     }
 
@@ -527,6 +590,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
             Warnings.Add($"{source}: {warning}");
         }
     }
+
+    private sealed record SessionLoadAttempt(
+        SessionSelectionViewModel? Session,
+        IReadOnlyList<string> Errors);
 
     private void RefreshCommandStates()
     {

@@ -11,7 +11,6 @@ public sealed class ConfigStoreTests
 
         Assert.Equal(string.Empty, config.TempDir);
         Assert.Equal("sessions", config.OutputDir);
-        Assert.Equal("cp932", config.Encoding);
         Assert.Equal(1000, config.PollingIntervalMs);
         Assert.True(config.WatchWindow1);
         Assert.True(config.WatchWindow2);
@@ -19,12 +18,8 @@ public sealed class ConfigStoreTests
         Assert.True(config.RawOutput);
         Assert.True(config.CanonicalOutput);
         Assert.True(config.DedupeRaw);
-        Assert.True(config.DedupeCanonical);
         Assert.True(config.MarkerDetection);
         Assert.Equal("###", config.MarkerPrefix);
-        Assert.Equal("Asia/Tokyo", config.Timezone);
-        Assert.Equal(1000, config.FlushIntervalMs);
-        Assert.Equal("sha1", config.HashAlgorithm);
         Assert.Equal("info", config.LogLevel);
         Assert.False(config.AutoStartCollectionOnLaunch);
         Assert.False(config.MinimizeToTrayWhileCollecting);

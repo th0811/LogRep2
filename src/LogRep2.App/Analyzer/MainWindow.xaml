@@ -29,6 +29,26 @@
             <TextBlock Text="{Binding StatusMessage}" Margin="8,0,0,0" TextWrapping="Wrap" />
         </StackPanel>
 
+        <Border DockPanel.Dock="Top"
+                Margin="0,0,0,12"
+                Padding="10"
+                Background="#EFF6FF"
+                BorderBrush="#60A5FA"
+                BorderThickness="1"
+                Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right"
+                        MinWidth="96"
+                        Content="キャンセル"
+                        Command="{Binding CancelLoadingCommand}" />
+                <ProgressBar Width="180"
+                             Height="16"
+                             Margin="0,0,12,0"
+                             IsIndeterminate="True" />
+                <TextBlock Text="{Binding BusyText}" />
+            </DockPanel>
+        </Border>
+
         <Border DockPanel.Dock="Top" BorderBrush="#D0D7DE" BorderThickness="1" Padding="10" Margin="0,0,0,12">
             <StackPanel>
                 <TextBlock Text="読み込み状態" FontWeight="Bold" Margin="0,0,0,6" />

@@ -26,7 +26,6 @@ public static class OverlayPlacementService
         settings.Width = Math.Max(MinimumWidth, settings.Width);
         settings.Height = Math.Max(MinimumHeight, settings.Height);
         settings.FontSize = Math.Clamp(settings.FontSize, 10, 40);
-        settings.DisplayRowCount = Math.Clamp(settings.DisplayRowCount, 1, 30);
 
         var target = FindTarget(settings.MonitorDeviceName, workAreas);
         if (target is null)

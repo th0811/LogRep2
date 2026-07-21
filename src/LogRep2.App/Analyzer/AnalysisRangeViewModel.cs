@@ -23,10 +23,17 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     private bool _isAreaSegmentMode;
     private string _validationMessage = "セッションを読み込むと分析区間を選択できます。";
     private string _rangeSummary = "-";
+    private CancellationTokenSource? _analysisCancellation;
+    private bool _isBusy;
 
     public AnalysisRangeViewModel()
     {
-        RunAnalysisCommand = new RelayCommand(UpdateRangeSummary, CanRunAnalysis);
+        RunAnalysisCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
+            UpdateRangeSummaryAsync,
+            CanRunAnalysis);
+        CancelAnalysisCommand = new RelayCommand(
+            CancelAnalysis,
+            () => IsBusy);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -39,7 +46,22 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
     public ObservableCollection<AreaStaySegmentListViewModel> AreaSegments { get; } = [];
 
-    public RelayCommand RunAnalysisCommand { get; }
+    public FfxiTempLogCollector.App.AsyncRelayCommand RunAnalysisCommand { get; }
+
+    public RelayCommand CancelAnalysisCommand { get; }
+
+    public bool IsBusy
+    {
+        get => _isBusy;
+        private set
+        {
+            if (SetProperty(ref _isBusy, value))
+            {
+                RunAnalysisCommand.RaiseCanExecuteChanged();
+                CancelAnalysisCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
 
     public bool HasMarkers => Markers.Count > 0;
 
@@ -210,19 +232,31 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         private set => SetProperty(ref _rangeSummary, value);
     }
 
-    public void LoadRecords(IReadOnlyList<CanonicalRecord> records)
+    public async Task LoadRecordsAsync(
+        IReadOnlyList<CanonicalRecord> records,
+        CancellationToken cancellationToken)
     {
+        var prepared = await Task.Run(
+            () => new PreparedRanges(
+                new MarkerExtractor().Extract(records)
+                    .Select(marker => new MarkerListViewModel(marker))
+                    .ToArray(),
+                new AreaStaySegmentBuilder().Build(records)
+                    .Select(segment => new AreaStaySegmentListViewModel(segment))
+                    .ToArray()),
+            cancellationToken);
+        cancellationToken.ThrowIfCancellationRequested();
         _records = records;
         Markers.Clear();
-        foreach (var marker in new MarkerExtractor().Extract(records))
+        foreach (var marker in prepared.Markers)
         {
-            Markers.Add(new MarkerListViewModel(marker));
+            Markers.Add(marker);
         }
 
         AreaSegments.Clear();
-        foreach (var segment in new AreaStaySegmentBuilder().Build(records))
+        foreach (var segment in prepared.AreaSegments)
         {
-            AreaSegments.Add(new AreaStaySegmentListViewModel(segment));
+            AreaSegments.Add(segment);
         }
 
         _isStartLogStart = true;
@@ -323,7 +357,9 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     private bool CanRunAnalysis()
     {
         var selection = CreateSelection();
-        return selection is not null && _rangeValidator.IsValid(selection);
+        return !IsBusy
+            && selection is not null
+            && _rangeValidator.IsValid(selection);
     }
 
     // 分析実行コマンドの実行可否と、ステッパー用のIsRangeReadyをまとめて通知する。
@@ -333,7 +369,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsRangeReady));
     }
 
-    private void UpdateRangeSummary()
+    private async Task UpdateRangeSummaryAsync()
     {
         var selection = CreateSelection();
         if (selection is null)
@@ -341,11 +377,49 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             return;
         }
 
+        _analysisCancellation?.Cancel();
+        _analysisCancellation?.Dispose();
+        _analysisCancellation = new CancellationTokenSource();
+        var cancellationToken = _analysisCancellation.Token;
+        IsBusy = true;
+        ValidationMessage = "分析中...";
+        try
+        {
+            var calculation = await Task.Run(
+                () => Analyze(selection, cancellationToken),
+                cancellationToken);
+            RangeSummary = $"対象レコード: {calculation.RecordCount} 件 / time_confidence: {calculation.Result.AnalysisTime.Confidence} / duration_seconds: {ToDurationText(calculation.Result.AnalysisTime.DurationSeconds)}";
+            ValidationMessage = "分析が完了しました。";
+            AnalysisCompleted?.Invoke(calculation.Result);
+        }
+        catch (OperationCanceledException)
+        {
+            ValidationMessage = "分析をキャンセルしました。";
+        }
+        catch (Exception exception)
+        {
+            ValidationMessage = $"分析に失敗しました: {exception.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private AnalysisCalculation Analyze(
+        AnalysisRangeSelection selection,
+        CancellationToken cancellationToken)
+    {
         var range = _rangeBuilder.Build(_records, selection);
+        cancellationToken.ThrowIfCancellationRequested();
         var time = _timeResolver.Resolve(selection, range);
         var parseResults = _actionGroupBuilder
             .Build(range)
-            .Select(group => _actionGroupParser.ParseGroup(group))
+            .Select(group =>
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                return _actionGroupParser.ParseGroup(group);
+            })
             .ToArray();
         var parsed = parseResults
             .Where(result => result.Parsed is not null)
@@ -355,14 +429,17 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             .Where(result => result.Unparsed is not null)
             .Select(result => result.Unparsed!)
             .ToArray();
-        var levelingPointSummaries = _levelingPointAggregator.Aggregate(range, time);
-        var analysisResult = _analysisAggregator.Aggregate(parsed, time, unparsed) with
+        var result = _analysisAggregator.Aggregate(parsed, time, unparsed) with
         {
-            LevelingPointSummaries = levelingPointSummaries
+            LevelingPointSummaries =
+                _levelingPointAggregator.Aggregate(range, time),
         };
+        return new AnalysisCalculation(result, range.Count);
+    }
 
-        RangeSummary = $"対象レコード: {range.Count} 件 / time_confidence: {time.Confidence} / duration_seconds: {ToDurationText(time.DurationSeconds)}";
-        AnalysisCompleted?.Invoke(analysisResult);
+    private void CancelAnalysis()
+    {
+        _analysisCancellation?.Cancel();
     }
 
     private AnalysisRangeSelection? CreateSelection()
@@ -392,6 +469,14 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     {
         return durationSeconds?.ToString("0.###") ?? "-";
     }
+
+    private sealed record PreparedRanges(
+        IReadOnlyList<MarkerListViewModel> Markers,
+        IReadOnlyList<AreaStaySegmentListViewModel> AreaSegments);
+
+    private sealed record AnalysisCalculation(
+        AnalysisResult Result,
+        int RecordCount);
 
     private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {

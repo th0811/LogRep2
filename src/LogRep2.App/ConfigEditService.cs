@@ -188,7 +188,6 @@ public sealed class ConfigEditService
     {
         destination.TempDir = source.TempDir;
         destination.OutputDir = source.OutputDir;
-        destination.Encoding = source.Encoding;
         destination.PollingIntervalMs = source.PollingIntervalMs;
         destination.WatchWindow1 = source.WatchWindow1;
         destination.WatchWindow2 = source.WatchWindow2;
@@ -196,12 +195,8 @@ public sealed class ConfigEditService
         destination.RawOutput = source.RawOutput;
         destination.CanonicalOutput = source.CanonicalOutput;
         destination.DedupeRaw = source.DedupeRaw;
-        destination.DedupeCanonical = source.DedupeCanonical;
         destination.MarkerDetection = source.MarkerDetection;
         destination.MarkerPrefix = source.MarkerPrefix;
-        destination.Timezone = source.Timezone;
-        destination.FlushIntervalMs = source.FlushIntervalMs;
-        destination.HashAlgorithm = source.HashAlgorithm;
         destination.LogLevel = source.LogLevel;
         destination.AutoStartCollectionOnLaunch =
             source.AutoStartCollectionOnLaunch;

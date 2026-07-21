@@ -1,5 +1,6 @@
 using FfxiTempLogCollector.Core;
 using FfxiTempLogCollector.Ipc;
+using System.IO;
 using System.Runtime.InteropServices;
 using LogRep2.Infrastructure;
 
@@ -33,7 +34,12 @@ public static class Program
 
         var application = new App();
         var unifiedSettingsStore = new LogRep2SettingsStore();
-        var migration = unifiedSettingsStore.LoadOrMigrate();
+        var migration = LoadGuiSettingsWithRecovery(
+            unifiedSettingsStore);
+        if (migration is null)
+        {
+            return (int)CliExitCode.ConfigError;
+        }
         var configStore = new ConfigStore();
         var configLoader = new ConfigLoader(configStore);
         var config = migration.Settings.CreateCollectorConfig(
@@ -175,6 +181,85 @@ public static class Program
                 Console.CancelKeyPress -= cancelHandler;
             }
         }
+    }
+
+    private static SettingsMigrationResult? LoadGuiSettingsWithRecovery(
+        LogRep2SettingsStore settingsStore)
+    {
+        try
+        {
+            return settingsStore.LoadOrMigrate();
+        }
+        catch (Exception exception)
+        {
+            if (!File.Exists(settingsStore.SettingsPath))
+            {
+                ShowSettingsStartupError(
+                    "設定ファイルを作成できませんでした。"
+                    + Environment.NewLine
+                    + "書き込み可能なフォルダーへLogRep2を移動してください。",
+                    settingsStore,
+                    exception);
+                return null;
+            }
+
+            var answer = System.Windows.MessageBox.Show(
+                "設定ファイルを読み込めませんでした。"
+                + Environment.NewLine
+                + settingsStore.SettingsPath
+                + Environment.NewLine
+                + Environment.NewLine
+                + exception.Message
+                + Environment.NewLine
+                + Environment.NewLine
+                + "破損した設定をバックアップし、初期設定で起動しますか？",
+                "設定ファイルの復旧",
+                System.Windows.MessageBoxButton.YesNo,
+                System.Windows.MessageBoxImage.Warning);
+            if (answer != System.Windows.MessageBoxResult.Yes)
+            {
+                return null;
+            }
+
+            try
+            {
+                var backupPath = settingsStore.BackupInvalidSettings();
+                var recovered = settingsStore.LoadOrMigrate();
+                System.Windows.MessageBox.Show(
+                    "設定を初期化しました。破損した設定は次の場所へバックアップしました。"
+                    + Environment.NewLine
+                    + backupPath,
+                    "設定ファイルの復旧",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Information);
+                return recovered;
+            }
+            catch (Exception recoveryException)
+            {
+                ShowSettingsStartupError(
+                    "設定ファイルを復旧できませんでした。",
+                    settingsStore,
+                    recoveryException);
+                return null;
+            }
+        }
+    }
+
+    private static void ShowSettingsStartupError(
+        string message,
+        LogRep2SettingsStore settingsStore,
+        Exception exception)
+    {
+        System.Windows.MessageBox.Show(
+            message
+            + Environment.NewLine
+            + settingsStore.SettingsPath
+            + Environment.NewLine
+            + Environment.NewLine
+            + exception.Message,
+            "設定エラー",
+            System.Windows.MessageBoxButton.OK,
+            System.Windows.MessageBoxImage.Error);
     }
 
     [DllImport("kernel32.dll")]

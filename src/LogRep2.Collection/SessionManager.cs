@@ -34,8 +34,8 @@ public sealed class SessionManager
             StartedAt = actualStartedAt,
             TempDir = config.TempDir,
             OutputDir = config.OutputDir,
-            Encoding = config.Encoding,
-            Timezone = config.Timezone,
+            Encoding = CollectorConfig.InputEncoding,
+            Timezone = CollectorConfig.InputTimezone,
             WatchFiles = [.. watchFiles],
         };
     }

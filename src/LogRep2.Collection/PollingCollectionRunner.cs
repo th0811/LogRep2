@@ -3,6 +3,8 @@ namespace FfxiTempLogCollector.Core;
 public sealed class PollingCollectionRunner
 {
     private const string CollectorVersion = "1.0.0";
+    private static readonly TimeSpan CheckpointInterval =
+        TimeSpan.FromSeconds(5);
 
     private readonly TempLogWatchTargetBuilder _targetBuilder;
     private readonly TempLogPoller _poller;
@@ -111,6 +113,8 @@ public sealed class PollingCollectionRunner
         var stats = new CollectorStats();
         var rawDeduplicator = new RawDeduplicator();
         var canonicalDeduplicator = new CanonicalDeduplicator();
+        var lastCheckpointAt = startedAt;
+        var hasUnsavedChanges = false;
 
         try
         {
@@ -134,17 +138,37 @@ public sealed class PollingCollectionRunner
                     result.FilesProcessed++;
                 }
 
-                UpdateState(state, rawDeduplicator, canonicalDeduplicator);
-                canonicalSnapshotChanged?.Invoke(
-                    CreateCanonicalSnapshot(
-                        session.SessionId,
-                        canonicalDeduplicator));
-                SaveProgress(
-                    sessionDirectory,
-                    config,
-                    state,
-                    stats,
-                    canonicalDeduplicator);
+                if (pollingResult.ChangedFiles.Count > 0)
+                {
+                    hasUnsavedChanges = true;
+                    stats.CanonicalRecordsWritten =
+                        canonicalDeduplicator.Records.Count;
+                    canonicalSnapshotChanged?.Invoke(
+                        CreateCanonicalSnapshot(
+                            session.SessionId,
+                            canonicalDeduplicator));
+                }
+
+                var checkpointAt = _clock();
+                if (ShouldSaveCheckpoint(
+                        hasUnsavedChanges,
+                        lastCheckpointAt,
+                        checkpointAt))
+                {
+                    UpdateState(
+                        state,
+                        rawDeduplicator,
+                        canonicalDeduplicator);
+                    SaveProgress(
+                        sessionDirectory,
+                        config,
+                        state,
+                        stats,
+                        canonicalDeduplicator);
+                    lastCheckpointAt = checkpointAt;
+                    hasUnsavedChanges = false;
+                }
+
                 progressChanged?.Invoke(
                     CopyStats(stats),
                     result.Errors.ToArray());
@@ -185,6 +209,15 @@ public sealed class PollingCollectionRunner
         result.CanonicalRecordsWritten = stats.CanonicalRecordsWritten;
 
         return result;
+    }
+
+    internal static bool ShouldSaveCheckpoint(
+        bool hasUnsavedChanges,
+        DateTimeOffset lastCheckpointAt,
+        DateTimeOffset currentTime)
+    {
+        return hasUnsavedChanges
+            && currentTime - lastCheckpointAt >= CheckpointInterval;
     }
 
     private CanonicalSnapshot CreateCanonicalSnapshot(

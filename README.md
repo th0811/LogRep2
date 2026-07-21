@@ -84,6 +84,8 @@ x64自己完結型配布物には.NETランタイムが含まれるため、利�
 - TEMPログのデコード、正規化、重複排除
 - raw、canonical、セッション状態、統計情報の保存
 - タスクトレイ格納と単一起動制御
+- 入力仕様はFFXI向けのCP932、Asia/Tokyo、SHA-1、canonical重複排除に固定
+- canonical、状態、統計は変更中に5秒間隔でチェックポイント保存し、収集終了時に確定
 
 セッションフォルダーには次のファイルを出力します。
 
@@ -100,6 +102,8 @@ stats.json
 収集出力先を既定のセッションルートとして使用します。一時的に別フォルダーを開いても、収集出力先は変更しません。
 
 旧`logRep_r`が出力したschema version 1.0のセッションも読み込めます。
+
+セッションの読込、複数セッションの結合、分析はバックグラウンドで実行され、処理中にキャンセルできます。
 
 分析範囲は手動マーカーに加え、`=== エリア名 ===`形式のログから生成したエリア滞在区間でも指定できます。エリア滞在区間はcanonicalのorderで区切られ、エリアチェンジ行の直後から次のエリアチェンジ行の直前までが対象です。同名エリアは訪問回数、通番、order範囲、ログ件数で区別します。
 
@@ -132,6 +136,8 @@ stats.json
 
 移行結果は`LogRep2.settings.json`へ保存します。旧設定ファイルは削除・上書きしません。新設定が既にある場合も旧設定で上書きしません。
 
+`LogRep2.settings.json`を読み込めない場合は、確認後に`LogRep2.settings.invalid-日時.json`へバックアップし、初期設定で起動できます。
+
 旧アプリを残す場合、同じTEMPログを旧アプリとLogRep2で同時収集しないでください。
 
 ## 更新方法
@@ -142,7 +148,7 @@ stats.json
 4. 設定ファイルが保持されていることを確認して起動する。
 5. 収集設定、過去ログ一覧、オーバーレイ位置を確認する。
 
-`config.example.json`は設定例です。既存の`LogRep2.settings.json`を置き換えないでください。
+`config.example.json`は開発時の参照用としてリポジトリにのみ保持し、リリース成果物には含めません。
 
 ## CLI
 
@@ -197,10 +203,7 @@ LogRep2.exe config set KEY VALUE
 ```text
 temp_dir
 output_dir
-encoding
 marker_prefix
-timezone
-hash_algorithm
 log_level
 minimize_button_behavior
 close_button_behavior
@@ -211,7 +214,6 @@ close_button_behavior
 ```text
 polling_interval_ms
 rotation_slots
-flush_interval_ms
 ```
 
 真偽値（`true`または`false`）:
@@ -222,7 +224,6 @@ watch_window2
 raw_output
 canonical_output
 dedupe_raw
-dedupe_canonical
 marker_detection
 auto_start_collection_on_launch
 minimize_to_tray_while_collecting

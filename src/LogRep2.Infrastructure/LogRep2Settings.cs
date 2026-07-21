@@ -24,7 +24,6 @@ public sealed class LogRep2Settings
             OutputDir = ConfigLoader.ResolveOutputDirectory(
                 Collection.OutputDirectory,
                 baseDirectory),
-            Encoding = Collection.Encoding,
             PollingIntervalMs = Collection.PollingIntervalMs,
             WatchWindow1 = Collection.WatchWindow1,
             WatchWindow2 = Collection.WatchWindow2,
@@ -32,12 +31,8 @@ public sealed class LogRep2Settings
             RawOutput = Collection.RawOutput,
             CanonicalOutput = Collection.CanonicalOutput,
             DedupeRaw = Collection.DedupeRaw,
-            DedupeCanonical = Collection.DedupeCanonical,
             MarkerDetection = Collection.MarkerDetection,
             MarkerPrefix = Collection.MarkerPrefix,
-            Timezone = Collection.Timezone,
-            FlushIntervalMs = Collection.FlushIntervalMs,
-            HashAlgorithm = Collection.HashAlgorithm,
             LogLevel = Application.LogLevel,
             AutoStartCollectionOnLaunch =
                 Application.AutoStartCollectionOnLaunch,
@@ -56,7 +51,6 @@ public sealed class LogRep2Settings
 
         Collection.TempDirectory = config.TempDir;
         Collection.OutputDirectory = config.OutputDir;
-        Collection.Encoding = config.Encoding;
         Collection.PollingIntervalMs = config.PollingIntervalMs;
         Collection.WatchWindow1 = config.WatchWindow1;
         Collection.WatchWindow2 = config.WatchWindow2;
@@ -64,12 +58,8 @@ public sealed class LogRep2Settings
         Collection.RawOutput = config.RawOutput;
         Collection.CanonicalOutput = config.CanonicalOutput;
         Collection.DedupeRaw = config.DedupeRaw;
-        Collection.DedupeCanonical = config.DedupeCanonical;
         Collection.MarkerDetection = config.MarkerDetection;
         Collection.MarkerPrefix = config.MarkerPrefix;
-        Collection.Timezone = config.Timezone;
-        Collection.FlushIntervalMs = config.FlushIntervalMs;
-        Collection.HashAlgorithm = config.HashAlgorithm;
         Application.LogLevel = config.LogLevel;
         Application.AutoStartCollectionOnLaunch =
             config.AutoStartCollectionOnLaunch;
@@ -90,8 +80,6 @@ public sealed class CollectionSettings
     public string OutputDirectory { get; set; } =
         CollectorConfig.DefaultOutputDirectory;
 
-    public string Encoding { get; set; } = "cp932";
-
     public int PollingIntervalMs { get; set; } = 1000;
 
     public bool WatchWindow1 { get; set; } = true;
@@ -106,18 +94,11 @@ public sealed class CollectionSettings
 
     public bool DedupeRaw { get; set; } = true;
 
-    public bool DedupeCanonical { get; set; } = true;
-
     public bool MarkerDetection { get; set; } = true;
 
     public string MarkerPrefix { get; set; } =
         CollectorConfig.DefaultMarkerPrefix;
 
-    public string Timezone { get; set; } = "Asia/Tokyo";
-
-    public int FlushIntervalMs { get; set; } = 1000;
-
-    public string HashAlgorithm { get; set; } = "sha1";
 }
 
 public sealed class AnalysisSettings
@@ -149,22 +130,10 @@ public sealed class OverlaySettings
 
     public double Height { get; set; } = 300;
 
-    public bool PositionLocked { get; set; }
-
     public string? MonitorDeviceName { get; set; }
 
     public double FontSize { get; set; } = 16;
 
-    public int DisplayRowCount { get; set; } = 10;
-
-    public List<string> DisplayItems { get; set; } =
-    [
-        "total_damage",
-        "dps",
-        "hit_rate",
-        "actor_ranking",
-        "analysis_state",
-    ];
 }
 
 public sealed class ApplicationSettings

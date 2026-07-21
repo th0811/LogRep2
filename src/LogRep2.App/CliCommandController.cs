@@ -408,7 +408,6 @@ public sealed class CliCommandController : IAsyncDisposable
         {
             "temp_dir" => config.TempDir,
             "output_dir" => config.OutputDir,
-            "encoding" => config.Encoding,
             "polling_interval_ms" => config.PollingIntervalMs,
             "watch_window1" => config.WatchWindow1,
             "watch_window2" => config.WatchWindow2,
@@ -416,12 +415,8 @@ public sealed class CliCommandController : IAsyncDisposable
             "raw_output" => config.RawOutput,
             "canonical_output" => config.CanonicalOutput,
             "dedupe_raw" => config.DedupeRaw,
-            "dedupe_canonical" => config.DedupeCanonical,
             "marker_detection" => config.MarkerDetection,
             "marker_prefix" => config.MarkerPrefix,
-            "timezone" => config.Timezone,
-            "flush_interval_ms" => config.FlushIntervalMs,
-            "hash_algorithm" => config.HashAlgorithm,
             "log_level" => config.LogLevel,
             "auto_start_collection_on_launch" =>
                 config.AutoStartCollectionOnLaunch,
@@ -513,17 +508,8 @@ public sealed class CliCommandController : IAsyncDisposable
             case "output_dir":
                 config.OutputDir = value;
                 return true;
-            case "encoding":
-                config.Encoding = value;
-                return true;
             case "marker_prefix":
                 config.MarkerPrefix = value;
-                return true;
-            case "timezone":
-                config.Timezone = value;
-                return true;
-            case "hash_algorithm":
-                config.HashAlgorithm = value;
                 return true;
             case "log_level":
                 config.LogLevel = value.ToLowerInvariant();
@@ -570,9 +556,6 @@ public sealed class CliCommandController : IAsyncDisposable
             case "dedupe_raw":
                 config.DedupeRaw = parsed;
                 break;
-            case "dedupe_canonical":
-                config.DedupeCanonical = parsed;
-                break;
             case "marker_detection":
                 config.MarkerDetection = parsed;
                 break;
@@ -614,9 +597,6 @@ public sealed class CliCommandController : IAsyncDisposable
                 break;
             case "rotation_slots":
                 config.RotationSlots = parsed;
-                break;
-            case "flush_interval_ms":
-                config.FlushIntervalMs = parsed;
                 break;
         }
 
@@ -674,7 +654,6 @@ public sealed class CliCommandController : IAsyncDisposable
             or "raw_output"
             or "canonical_output"
             or "dedupe_raw"
-            or "dedupe_canonical"
             or "marker_detection"
             or "auto_start_collection_on_launch"
             or "minimize_to_tray_while_collecting"
@@ -684,8 +663,7 @@ public sealed class CliCommandController : IAsyncDisposable
     private static bool IsIntegerKey(string key)
     {
         return key is "polling_interval_ms"
-            or "rotation_slots"
-            or "flush_interval_ms";
+            or "rotation_slots";
     }
 
     private async Task<IpcResponse?> TrySendIpcAsync(

@@ -4,6 +4,33 @@ namespace FfxiTempLogCollector.Tests;
 
 public sealed class PollingCollectionRunnerTests
 {
+    [Theory]
+    [InlineData(false, 10, false)]
+    [InlineData(true, 4, false)]
+    [InlineData(true, 5, true)]
+    [InlineData(true, 10, true)]
+    public void 変更がある場合だけ5秒間隔でチェックポイント保存する(
+        bool hasChanges,
+        int elapsedSeconds,
+        bool expected)
+    {
+        var startedAt = new DateTimeOffset(
+            2026,
+            1,
+            1,
+            0,
+            0,
+            0,
+            TimeSpan.Zero);
+
+        var actual = PollingCollectionRunner.ShouldSaveCheckpoint(
+            hasChanges,
+            startedAt,
+            startedAt.AddSeconds(elapsedSeconds));
+
+        Assert.Equal(expected, actual);
+    }
+
     [Fact]
     public async Task CancellationTokenで停止してSessionをCompletedにする()
     {

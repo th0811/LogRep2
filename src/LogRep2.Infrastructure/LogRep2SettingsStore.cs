@@ -120,6 +120,25 @@ public sealed class LogRep2SettingsStore
         }
     }
 
+    public string BackupInvalidSettings()
+    {
+        if (!File.Exists(SettingsPath))
+        {
+            throw new FileNotFoundException(
+                $"バックアップ対象の統合設定が見つかりません: {SettingsPath}",
+                SettingsPath);
+        }
+
+        var timestamp = DateTimeOffset.Now.ToString(
+            "yyyyMMdd-HHmmssfff",
+            System.Globalization.CultureInfo.InvariantCulture);
+        var backupPath = Path.Combine(
+            ApplicationDirectory,
+            $"LogRep2.settings.invalid-{timestamp}.json");
+        File.Move(SettingsPath, backupPath);
+        return backupPath;
+    }
+
     public CollectorConfig LoadCollectorConfig()
     {
         return Load().CreateCollectorConfig(ApplicationDirectory);
@@ -218,13 +237,10 @@ public sealed class LogRep2SettingsStore
         settings.Analysis.RealtimePartyMembers = NormalizeOrderedNames(
             settings.Analysis.RealtimePartyMembers,
             6);
-        settings.Overlay.DisplayItems = NormalizeNames(
-            settings.Overlay.DisplayItems);
         settings.Overlay.Opacity = Math.Clamp(settings.Overlay.Opacity, 0.25, 1.0);
         settings.Overlay.Width = Math.Max(settings.Overlay.Width, 280);
         settings.Overlay.Height = Math.Max(settings.Overlay.Height, 180);
         settings.Overlay.FontSize = Math.Clamp(settings.Overlay.FontSize, 10, 40);
-        settings.Overlay.DisplayRowCount = Math.Clamp(settings.Overlay.DisplayRowCount, 1, 30);
     }
 
     private static List<string> NormalizeNames(

@@ -86,6 +86,5 @@ public sealed class ConfigLoaderTests
         Assert.Equal(
             Path.Combine(applicationDirectory, "sessions"),
             actual.OutputDir);
-        Assert.Equal("cp932", actual.Encoding);
     }
 }

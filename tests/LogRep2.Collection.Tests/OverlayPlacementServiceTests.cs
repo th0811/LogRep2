@@ -61,7 +61,6 @@ public sealed class OverlayPlacementServiceTests
             Width = 10,
             Height = 20,
             FontSize = 100,
-            DisplayRowCount = 100,
         };
 
         OverlayPlacementService.Normalize(
@@ -72,7 +71,6 @@ public sealed class OverlayPlacementServiceTests
         Assert.Equal(280, settings.Width);
         Assert.Equal(180, settings.Height);
         Assert.Equal(40, settings.FontSize);
-        Assert.Equal(30, settings.DisplayRowCount);
     }
 
     [Fact]

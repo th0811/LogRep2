@@ -3,7 +3,6 @@
   "collection": {
     "temp_directory": "",
     "output_directory": "sessions",
-    "encoding": "cp932",
     "polling_interval_ms": 1000,
     "watch_window1": true,
     "watch_window2": true,
@@ -11,12 +10,8 @@
     "raw_output": true,
     "canonical_output": true,
     "dedupe_raw": true,
-    "dedupe_canonical": true,
     "marker_detection": true,
-    "marker_prefix": "###",
-    "timezone": "Asia/Tokyo",
-    "flush_interval_ms": 1000,
-    "hash_algorithm": "sha1"
+    "marker_prefix": "###"
   },
   "analysis": {
     "known_pc_names": [],
@@ -26,23 +21,15 @@
   },
   "overlay": {
     "enabled": false,
+    "show_on_realtime_analysis_start": true,
     "opacity": 0.8,
     "topmost": true,
     "left": 100,
     "top": 100,
     "width": 420,
     "height": 300,
-    "position_locked": false,
     "monitor_device_name": null,
-    "font_size": 16,
-    "display_row_count": 10,
-    "display_items": [
-      "total_damage",
-      "dps",
-      "hit_rate",
-      "actor_ranking",
-      "analysis_state"
-    ]
+    "font_size": 16
   },
   "application": {
     "log_level": "info",
