@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:FFXI_LogAnalyzer.App"
         mc:Ignorable="d"
+        Icon="pack://application:,,,/LogRep2;component/app.ico"
         Title="LogRep2 - 過去ログ分析" Height="900" Width="1600" MinHeight="520" MinWidth="760">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />

@@ -5,6 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="LogRep2"
+        Icon="pack://application:,,,/LogRep2;component/app.ico"
         Height="760"
         Width="1000"
         MinHeight="520"
