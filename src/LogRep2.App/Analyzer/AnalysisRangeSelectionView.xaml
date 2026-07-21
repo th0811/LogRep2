@@ -46,12 +46,12 @@
                       IsReadOnly="True"
                       HeadersVisibility="Column">
                 <DataGrid.Columns>
-                    <DataGridTextColumn Header="session_id" Binding="{Binding SessionId}" Width="140" />
-                    <DataGridTextColumn Header="order" Binding="{Binding Order}" Width="70" />
-                    <DataGridTextColumn Header="marker_keyword" Binding="{Binding MarkerKeyword}" Width="140" />
-                    <DataGridTextColumn Header="visible_text" Binding="{Binding VisibleText}" Width="*" />
-                    <DataGridTextColumn Header="message_time_text" Binding="{Binding MessageTimeText}" Width="140" />
-                    <DataGridTextColumn Header="first_seen_at" Binding="{Binding FirstSeenAt}" Width="180" />
+                    <DataGridTextColumn Header="セッションID" Binding="{Binding SessionId}" Width="140" />
+                    <DataGridTextColumn Header="ログ順序" Binding="{Binding Order}" Width="80" />
+                    <DataGridTextColumn Header="マーカー" Binding="{Binding MarkerKeyword}" Width="140" />
+                    <DataGridTextColumn Header="ログ本文" Binding="{Binding VisibleText}" Width="*" />
+                    <DataGridTextColumn Header="ログ内時刻" Binding="{Binding MessageTimeText}" Width="140" />
+                    <DataGridTextColumn Header="初回検出時刻" Binding="{Binding FirstSeenAt}" Width="180" />
                 </DataGrid.Columns>
             </DataGrid>
 
@@ -60,7 +60,7 @@
                           IsEnabled="{Binding IsManualRangeMode}">
                     <StackPanel Margin="8">
                         <RadioButton Content="ログ先頭" IsChecked="{Binding IsStartLogStart}" Margin="0,0,0,6" />
-                        <RadioButton Content="marker" IsChecked="{Binding IsStartMarker}" Margin="0,0,0,6" />
+                        <RadioButton Content="マーカー" IsChecked="{Binding IsStartMarker}" Margin="0,0,0,6" />
                         <ComboBox ItemsSource="{Binding Markers}"
                                   SelectedItem="{Binding SelectedStartMarker}"
                                   DisplayMemberPath="VisibleText"
@@ -71,7 +71,7 @@
                 <GroupBox Header="終了ポイント" Margin="0,0,0,10"
                           IsEnabled="{Binding IsManualRangeMode}">
                     <StackPanel Margin="8">
-                        <RadioButton Content="marker" IsChecked="{Binding IsEndMarker}" Margin="0,0,0,6" />
+                        <RadioButton Content="マーカー" IsChecked="{Binding IsEndMarker}" Margin="0,0,0,6" />
                         <ComboBox ItemsSource="{Binding EndMarkerCandidates}"
                                   SelectedItem="{Binding SelectedEndMarker}"
                                   DisplayMemberPath="VisibleText"
@@ -100,7 +100,7 @@
 
         <TextBlock Grid.Row="2"
                    Margin="0,8,0,0"
-                   Text="終了marker候補には、開始markerより後ろのmarkerのみ表示されます。"
+                   Text="終了マーカー候補には、開始マーカーより後ろのマーカーのみ表示されます。"
                    TextWrapping="Wrap" />
     </Grid>
 </UserControl>

@@ -2,6 +2,9 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Threading;
 using FfxiTempLogCollector.Core;
+using MessageBox = System.Windows.MessageBox;
+using MessageBoxButton = System.Windows.MessageBoxButton;
+using MessageBoxImage = System.Windows.MessageBoxImage;
 
 namespace FfxiTempLogCollector.App;
 
@@ -101,6 +104,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         ResetOverlayPositionCommand = new RelayCommand(
             _controller.ResetOverlayPosition,
             () => !IsShuttingDown);
+        OpenDiagnosticLogsCommand = new RelayCommand(
+            OpenDiagnosticLogs,
+            () => !IsShuttingDown);
 
         _controller.Events.StatusChanged += OnStatusChanged;
         _controller.ConfigChanged += OnConfigChanged;
@@ -189,6 +195,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string OutputDirectory => _controller.Config.OutputDir;
 
+    public string VersionText => DiagnosticLogService.VersionText;
+
     public string PartyMemberSummary
     {
         get
@@ -276,6 +284,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public RelayCommand ToggleOverlayCommand { get; }
 
     public RelayCommand ResetOverlayPositionCommand { get; }
+
+    public RelayCommand OpenDiagnosticLogsCommand { get; }
 
     public string OverlayButtonText => _controller.IsOverlayVisible
         ? "オーバーレイ非表示"
@@ -550,6 +560,25 @@ public sealed class MainViewModel : INotifyPropertyChanged
         };
     }
 
+    private static void OpenDiagnosticLogs()
+    {
+        try
+        {
+            DiagnosticLogService.OpenLogDirectory();
+        }
+        catch (Exception exception)
+        {
+            DiagnosticLogService.Write(
+                "診断ログフォルダー表示エラー",
+                exception);
+            MessageBox.Show(
+                $"診断ログフォルダーを開けませんでした: {exception.Message}",
+                "診断ログ",
+                MessageBoxButton.OK,
+                MessageBoxImage.Warning);
+        }
+    }
+
     private static string GetStatusBackground(CollectorStatus status)
     {
         return status switch
@@ -580,6 +609,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         ResetRealtimeAnalysisCommand.RaiseCanExecuteChanged();
         ToggleOverlayCommand.RaiseCanExecuteChanged();
         ResetOverlayPositionCommand.RaiseCanExecuteChanged();
+        OpenDiagnosticLogsCommand.RaiseCanExecuteChanged();
     }
 
     private void SetProperty<T>(

@@ -9,7 +9,8 @@ public sealed class ActorSummaryViewModel
         Actor = summary.Actor;
         TotalDamage = summary.TotalDamage.ToString("N0");
         Dps = FormatNullable(summary.Dps);
-        DpsTimeConfidence = summary.DpsTimeConfidence.ToString();
+        DpsTimeConfidence = AnalysisDisplayText.ToText(
+            summary.DpsTimeConfidence);
         NormalAttackHitRate = FormatNormalAttackHitRate(summary);
         NormalAttackCriticalRate = FormatNormalAttackCriticalRate(summary);
         TotalUseCount = summary.TotalUseCount.ToString("N0");

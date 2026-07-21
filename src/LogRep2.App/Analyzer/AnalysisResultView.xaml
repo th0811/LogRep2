@@ -40,13 +40,13 @@
             <TabItem Header="キャラクター別サマリ">
                 <Grid>
                     <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="360" />
+                        <ColumnDefinition Width="3*" MinWidth="220" />
                         <ColumnDefinition Width="12" />
-                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="7*" />
                     </Grid.ColumnDefinitions>
 
                     <GroupBox Grid.Column="0"
-                              Header="actor選択"
+                              Header="キャラクター選択"
                               Padding="8">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Top">
@@ -141,6 +141,12 @@
                         </DockPanel>
                     </GroupBox>
 
+                    <GridSplitter Grid.Column="1"
+                                  Width="4"
+                                  HorizontalAlignment="Center"
+                                  VerticalAlignment="Stretch"
+                                  Background="#D1D5DB" />
+
                     <DataGrid Grid.Column="2"
                               ItemsSource="{Binding ActorSummaries}"
                               AutoGenerateColumns="False"
@@ -148,13 +154,13 @@
                               IsReadOnly="True"
                               HeadersVisibility="Column">
                         <DataGrid.Columns>
-                            <DataGridTextColumn Header="actor名" Binding="{Binding Actor}" Width="150" />
+                            <DataGridTextColumn Header="キャラクター名" Binding="{Binding Actor}" Width="150" />
                             <DataGridTextColumn Header="総与ダメージ" Binding="{Binding TotalDamage}" Width="110" />
                             <DataGridTextColumn Header="DPS" Binding="{Binding Dps}" Width="90" />
-                            <DataGridTextColumn Header="DPS時間信頼度" Binding="{Binding DpsTimeConfidence}" Width="120" />
+                            <DataGridTextColumn Header="DPS時間精度" Binding="{Binding DpsTimeConfidence}" Width="120" />
                             <DataGridTextColumn Header="通常攻撃命中率" Binding="{Binding NormalAttackHitRate}" Width="150" />
                             <DataGridTextColumn Header="通常攻撃クリティカル率" Binding="{Binding NormalAttackCriticalRate}" Width="170" />
-                            <DataGridTextColumn Header="unknown件数" Binding="{Binding UnknownCount}" Width="100" />
+                            <DataGridTextColumn Header="未分類件数" Binding="{Binding UnknownCount}" Width="100" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -167,13 +173,13 @@
                           IsReadOnly="True"
                           HeadersVisibility="Column">
                     <DataGrid.Columns>
-                        <DataGridTextColumn Header="actor名" Binding="{Binding Actor}" Width="140" />
-                        <DataGridTextColumn Header="action_name" Binding="{Binding ActionName}" Width="170" />
-                        <DataGridTextColumn Header="action_type" Binding="{Binding ActionType}" Width="140" />
+                        <DataGridTextColumn Header="キャラクター名" Binding="{Binding Actor}" Width="140" />
+                        <DataGridTextColumn Header="アクション名" Binding="{Binding ActionName}" Width="170" />
+                        <DataGridTextColumn Header="種別" Binding="{Binding ActionType}" Width="140" />
                         <DataGridTextColumn Header="使用回数" Binding="{Binding UseCount}" Width="90" />
                         <DataGridTextColumn Header="命中回数" Binding="{Binding HitCount}" Width="90" />
                         <DataGridTextColumn Header="非命中回数" Binding="{Binding MissCount}" Width="100" />
-                        <DataGridTextColumn Header="unknown件数" Binding="{Binding UnknownCount}" Width="100" />
+                        <DataGridTextColumn Header="未分類件数" Binding="{Binding UnknownCount}" Width="100" />
                         <DataGridTextColumn Header="命中率" Binding="{Binding HitRate}" Width="90" />
                         <DataGridTextColumn Header="総ダメージ" Binding="{Binding TotalDamage}" Width="100" />
                         <DataGridTextColumn Header="最大ダメージ" Binding="{Binding MaxDamage}" Width="100" />

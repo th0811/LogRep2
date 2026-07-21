@@ -6,6 +6,14 @@
 
 .NET 8 SDK とWindows環境が必要です。
 
+配布用ZIPとSHA-256ファイルを作成する場合は、次のスクリプトを使用します。全テストが成功した場合だけ`artifacts`フォルダーへ自己完結型の配布物を作成します。
+
+```powershell
+.\scripts\Publish-Release.ps1 -Version 0.1.0
+```
+
+.NET 8 Desktop Runtimeを別途必要とするランタイムなし版は、`-FrameworkDependent`を追加します。
+
 ### ランタイムなし版
 
 ```powershell
@@ -76,6 +84,8 @@ dotnet publish src/LogRep2.App/LogRep2.App.csproj `
 x64自己完結型配布物には.NETランタイムが含まれるため、利用PCへ.NET 8 Desktop Runtimeを別途インストールする必要はありません。
 
 設定はポータブル方式です。`Program Files`など一般ユーザーが書き込めないフォルダーは避けてください。設定をAppDataやレジストリへ保存することはありません。
+
+予期しないエラーと操作エラーは、exeと同じ場所の`logs`フォルダーへ日単位で記録されます。メイン画面の「診断ログ」からフォルダーを開けます。診断ログは30日を超えると起動時に削除されます。
 
 ## GUI機能の詳細
 

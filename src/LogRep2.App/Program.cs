@@ -11,9 +11,46 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
-        return args.Length == 0
-            ? RunGui()
-            : RunCliAsync(args).GetAwaiter().GetResult();
+        DiagnosticLogService.Initialize();
+        AppDomain.CurrentDomain.UnhandledException += (_, eventArgs) =>
+        {
+            if (eventArgs.ExceptionObject is Exception exception)
+            {
+                DiagnosticLogService.Write("未処理例外", exception);
+            }
+        };
+        TaskScheduler.UnobservedTaskException += (_, eventArgs) =>
+        {
+            DiagnosticLogService.Write("未監視タスク例外", eventArgs.Exception);
+            eventArgs.SetObserved();
+        };
+
+        try
+        {
+            return args.Length == 0
+                ? RunGui()
+                : RunCliAsync(args).GetAwaiter().GetResult();
+        }
+        catch (Exception exception)
+        {
+            DiagnosticLogService.Write("致命的なエラー", exception);
+            if (args.Length == 0)
+            {
+                System.Windows.MessageBox.Show(
+                    "予期しないエラーが発生しました。診断ログを確認してください。"
+                        + Environment.NewLine
+                        + DiagnosticLogService.LogDirectory,
+                    "LogRep2 エラー",
+                    System.Windows.MessageBoxButton.OK,
+                    System.Windows.MessageBoxImage.Error);
+            }
+            else
+            {
+                Console.Error.WriteLine($"予期しないエラーが発生しました: {exception.Message}");
+            }
+
+            return 1;
+        }
     }
 
     private static int RunGui()
@@ -80,6 +117,7 @@ public static class Program
         controller.AttachWindow(mainWindow);
         application.DispatcherUnhandledException += (_, eventArgs) =>
         {
+            DiagnosticLogService.Write("画面処理エラー", eventArgs.Exception);
             if (!IsOverlayException(eventArgs.Exception))
             {
                 return;

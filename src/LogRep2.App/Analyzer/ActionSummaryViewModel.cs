@@ -8,7 +8,7 @@ public sealed class ActionSummaryViewModel
     {
         Actor = summary.Actor;
         ActionName = summary.ActionName;
-        ActionType = summary.ActionType.ToString();
+        ActionType = AnalysisDisplayText.ToText(summary.ActionType);
         UseCount = summary.UseCount.ToString("N0");
         HitCount = summary.HitCount.ToString("N0");
         MissCount = summary.MissCount.ToString("N0");

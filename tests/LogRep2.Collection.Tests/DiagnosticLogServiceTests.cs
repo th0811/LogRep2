@@ -1,0 +1,64 @@
+using FfxiTempLogCollector.App;
+using FFXI_LogAnalyzer.App;
+using FFXI_LogAnalyzer.Core;
+
+namespace FfxiTempLogCollector.Tests;
+
+public sealed class DiagnosticLogServiceTests
+{
+    [Fact]
+    public void 診断ログに日時カテゴリと本文を出力する()
+    {
+        var timestamp = new DateTimeOffset(
+            2026,
+            7,
+            21,
+            20,
+            30,
+            15,
+            123,
+            TimeSpan.FromHours(9));
+
+        var entry = DiagnosticLogService.BuildEntry(
+            timestamp,
+            "操作エラー",
+            "テスト本文");
+
+        Assert.Contains(
+            "[2026-07-21 20:30:15.123 +09:00] [操作エラー]",
+            entry);
+        Assert.Contains("テスト本文", entry);
+    }
+
+    [Fact]
+    public void 表示用バージョンにバージョン番号を含む()
+    {
+        Assert.StartsWith("バージョン ", DiagnosticLogService.VersionText);
+        Assert.DoesNotContain('+', DiagnosticLogService.VersionText);
+    }
+
+    [Theory]
+    [InlineData(TimeConfidence.Exact, "秒単位")]
+    [InlineData(TimeConfidence.Minute, "分単位")]
+    [InlineData(TimeConfidence.Estimated, "推定")]
+    [InlineData(TimeConfidence.Unknown, "不明")]
+    public void 時刻精度を日本語表示に変換する(
+        TimeConfidence confidence,
+        string expected)
+    {
+        Assert.Equal(expected, AnalysisDisplayText.ToText(confidence));
+    }
+
+    [Theory]
+    [InlineData(ActionType.NormalAttack, "通常攻撃")]
+    [InlineData(ActionType.NormalAttackCritical, "通常攻撃（クリティカル）")]
+    [InlineData(ActionType.Skill, "技")]
+    [InlineData(ActionType.Magic, "魔法")]
+    [InlineData(ActionType.Unknown, "未分類")]
+    public void アクション種別を日本語表示に変換する(
+        ActionType actionType,
+        string expected)
+    {
+        Assert.Equal(expected, AnalysisDisplayText.ToText(actionType));
+    }
+}

@@ -24,7 +24,7 @@ public sealed class SessionSelectionViewModel : INotifyPropertyChanged
         EndedAt = ToDisplay(session.SessionInfo.EndedAt);
         RecordCount = records.Count.ToString("N0");
         MarkerCount = records.Count(record => record.IsMarker).ToString("N0");
-        Status = session.SessionInfo.Status.ToString();
+        Status = AnalysisDisplayText.ToText(session.SessionInfo.Status);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

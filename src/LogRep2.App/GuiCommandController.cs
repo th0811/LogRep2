@@ -329,6 +329,7 @@ public sealed class GuiCommandController : IAsyncDisposable
         string message,
         Exception exception)
     {
+        DiagnosticLogService.Write("操作エラー", exception);
         var detail = $"{message}\n{exception.Message}";
         MessageBox.Show(
             GetWindow(),

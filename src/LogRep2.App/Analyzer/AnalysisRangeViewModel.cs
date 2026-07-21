@@ -393,7 +393,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             var calculation = await Task.Run(
                 () => Analyze(selection, cancellationToken),
                 cancellationToken);
-            RangeSummary = $"対象レコード: {calculation.RecordCount} 件 / time_confidence: {calculation.Result.AnalysisTime.Confidence} / duration_seconds: {ToDurationText(calculation.Result.AnalysisTime.DurationSeconds)}";
+            RangeSummary = $"対象ログ: {calculation.RecordCount:N0}件 / 時刻精度: {AnalysisDisplayText.ToText(calculation.Result.AnalysisTime.Confidence)} / 分析時間: {ToDurationText(calculation.Result.AnalysisTime.DurationSeconds)}秒";
             ValidationMessage = "分析が完了しました。";
             _lastCompletedRangeName = rangeName;
             AnalysisCompleted?.Invoke(calculation.Result);

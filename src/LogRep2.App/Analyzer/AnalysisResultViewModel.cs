@@ -256,8 +256,8 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
             SessionRows.Add(row);
         }
 
-        SessionRows.Add(new SessionInfoRow("time_confidence", ToConfidenceText(result.AnalysisTime.Confidence)));
-        SessionRows.Add(new SessionInfoRow("duration_seconds", result.AnalysisTime.DurationSeconds?.ToString("0.###") ?? "-"));
+        SessionRows.Add(new SessionInfoRow("分析時刻の精度", AnalysisDisplayText.ToText(result.AnalysisTime.Confidence)));
+        SessionRows.Add(new SessionInfoRow("分析時間（秒）", result.AnalysisTime.DurationSeconds?.ToString("0.###") ?? "-"));
         SessionRows.Add(new SessionInfoRow("DPS状態", ToDpsStatus(result.AnalysisTime)));
         SessionRows.Add(new SessionInfoRow("未解析ログ件数", UnparsedLogs.Count.ToString("N0")));
 
@@ -286,17 +286,6 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         HasResult = false;
         StatusMessage = "分析結果はまだありません。";
         OnPropertyChanged(nameof(ActorSelectionSummary));
-    }
-
-    private static string ToConfidenceText(TimeConfidence confidence)
-    {
-        return confidence switch
-        {
-            TimeConfidence.Minute => "Minute",
-            TimeConfidence.Estimated => "Estimated",
-            TimeConfidence.Unknown => "Unknown",
-            _ => confidence.ToString()
-        };
     }
 
     private static string ToDpsStatus(AnalysisTimeResult analysisTime)

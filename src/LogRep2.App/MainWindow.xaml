@@ -9,7 +9,7 @@
         Height="760"
         Width="1000"
         MinHeight="520"
-        MinWidth="900"
+        MinWidth="720"
         WindowStartupLocation="CenterScreen"
         Loaded="OnLoaded"
         StateChanged="OnStateChanged"
@@ -42,6 +42,7 @@
 
         <ScrollViewer Grid.Row="1"
                       Padding="24"
+                      HorizontalScrollBarVisibility="Auto"
                       VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <GroupBox Header="稼働コントロール"
@@ -273,7 +274,7 @@
                             </Grid.RowDefinitions>
                             <TextBlock Grid.Row="0" Grid.Column="0" Margin="0,0,12,10" FontWeight="SemiBold" Text="対象件数" />
                             <TextBlock Grid.Row="0" Grid.Column="1" Margin="0,0,24,10" Text="{Binding RealtimeTargetCount}" />
-                            <TextBlock Grid.Row="0" Grid.Column="2" Margin="0,0,12,10" FontWeight="SemiBold" Text="canonical総件数" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Margin="0,0,12,10" FontWeight="SemiBold" Text="正規化ログ総件数" />
                             <TextBlock Grid.Row="0" Grid.Column="3" Margin="0,0,0,10" Text="{Binding RealtimeCanonicalCount}" />
                             <TextBlock Grid.Row="1" Grid.Column="0" Margin="0,0,12,10" FontWeight="SemiBold" Text="合計ダメージ" />
                             <TextBlock Grid.Row="1" Grid.Column="1" Margin="0,0,24,10" Text="{Binding RealtimeTotalDamage}" />
@@ -330,7 +331,7 @@
                                    Grid.Column="0"
                                    Margin="0,0,12,12"
                                    FontWeight="SemiBold"
-                                   Text="raw保存件数" />
+                                   Text="元ログ保存件数" />
                         <TextBlock Grid.Row="1"
                                    Grid.Column="1"
                                    Margin="0,0,24,12"
@@ -339,7 +340,7 @@
                                    Grid.Column="2"
                                    Margin="0,0,12,12"
                                    FontWeight="SemiBold"
-                                   Text="canonical保存件数" />
+                                   Text="正規化ログ保存件数" />
                         <TextBlock Grid.Row="1"
                                    Grid.Column="3"
                                    Margin="0,0,0,12"
@@ -391,6 +392,11 @@
 
                 <StackPanel DockPanel.Dock="Right"
                             Orientation="Horizontal">
+                    <Button Width="112"
+                            Height="34"
+                            Margin="0,0,8,0"
+                            Command="{Binding OpenDiagnosticLogsCommand}"
+                            Content="診断ログ" />
                     <Button Width="128"
                             Height="34"
                             Margin="16,0,8,0"
@@ -401,6 +407,12 @@
                             Command="{Binding ExitCommand}"
                             Content="終了" />
                 </StackPanel>
+
+                <TextBlock Margin="16,0"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           Foreground="#6B7280"
+                           Text="{Binding VersionText}" />
             </DockPanel>
         </Border>
     </Grid>

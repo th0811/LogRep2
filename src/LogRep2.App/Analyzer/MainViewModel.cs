@@ -667,15 +667,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         return
         [
-            new SessionInfoRow("selected_sessions", sessions.Count.ToString("N0")),
-            new SessionInfoRow("session_ids", string.Join(", ", sessions.Select(session => session.SessionId))),
-            new SessionInfoRow("started_at_min", ToDisplay(sessions.Min(session => session.Session.SessionInfo.StartedAt))),
-            new SessionInfoRow("ended_at_max", ToDisplay(sessions.Max(session => session.Session.SessionInfo.EndedAt))),
-            new SessionInfoRow("canonical record件数", sessions.Sum(session => session.Records.Count).ToString("N0")),
-            new SessionInfoRow("marker件数", sessions.Sum(session => session.Records.Count(record => record.IsMarker)).ToString("N0")),
-            new SessionInfoRow("gap_warnings", sessions.Sum(session => session.Session.StatsInfo.GapWarnings).ToString("N0")),
-            new SessionInfoRow("parse_errors", sessions.Sum(session => session.Session.StatsInfo.ParseErrors).ToString("N0")),
-            new SessionInfoRow("decode_errors", sessions.Sum(session => session.Session.StatsInfo.DecodeErrors).ToString("N0"))
+            new SessionInfoRow("選択セッション数", sessions.Count.ToString("N0")),
+            new SessionInfoRow("セッションID", string.Join(", ", sessions.Select(session => session.SessionId))),
+            new SessionInfoRow("最も早い開始時刻", ToDisplay(sessions.Min(session => session.Session.SessionInfo.StartedAt))),
+            new SessionInfoRow("最も遅い終了時刻", ToDisplay(sessions.Max(session => session.Session.SessionInfo.EndedAt))),
+            new SessionInfoRow("正規化ログ件数", sessions.Sum(session => session.Records.Count).ToString("N0")),
+            new SessionInfoRow("マーカー件数", sessions.Sum(session => session.Records.Count(record => record.IsMarker)).ToString("N0")),
+            new SessionInfoRow("欠落警告数", sessions.Sum(session => session.Session.StatsInfo.GapWarnings).ToString("N0")),
+            new SessionInfoRow("解析エラー数", sessions.Sum(session => session.Session.StatsInfo.ParseErrors).ToString("N0")),
+            new SessionInfoRow("デコードエラー数", sessions.Sum(session => session.Session.StatsInfo.DecodeErrors).ToString("N0"))
         ];
     }
 
@@ -686,18 +686,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
         var stats = session.StatsInfo;
         return
         [
-            new SessionInfoRow("session_id", ToDisplay(info.SessionId)),
-            new SessionInfoRow("status", info.Status.ToString()),
-            new SessionInfoRow("started_at", ToDisplay(info.StartedAt)),
-            new SessionInfoRow("ended_at", ToDisplay(info.EndedAt)),
-            new SessionInfoRow("collector_version", ToDisplay(info.CollectorVersion)),
-            new SessionInfoRow("schema_version", ToDisplay(info.SchemaVersion)),
-            new SessionInfoRow("raw_schema_version", ToDisplay(info.RawSchemaVersion)),
-            new SessionInfoRow("canonical_schema_version", ToDisplay(info.CanonicalSchemaVersion)),
-            new SessionInfoRow("canonical record件数", stats.CanonicalRecordsWritten.ToString("N0")),
-            new SessionInfoRow("gap_warnings", stats.GapWarnings.ToString("N0")),
-            new SessionInfoRow("parse_errors", stats.ParseErrors.ToString("N0")),
-            new SessionInfoRow("decode_errors", stats.DecodeErrors.ToString("N0"))
+            new SessionInfoRow("セッションID", ToDisplay(info.SessionId)),
+            new SessionInfoRow("状態", AnalysisDisplayText.ToText(info.Status)),
+            new SessionInfoRow("開始時刻", ToDisplay(info.StartedAt)),
+            new SessionInfoRow("終了時刻", ToDisplay(info.EndedAt)),
+            new SessionInfoRow("収集機能バージョン", ToDisplay(info.CollectorVersion)),
+            new SessionInfoRow("セッション形式バージョン", ToDisplay(info.SchemaVersion)),
+            new SessionInfoRow("元ログ形式バージョン", ToDisplay(info.RawSchemaVersion)),
+            new SessionInfoRow("正規化ログ形式バージョン", ToDisplay(info.CanonicalSchemaVersion)),
+            new SessionInfoRow("正規化ログ件数", stats.CanonicalRecordsWritten.ToString("N0")),
+            new SessionInfoRow("欠落警告数", stats.GapWarnings.ToString("N0")),
+            new SessionInfoRow("解析エラー数", stats.ParseErrors.ToString("N0")),
+            new SessionInfoRow("デコードエラー数", stats.DecodeErrors.ToString("N0"))
         ];
     }
 
