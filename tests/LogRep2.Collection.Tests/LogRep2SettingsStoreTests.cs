@@ -7,6 +7,27 @@ namespace FfxiTempLogCollector.Tests;
 public sealed class LogRep2SettingsStoreTests
 {
     [Fact]
+    public void 新規設定では分析開始時のオーバーレイ表示が有効である()
+    {
+        var settings = new LogRep2Settings();
+
+        Assert.True(settings.Overlay.ShowOnRealtimeAnalysisStart);
+    }
+
+    [Fact]
+    public void 分析開始時のオーバーレイ自動表示設定を保存できる()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = new LogRep2SettingsStore(directory.Path);
+        var settings = new LogRep2Settings();
+        settings.Overlay.ShowOnRealtimeAnalysisStart = false;
+
+        store.Save(settings);
+
+        Assert.False(store.Load().Overlay.ShowOnRealtimeAnalysisStart);
+    }
+
+    [Fact]
     public void Save_オーバーレイ設定を安全範囲へ補正して保存する()
     {
         using var directory = new TemporaryDirectory();

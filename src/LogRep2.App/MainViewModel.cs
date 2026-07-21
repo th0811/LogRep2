@@ -32,6 +32,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _realtimeMemory = "-";
     private long _realtimeDiscardedCount;
     private string _realtimeLastUpdated = "-";
+    private string _realtimeWarningText = string.Empty;
 
     public MainViewModel(
         GuiCommandController controller,
@@ -83,7 +84,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             _controller.Exit,
             () => !IsShuttingDown);
         StartRealtimeAnalysisCommand = new RelayCommand(
-            _realtimeAnalysis.Start,
+            StartRealtimeAnalysis,
             () => !IsShuttingDown
                 && RealtimeState != RealtimeAnalysisState.Running);
         StopRealtimeAnalysisCommand = new RelayCommand(
@@ -137,6 +138,28 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public long RealtimeDiscardedCount { get => _realtimeDiscardedCount; private set => SetProperty(ref _realtimeDiscardedCount, value); }
 
     public string RealtimeLastUpdated { get => _realtimeLastUpdated; private set => SetProperty(ref _realtimeLastUpdated, value); }
+
+    public string RealtimeWarningText
+    {
+        get => _realtimeWarningText;
+        private set
+        {
+            if (string.Equals(
+                    _realtimeWarningText,
+                    value,
+                    StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            _realtimeWarningText = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ShowRealtimeWarning));
+        }
+    }
+
+    public bool ShowRealtimeWarning =>
+        !string.IsNullOrWhiteSpace(RealtimeWarningText);
 
     public string StatusText
     {
@@ -331,6 +354,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private void StartRealtimeAnalysis()
+    {
+        if (!CanStartRealtimeAnalysis(Status))
+        {
+            RealtimeWarningText =
+                "リアルタイム分析を開始するには、先にTEMPログ収集を開始してください。";
+            _controller.ShowRealtimeAnalysisPrerequisiteWarning();
+            return;
+        }
+
+        RealtimeWarningText = string.Empty;
+        _realtimeAnalysis.Start();
+        _controller.ShowOverlayOnRealtimeAnalysisStart();
+    }
+
     private async Task StopAsync()
     {
         try
@@ -434,6 +472,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
 
         Status = snapshot.Status;
+        StopRealtimeAnalysisWhenCollectionEnds(snapshot.Status);
+        if (snapshot.Status == CollectorStatus.Running)
+        {
+            RealtimeWarningText = string.Empty;
+        }
         StatusText = GetStatusText(snapshot.Status);
         StatusForeground = GetStatusForeground(snapshot.Status);
         StatusBackground = GetStatusBackground(snapshot.Status);
@@ -452,6 +495,34 @@ public sealed class MainViewModel : INotifyPropertyChanged
             : snapshot.LastError;
 
         RaiseCommandCanExecuteChanged();
+    }
+
+    private void StopRealtimeAnalysisWhenCollectionEnds(
+        CollectorStatus collectorStatus)
+    {
+        if (RealtimeState != RealtimeAnalysisState.Running
+            || !ShouldStopRealtimeAnalysis(collectorStatus))
+        {
+            return;
+        }
+
+        _realtimeAnalysis.Stop();
+        RealtimeWarningText = collectorStatus == CollectorStatus.Error
+            ? "TEMPログ収集でエラーが発生したため、リアルタイム分析を終了しました。現在の分析結果は保持されています。"
+            : "TEMPログ収集が停止したため、リアルタイム分析を終了しました。現在の分析結果は保持されています。";
+    }
+
+    internal static bool CanStartRealtimeAnalysis(
+        CollectorStatus collectorStatus)
+    {
+        return collectorStatus == CollectorStatus.Running;
+    }
+
+    internal static bool ShouldStopRealtimeAnalysis(
+        CollectorStatus collectorStatus)
+    {
+        return collectorStatus is
+            CollectorStatus.Stopped or CollectorStatus.Error;
     }
 
     private static string GetStatusText(CollectorStatus status)

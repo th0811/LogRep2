@@ -135,6 +135,8 @@ public sealed class OverlaySettings
 {
     public bool Enabled { get; set; }
 
+    public bool ShowOnRealtimeAnalysisStart { get; set; } = true;
+
     public double Opacity { get; set; } = 0.8;
 
     public bool Topmost { get; set; } = true;

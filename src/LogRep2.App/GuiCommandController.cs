@@ -135,7 +135,9 @@ public sealed class GuiCommandController : IAsyncDisposable
             settingsWindow,
             Config,
             _configEditService,
-            _folderPickerService);
+            _folderPickerService,
+            GetShowOverlayOnRealtimeAnalysisStart(),
+            SaveShowOverlayOnRealtimeAnalysisStart);
         viewModel.ConfigSaved += (_, _) =>
         {
             ConfigChanged?.Invoke(this, EventArgs.Empty);
@@ -216,6 +218,15 @@ public sealed class GuiCommandController : IAsyncDisposable
         GetOverlayManager().ToggleVisibility();
     }
 
+    public void ShowOverlayOnRealtimeAnalysisStart()
+    {
+        if (GetShowOverlayOnRealtimeAnalysisStart()
+            && !GetOverlayManager().IsVisible)
+        {
+            GetOverlayManager().Show();
+        }
+    }
+
     public void HideOverlay()
     {
         if (_overlayManager?.IsVisible == true)
@@ -232,6 +243,21 @@ public sealed class GuiCommandController : IAsyncDisposable
     public void RestoreOverlayVisibility()
     {
         GetOverlayManager().RestoreConfiguredVisibility();
+    }
+
+    private bool GetShowOverlayOnRealtimeAnalysisStart()
+    {
+        return _unifiedSettingsStore?.Load()
+            .Overlay.ShowOnRealtimeAnalysisStart ?? true;
+    }
+
+    private void SaveShowOverlayOnRealtimeAnalysisStart(bool enabled)
+    {
+        var store = _unifiedSettingsStore
+            ?? throw new InvalidOperationException("統合設定を利用できません。");
+        var settings = store.Load();
+        settings.Overlay.ShowOnRealtimeAnalysisStart = enabled;
+        store.Save(settings);
     }
 
     public void ShowAnalysis()
@@ -311,6 +337,16 @@ public sealed class GuiCommandController : IAsyncDisposable
             MessageBoxButton.OK,
             MessageBoxImage.Error);
         _trayIconController?.NotifyOutputFailure(detail);
+    }
+
+    public void ShowRealtimeAnalysisPrerequisiteWarning()
+    {
+        MessageBox.Show(
+            GetWindow(),
+            "リアルタイム分析を開始するには、先にTEMPログ収集を開始してください。",
+            "リアルタイム分析",
+            MessageBoxButton.OK,
+            MessageBoxImage.Warning);
     }
 
     private IpcResponse CreateStatusResponse()

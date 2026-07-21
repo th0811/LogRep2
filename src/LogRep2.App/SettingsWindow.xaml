@@ -73,6 +73,13 @@
                 </GroupBox>
 
                 <GroupBox Margin="0,16,0,0"
+                          Header="リアルタイム分析"
+                          Padding="16">
+                    <CheckBox IsChecked="{Binding ShowOverlayOnRealtimeAnalysisStart}"
+                              Content="分析開始時にオーバーレイを表示する" />
+                </GroupBox>
+
+                <GroupBox Margin="0,16,0,0"
                           Header="収集設定"
                           Padding="16">
                     <StackPanel>

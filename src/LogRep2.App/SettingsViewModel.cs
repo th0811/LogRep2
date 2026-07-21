@@ -11,6 +11,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     private readonly CollectorConfig _currentConfig;
     private readonly ConfigEditService _configEditService;
     private readonly FolderPickerService _folderPickerService;
+    private readonly Action<bool> _saveShowOverlayOnRealtimeAnalysisStart;
     private readonly Window _window;
 
     private string _tempDirectory;
@@ -25,6 +26,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     private bool _minimizeToTrayWhileCollecting;
     private bool _minimizeToTray;
     private bool _showTrayNotifications;
+    private bool _showOverlayOnRealtimeAnalysisStart;
     private string _closeButtonBehavior;
     private string _logLevel;
 
@@ -32,7 +34,9 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         Window window,
         CollectorConfig currentConfig,
         ConfigEditService configEditService,
-        FolderPickerService folderPickerService)
+        FolderPickerService folderPickerService,
+        bool showOverlayOnRealtimeAnalysisStart,
+        Action<bool> saveShowOverlayOnRealtimeAnalysisStart)
     {
         _window = window
             ?? throw new ArgumentNullException(nameof(window));
@@ -44,6 +48,10 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _folderPickerService = folderPickerService
             ?? throw new ArgumentNullException(
                 nameof(folderPickerService));
+        _saveShowOverlayOnRealtimeAnalysisStart =
+            saveShowOverlayOnRealtimeAnalysisStart
+            ?? throw new ArgumentNullException(
+                nameof(saveShowOverlayOnRealtimeAnalysisStart));
 
         var editable = ConfigEditService.Clone(currentConfig);
         _tempDirectory = editable.TempDir;
@@ -62,6 +70,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _minimizeToTray =
             editable.MinimizeButtonBehavior == "tray";
         _showTrayNotifications = editable.ShowTrayNotifications;
+        _showOverlayOnRealtimeAnalysisStart =
+            showOverlayOnRealtimeAnalysisStart;
         _closeButtonBehavior =
             WindowCloseBehaviorController.NormalizeCloseBehavior(
                 editable.CloseButtonBehavior);
@@ -168,6 +178,14 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     {
         get => _showTrayNotifications;
         set => SetProperty(ref _showTrayNotifications, value);
+    }
+
+    public bool ShowOverlayOnRealtimeAnalysisStart
+    {
+        get => _showOverlayOnRealtimeAnalysisStart;
+        set => SetProperty(
+            ref _showOverlayOnRealtimeAnalysisStart,
+            value);
     }
 
     public string CloseButtonBehavior
@@ -278,6 +296,19 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         if (!result.Success)
         {
             ShowMessage(result.Message, MessageBoxImage.Error);
+            return;
+        }
+
+        try
+        {
+            _saveShowOverlayOnRealtimeAnalysisStart(
+                ShowOverlayOnRealtimeAnalysisStart);
+        }
+        catch (Exception exception)
+        {
+            ShowMessage(
+                $"オーバーレイ設定を保存できませんでした: {exception.Message}",
+                MessageBoxImage.Error);
             return;
         }
 
