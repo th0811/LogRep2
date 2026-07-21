@@ -47,6 +47,10 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
     public bool HasRecords => _records.Count > 0;
 
+    // 分析区間（開始・終了ポイント）が確定し、分析実行が可能かどうか。
+    // ステッパーのSTEP2完了判定に利用する。
+    public bool IsRangeReady => CanRunAnalysis();
+
     public bool IsManualRangeMode
     {
         get => !IsAreaSegmentMode;
@@ -257,7 +261,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasMarkers));
         OnPropertyChanged(nameof(HasAreaSegments));
         OnPropertyChanged(nameof(HasRecords));
-        RunAnalysisCommand.RaiseCanExecuteChanged();
+        RaiseRunAnalysisState();
     }
 
     private void RefreshEndMarkerCandidates()
@@ -275,7 +279,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(SelectedEndMarker));
         }
 
-        RunAnalysisCommand.RaiseCanExecuteChanged();
+        RaiseRunAnalysisState();
     }
 
     private IEnumerable<MarkerListViewModel> GetEndMarkerCandidates()
@@ -293,7 +297,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         if (!HasRecords)
         {
             ValidationMessage = "セッションを読み込むと分析区間を選択できます。";
-            RunAnalysisCommand.RaiseCanExecuteChanged();
+            RaiseRunAnalysisState();
             return;
         }
 
@@ -303,7 +307,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             ValidationMessage = IsAreaSegmentMode
                 ? "分析するエリアログ区間を選択してください。"
                 : "開始markerまたは終了markerを選択してください。";
-            RunAnalysisCommand.RaiseCanExecuteChanged();
+            RaiseRunAnalysisState();
             return;
         }
 
@@ -313,13 +317,20 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
                 ? "選択したエリアログ区間を分析できます。エリアチェンジ行自体は集計対象外です。"
                 : "分析区間を選択できます。marker行自体は集計対象外です。"
             : string.Join(Environment.NewLine, errors);
-        RunAnalysisCommand.RaiseCanExecuteChanged();
+        RaiseRunAnalysisState();
     }
 
     private bool CanRunAnalysis()
     {
         var selection = CreateSelection();
         return selection is not null && _rangeValidator.IsValid(selection);
+    }
+
+    // 分析実行コマンドの実行可否と、ステッパー用のIsRangeReadyをまとめて通知する。
+    private void RaiseRunAnalysisState()
+    {
+        RunAnalysisCommand.RaiseCanExecuteChanged();
+        OnPropertyChanged(nameof(IsRangeReady));
     }
 
     private void UpdateRangeSummary()

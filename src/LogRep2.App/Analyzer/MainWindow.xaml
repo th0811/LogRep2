@@ -8,6 +8,7 @@
         Title="LogRep2 - 過去ログ分析" Height="900" Width="1600" MinHeight="520" MinWidth="760">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <local:StepStateConverter x:Key="StepStateConverter" />
         <Style TargetType="Button">
             <Setter Property="Padding" Value="12,6" />
             <Setter Property="Margin" Value="0,0,8,0" />
@@ -34,12 +35,105 @@
                 <TextBlock Text="{Binding SessionRootFolderPath}" TextWrapping="Wrap" Margin="0,0,0,6" />
                 <TextBlock Text="分析対象" FontWeight="Bold" />
                 <TextBlock Text="{Binding SelectedFolderPath}" TextWrapping="Wrap" />
-                <TextBlock Text="セッションフォルダ選択後は、分析区間タブに進んでください" Margin="0,8,0,0" />
             </StackPanel>
         </Border>
 
-        <TabControl>
-            <TabItem Header="セッション情報">
+        <Border DockPanel.Dock="Top" BorderBrush="#D0D7DE" BorderThickness="1" Padding="10" Margin="0,0,0,12">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" CornerRadius="6" Padding="12,8" BorderThickness="2"
+                            Background="{Binding Step1State, Converter={StaticResource StepStateConverter}, ConverterParameter=chip}"
+                            BorderBrush="{Binding Step1State, Converter={StaticResource StepStateConverter}, ConverterParameter=outline}">
+                        <StackPanel Orientation="Horizontal">
+                            <Grid Width="26" Height="26" Margin="0,0,10,0">
+                                <Ellipse Fill="{Binding Step1State, Converter={StaticResource StepStateConverter}, ConverterParameter=accent}" />
+                                <TextBlock Text="1" FontWeight="Bold" HorizontalAlignment="Center"
+                                           Foreground="{Binding Step1State, Converter={StaticResource StepStateConverter}, ConverterParameter=circleForeground}"
+                                           Visibility="{Binding Step1State, Converter={StaticResource StepStateConverter}, ConverterParameter=numberVisibility}" />
+                                <TextBlock Text="&#x2713;" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"
+                                           Visibility="{Binding Step1State, Converter={StaticResource StepStateConverter}, ConverterParameter=checkVisibility}" />
+                            </Grid>
+                            <StackPanel>
+                                <TextBlock FontSize="11"
+                                           Foreground="{Binding Step1State, Converter={StaticResource StepStateConverter}, ConverterParameter=title}">
+                                    <Run Text="STEP 1 · " /><Run Text="{Binding Step1State, Converter={StaticResource StepStateConverter}, ConverterParameter=label, Mode=OneWay}" />
+                                </TextBlock>
+                                <TextBlock Text="セッション選択" FontWeight="Bold"
+                                           Foreground="{Binding Step1State, Converter={StaticResource StepStateConverter}, ConverterParameter=title}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Grid.Column="1" Text="&#x2192;" FontSize="18" Foreground="#8A8A8A" Margin="8,0" VerticalAlignment="Center" />
+
+                    <Border Grid.Column="2" CornerRadius="6" Padding="12,8" BorderThickness="2"
+                            Background="{Binding Step2State, Converter={StaticResource StepStateConverter}, ConverterParameter=chip}"
+                            BorderBrush="{Binding Step2State, Converter={StaticResource StepStateConverter}, ConverterParameter=outline}">
+                        <StackPanel Orientation="Horizontal">
+                            <Grid Width="26" Height="26" Margin="0,0,10,0">
+                                <Ellipse Fill="{Binding Step2State, Converter={StaticResource StepStateConverter}, ConverterParameter=accent}" />
+                                <TextBlock Text="2" FontWeight="Bold" HorizontalAlignment="Center"
+                                           Foreground="{Binding Step2State, Converter={StaticResource StepStateConverter}, ConverterParameter=circleForeground}"
+                                           Visibility="{Binding Step2State, Converter={StaticResource StepStateConverter}, ConverterParameter=numberVisibility}" />
+                                <TextBlock Text="&#x2713;" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"
+                                           Visibility="{Binding Step2State, Converter={StaticResource StepStateConverter}, ConverterParameter=checkVisibility}" />
+                            </Grid>
+                            <StackPanel>
+                                <TextBlock FontSize="11"
+                                           Foreground="{Binding Step2State, Converter={StaticResource StepStateConverter}, ConverterParameter=title}">
+                                    <Run Text="STEP 2 · " /><Run Text="{Binding Step2State, Converter={StaticResource StepStateConverter}, ConverterParameter=label, Mode=OneWay}" />
+                                </TextBlock>
+                                <TextBlock Text="分析区間の選択" FontWeight="Bold"
+                                           Foreground="{Binding Step2State, Converter={StaticResource StepStateConverter}, ConverterParameter=title}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Grid.Column="3" Text="&#x2192;" FontSize="18" Foreground="#8A8A8A" Margin="8,0" VerticalAlignment="Center" />
+
+                    <Border Grid.Column="4" CornerRadius="6" Padding="12,8" BorderThickness="2"
+                            Background="{Binding Step3State, Converter={StaticResource StepStateConverter}, ConverterParameter=chip}"
+                            BorderBrush="{Binding Step3State, Converter={StaticResource StepStateConverter}, ConverterParameter=outline}">
+                        <StackPanel Orientation="Horizontal">
+                            <Grid Width="26" Height="26" Margin="0,0,10,0">
+                                <Ellipse Fill="{Binding Step3State, Converter={StaticResource StepStateConverter}, ConverterParameter=accent}" />
+                                <TextBlock Text="3" FontWeight="Bold" HorizontalAlignment="Center"
+                                           Foreground="{Binding Step3State, Converter={StaticResource StepStateConverter}, ConverterParameter=circleForeground}"
+                                           Visibility="{Binding Step3State, Converter={StaticResource StepStateConverter}, ConverterParameter=numberVisibility}" />
+                                <TextBlock Text="&#x2713;" FontWeight="Bold" HorizontalAlignment="Center" Foreground="White"
+                                           Visibility="{Binding Step3State, Converter={StaticResource StepStateConverter}, ConverterParameter=checkVisibility}" />
+                            </Grid>
+                            <StackPanel>
+                                <TextBlock FontSize="11"
+                                           Foreground="{Binding Step3State, Converter={StaticResource StepStateConverter}, ConverterParameter=title}">
+                                    <Run Text="STEP 3 · " /><Run Text="{Binding Step3State, Converter={StaticResource StepStateConverter}, ConverterParameter=label, Mode=OneWay}" />
+                                </TextBlock>
+                                <TextBlock Text="分析実行・結果" FontWeight="Bold"
+                                           Foreground="{Binding Step3State, Converter={StaticResource StepStateConverter}, ConverterParameter=title}" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+
+                <DockPanel Margin="0,10,0,0">
+                    <Button DockPanel.Dock="Right" Content="{Binding NextStepButtonText}"
+                            Command="{Binding GoToNextStepCommand}"
+                            Visibility="{Binding ShowNextStepButton, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                    <TextBlock Text="{Binding NextStepText}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </DockPanel>
+            </StackPanel>
+        </Border>
+
+        <TabControl SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
+            <TabItem Header="① セッション情報">
                 <Grid Margin="0,8,0,0">
                     <Grid.RowDefinitions>
                         <RowDefinition Height="2*" />
@@ -91,11 +185,11 @@
                 </Grid>
             </TabItem>
 
-            <TabItem Header="分析区間">
+            <TabItem Header="② 分析区間">
                 <local:AnalysisRangeSelectionView DataContext="{Binding AnalysisRange}" Margin="0,8,0,0" />
             </TabItem>
 
-            <TabItem Header="分析結果">
+            <TabItem Header="③ 分析結果">
                 <local:AnalysisResultView DataContext="{Binding AnalysisResult}" Margin="0,8,0,0" />
             </TabItem>
         </TabControl>

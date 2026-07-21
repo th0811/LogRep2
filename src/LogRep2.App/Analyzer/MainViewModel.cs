@@ -6,6 +6,19 @@ using FFXI_LogAnalyzer.Core;
 
 namespace FFXI_LogAnalyzer.App;
 
+// ステッパー（手順バー）の各ステップの状態。
+public enum StepState
+{
+    // 未着手。
+    Pending,
+
+    // 現在このステップを操作中。
+    Active,
+
+    // 完了済み。
+    Completed
+}
+
 public sealed class MainViewModel : INotifyPropertyChanged
 {
     private readonly SessionOpenService _sessionOpenService;
@@ -17,6 +30,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _statusMessage = "セッション出力先フォルダを選択してください。";
     private string _sessionRootFolderPath = "未選択";
     private string _selectedFolderPath = "未選択";
+    private int _selectedTabIndex;
+    private StepState _step1State = StepState.Active;
+    private StepState _step2State = StepState.Pending;
+    private StepState _step3State = StepState.Pending;
+    private string _nextStepText = string.Empty;
+    private string _nextStepButtonText = "分析区間へ進む";
+    private bool _showNextStepButton = true;
+    private int _nextStepTargetTabIndex = 1;
+    private bool _canGoToNextStep;
 
     public MainViewModel(SessionOpenService sessionOpenService, DialogService dialogService)
         : this(
@@ -40,6 +62,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _settings = _settingsStore.Load();
         AnalysisResult = new AnalysisResultViewModel(_settingsStore);
         AnalysisRange.AnalysisCompleted += OnAnalysisCompleted;
+        AnalysisRange.PropertyChanged += OnAnalysisRangePropertyChanged;
+        AnalysisResult.PropertyChanged += OnAnalysisResultPropertyChanged;
+        GoToNextStepCommand = new RelayCommand(GoToNextStep, () => _canGoToNextStep);
         SelectSessionRootFolderCommand = new RelayCommand(SelectSessionRootFolder);
         RefreshSessionsCommand = new RelayCommand(
             RefreshSessions,
@@ -47,6 +72,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         RemoveSelectedSessionCommand = new RelayCommand(RemoveSelectedSession, () => SelectedSession is not null);
         ClearSessionsCommand = new RelayCommand(ClearSessions, () => Sessions.Count > 0);
         LoadConfiguredSessionRoot();
+        RefreshStepStates();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -58,6 +84,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public RelayCommand RemoveSelectedSessionCommand { get; }
 
     public RelayCommand ClearSessionsCommand { get; }
+
+    public RelayCommand GoToNextStepCommand { get; }
 
     public ObservableCollection<SessionSelectionViewModel> Sessions { get; } = [];
 
@@ -97,6 +125,57 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         get => _selectedFolderPath;
         private set => SetProperty(ref _selectedFolderPath, value);
+    }
+
+    // TabControl.SelectedIndex とバインドし、ステッパーの「実行中」判定と誘導ボタンの遷移先に使う。
+    public int SelectedTabIndex
+    {
+        get => _selectedTabIndex;
+        set
+        {
+            if (SetProperty(ref _selectedTabIndex, value))
+            {
+                RefreshStepStates();
+            }
+        }
+    }
+
+    public StepState Step1State
+    {
+        get => _step1State;
+        private set => SetProperty(ref _step1State, value);
+    }
+
+    public StepState Step2State
+    {
+        get => _step2State;
+        private set => SetProperty(ref _step2State, value);
+    }
+
+    public StepState Step3State
+    {
+        get => _step3State;
+        private set => SetProperty(ref _step3State, value);
+    }
+
+    // 現在のステップに応じた「次に何をすべきか」の案内文。
+    public string NextStepText
+    {
+        get => _nextStepText;
+        private set => SetProperty(ref _nextStepText, value);
+    }
+
+    public string NextStepButtonText
+    {
+        get => _nextStepButtonText;
+        private set => SetProperty(ref _nextStepButtonText, value);
+    }
+
+    // 最終ステップ（分析結果）では遷移先がないため誘導ボタンを隠す。
+    public bool ShowNextStepButton
+    {
+        get => _showNextStepButton;
+        private set => SetProperty(ref _showNextStepButton, value);
     }
 
     public bool HasSession => Sessions.Any(session => session.IsEnabled);
@@ -456,6 +535,97 @@ public sealed class MainViewModel : INotifyPropertyChanged
         RefreshSessionsCommand.RaiseCanExecuteChanged();
         RemoveSelectedSessionCommand.RaiseCanExecuteChanged();
         ClearSessionsCommand.RaiseCanExecuteChanged();
+        RefreshStepStates();
+    }
+
+    // 3ステップ（セッション選択→分析区間→分析実行）の状態と、次の手順への誘導表示を更新する。
+    private void RefreshStepStates()
+    {
+        // STEP2の完了は「区間が妥当か（IsRangeReady）」では判定しない。
+        // デフォルトの「ログ先頭→ログ最後尾」が常に妥当なため、起動直後から
+        // 完了扱いになってしまう。分析を実際に実行した時点をSTEP2の完了とみなす。
+        Step1State = ResolveStepState(0, HasSession);
+        Step2State = ResolveStepState(1, AnalysisResult.HasResult);
+        Step3State = ResolveStepState(2, AnalysisResult.HasResult);
+        UpdateNextStepGuidance();
+    }
+
+    // 対象タブを操作中なら「実行中」、完了条件を満たせば「完了」、それ以外は「未着手」。
+    private StepState ResolveStepState(int tabIndex, bool isDone)
+    {
+        if (SelectedTabIndex == tabIndex && !isDone)
+        {
+            return StepState.Active;
+        }
+
+        return isDone ? StepState.Completed : StepState.Pending;
+    }
+
+    private void UpdateNextStepGuidance()
+    {
+        switch (SelectedTabIndex)
+        {
+            case 0:
+                NextStepText = HasSession
+                    ? "セッションを選択しました。次は分析区間を選びます。"
+                    : "分析するセッションの「使用」列にチェックを入れてください。";
+                NextStepButtonText = "分析区間へ進む";
+                ShowNextStepButton = true;
+                _nextStepTargetTabIndex = 1;
+                _canGoToNextStep = HasSession;
+                break;
+            case 1:
+                NextStepText = AnalysisRange.IsRangeReady
+                    ? "分析区間を選択しました。「分析実行」ボタンを押してください。"
+                    : "分析区間（開始・終了ポイント）を選択してください。";
+                NextStepButtonText = "分析結果へ進む";
+                ShowNextStepButton = true;
+                _nextStepTargetTabIndex = 2;
+                _canGoToNextStep = AnalysisResult.HasResult;
+                break;
+            default:
+                NextStepText = AnalysisResult.HasResult
+                    ? "分析が完了しました。結果を確認できます。"
+                    : "「分析区間」タブで分析を実行すると結果が表示されます。";
+                ShowNextStepButton = false;
+                _canGoToNextStep = false;
+                break;
+        }
+
+        GoToNextStepCommand.RaiseCanExecuteChanged();
+    }
+
+    private void GoToNextStep()
+    {
+        SelectedTabIndex = _nextStepTargetTabIndex;
+    }
+
+    private void OnAnalysisRangePropertyChanged(
+        object? sender,
+        PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AnalysisRangeViewModel.IsRangeReady))
+        {
+            RefreshStepStates();
+        }
+    }
+
+    private void OnAnalysisResultPropertyChanged(
+        object? sender,
+        PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(AnalysisResultViewModel.HasResult))
+        {
+            return;
+        }
+
+        // 分析完了時は結果タブへ自動的に進めて、手順の流れを分かりやすくする。
+        if (AnalysisResult.HasResult)
+        {
+            SelectedTabIndex = 2;
+        }
+
+        RefreshStepStates();
     }
 
     private static string ToDisplay(string? value)
