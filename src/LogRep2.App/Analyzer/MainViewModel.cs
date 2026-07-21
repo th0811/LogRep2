@@ -1,8 +1,10 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using FFXI_LogAnalyzer.Core;
+using Microsoft.VisualBasic.FileIO;
 
 namespace FFXI_LogAnalyzer.App;
 
@@ -80,6 +82,12 @@ public sealed class MainViewModel : INotifyPropertyChanged
         RemoveSelectedSessionCommand = new RelayCommand(
             RemoveSelectedSession,
             () => SelectedSession is not null && !IsBusy);
+        OpenSelectedSessionFolderCommand = new RelayCommand(
+            OpenSelectedSessionFolder,
+            () => SelectedSession is not null && !IsBusy);
+        DeleteSelectedSessionCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
+            DeleteSelectedSessionAsync,
+            () => SelectedSession is not null && !IsBusy);
         ClearSessionsCommand = new RelayCommand(
             ClearSessions,
             () => Sessions.Count > 0 && !IsBusy);
@@ -96,6 +104,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public RelayCommand CancelLoadingCommand { get; }
 
     public RelayCommand RemoveSelectedSessionCommand { get; }
+
+    public RelayCommand OpenSelectedSessionFolderCommand { get; }
+
+    public FfxiTempLogCollector.App.AsyncRelayCommand DeleteSelectedSessionCommand { get; }
 
     public RelayCommand ClearSessionsCommand { get; }
 
@@ -119,6 +131,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (SetProperty(ref _selectedSession, value))
             {
                 RemoveSelectedSessionCommand.RaiseCanExecuteChanged();
+                OpenSelectedSessionFolderCommand.RaiseCanExecuteChanged();
+                DeleteSelectedSessionCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -425,6 +439,100 @@ public sealed class MainViewModel : INotifyPropertyChanged
         SelectedSession = null;
     }
 
+    private void OpenSelectedSessionFolder()
+    {
+        if (SelectedSession is null)
+        {
+            return;
+        }
+
+        try
+        {
+            Process.Start(
+                new ProcessStartInfo
+                {
+                    FileName = SelectedSession.FolderPath,
+                    UseShellExecute = true,
+                });
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"セッションフォルダーを開けませんでした: {exception.Message}";
+        }
+    }
+
+    private async Task DeleteSelectedSessionAsync()
+    {
+        var session = SelectedSession;
+        if (session is null)
+        {
+            return;
+        }
+
+        if (session.Session.SessionInfo.Status == SessionStatus.Active)
+        {
+            _dialogService.ShowInformation(
+                "収集中のセッションは削除できません。収集を停止してから再度実行してください。");
+            return;
+        }
+
+        if (!IsDirectChildOfSessionRoot(
+                _settings.SessionsRootFolderPath,
+                session.FolderPath))
+        {
+            _dialogService.ShowError(
+                "セッション出力先の直下ではないため、安全のため削除を中止しました。");
+            return;
+        }
+
+        if (!_dialogService.ConfirmSessionDeletion(session.SessionId))
+        {
+            StatusMessage = "セッションの削除をキャンセルしました。";
+            return;
+        }
+
+        try
+        {
+            await Task.Run(() => FileSystem.DeleteDirectory(
+                session.FolderPath,
+                UIOption.OnlyErrorDialogs,
+                RecycleOption.SendToRecycleBin));
+            session.PropertyChanged -= OnSessionSelectionChanged;
+            Sessions.Remove(session);
+            SelectedSession = Sessions.LastOrDefault();
+            await RefreshCombinedSessionAsync(CancellationToken.None);
+            StatusMessage = $"セッション「{session.SessionId}」をごみ箱へ移動しました。";
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"セッションを削除できませんでした: {exception.Message}";
+        }
+    }
+
+    internal static bool IsDirectChildOfSessionRoot(
+        string? sessionRootFolderPath,
+        string folderPath)
+    {
+        if (string.IsNullOrWhiteSpace(sessionRootFolderPath))
+        {
+            return false;
+        }
+
+        var root = Path.TrimEndingDirectorySeparator(
+            Path.GetFullPath(sessionRootFolderPath));
+        var target = Path.TrimEndingDirectorySeparator(
+            Path.GetFullPath(folderPath));
+        var parent = Directory.GetParent(target)?.FullName;
+        return !string.Equals(
+                root,
+                target,
+                StringComparison.OrdinalIgnoreCase)
+            && string.Equals(
+                root,
+                Path.TrimEndingDirectorySeparator(parent ?? string.Empty),
+                StringComparison.OrdinalIgnoreCase);
+    }
+
     private async Task RefreshCombinedSessionAsync(
         CancellationToken cancellationToken)
     {
@@ -601,6 +709,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasSessionRootFolder));
         RefreshSessionsCommand.RaiseCanExecuteChanged();
         RemoveSelectedSessionCommand.RaiseCanExecuteChanged();
+        OpenSelectedSessionFolderCommand.RaiseCanExecuteChanged();
+        DeleteSelectedSessionCommand.RaiseCanExecuteChanged();
         ClearSessionsCommand.RaiseCanExecuteChanged();
         RefreshStepStates();
     }

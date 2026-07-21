@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Forms;
+using Microsoft.Win32;
 
 namespace FFXI_LogAnalyzer.App;
 
@@ -61,5 +62,32 @@ public sealed class DialogService
             "情報",
             MessageBoxButton.OK,
             MessageBoxImage.Information);
+    }
+
+    public string? SelectCsvOutputPath(string defaultFileName)
+    {
+        var dialog = new Microsoft.Win32.SaveFileDialog
+        {
+            Title = "CSVファイルの保存先を選択してください。",
+            Filter = "CSVファイル (*.csv)|*.csv",
+            DefaultExt = ".csv",
+            AddExtension = true,
+            FileName = defaultFileName,
+        };
+
+        return dialog.ShowDialog() == true
+            ? dialog.FileName
+            : null;
+    }
+
+    public bool ConfirmSessionDeletion(string sessionId)
+    {
+        return System.Windows.MessageBox.Show(
+            $"セッション「{sessionId}」を削除しますか？"
+            + Environment.NewLine
+            + "削除したフォルダーはごみ箱へ移動します。",
+            "セッションの削除",
+            MessageBoxButton.YesNo,
+            MessageBoxImage.Warning) == MessageBoxResult.Yes;
     }
 }

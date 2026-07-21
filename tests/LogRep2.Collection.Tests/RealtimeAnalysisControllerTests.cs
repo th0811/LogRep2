@@ -69,8 +69,64 @@ public sealed class RealtimeAnalysisControllerTests
         Assert.Equal(4, result.TargetRecordCount);
     }
 
-    private static CanonicalSnapshot CreateSnapshot(int count)
+    [Fact]
+    public async Task canonical件数が同じ重複更新は再分析しない()
     {
+        var events = new CollectorEvents();
+        await using var controller = new RealtimeAnalysisController(events, 250);
+        controller.Start();
+        controller.AcceptSnapshot(CreateSnapshot(3));
+        await WaitForResultAsync(controller, 3);
+
+        controller.AcceptSnapshot(CreateSnapshot(3));
+        await Task.Delay(350);
+
+        Assert.Equal(1, controller.AggregationExecutionCount);
+    }
+
+    [Fact]
+    public async Task canonical件数が同じでも分析関連時刻の更新は再分析する()
+    {
+        var events = new CollectorEvents();
+        await using var controller = new RealtimeAnalysisController(events, 250);
+        controller.Start();
+        controller.AcceptSnapshot(CreateSnapshot(3));
+        await WaitForResultAsync(controller, 3);
+
+        controller.AcceptSnapshot(CreateSnapshot(3, lastSeenAdjustmentSeconds: 10));
+        await WaitForExecutionCountAsync(controller, 2);
+
+        Assert.Equal(2, controller.AggregationExecutionCount);
+    }
+
+    [Fact]
+    public async Task 分析停止時は同じ範囲の集計結果を再利用する()
+    {
+        var events = new CollectorEvents();
+        await using var controller = new RealtimeAnalysisController(events, 250);
+        controller.Start();
+        controller.AcceptSnapshot(CreateSnapshot(3));
+        await WaitForResultAsync(controller, 3);
+
+        controller.Stop();
+        await WaitForStateAsync(controller, RealtimeAnalysisState.Completed);
+
+        Assert.Equal(1, controller.AggregationExecutionCount);
+        Assert.Equal(TimeSpan.Zero, controller.Current.LastAggregationTime);
+    }
+
+    private static CanonicalSnapshot CreateSnapshot(
+        int count,
+        int lastSeenAdjustmentSeconds = 0)
+    {
+        var baseTime = new DateTimeOffset(
+            2026,
+            1,
+            1,
+            12,
+            0,
+            0,
+            TimeSpan.Zero);
         var records = Enumerable.Range(1, count)
             .Select(index => new CanonicalRecord
             {
@@ -80,11 +136,14 @@ public sealed class RealtimeAnalysisControllerTests
                 EventGroup = $"event-{index}",
                 VisibleText = "Aliceの攻撃→Goblinに10ダメージ。",
                 MessageTimeText = $"12:00:{index:00}",
-                FirstSeenAt = DateTimeOffset.Now.AddSeconds(index),
-                LastSeenAt = DateTimeOffset.Now.AddSeconds(index),
+                FirstSeenAt = baseTime.AddSeconds(index),
+                LastSeenAt = baseTime.AddSeconds(
+                    index + (index == count
+                        ? lastSeenAdjustmentSeconds
+                        : 0)),
             })
             .ToArray();
-        return new CanonicalSnapshot("session-1", records, DateTimeOffset.Now);
+        return new CanonicalSnapshot("session-1", records, baseTime);
     }
 
     private static async Task<RealtimeAnalysisSnapshot> WaitForResultAsync(
@@ -104,5 +163,41 @@ public sealed class RealtimeAnalysisControllerTests
         }
 
         throw new TimeoutException("リアルタイム分析結果の更新を確認できませんでした。");
+    }
+
+    private static async Task WaitForStateAsync(
+        RealtimeAnalysisController controller,
+        RealtimeAnalysisState expectedState)
+    {
+        var timeout = DateTimeOffset.UtcNow.AddSeconds(5);
+        while (DateTimeOffset.UtcNow < timeout)
+        {
+            if (controller.Current.State == expectedState)
+            {
+                return;
+            }
+
+            await Task.Delay(25);
+        }
+
+        throw new TimeoutException("リアルタイム分析の状態更新を確認できませんでした。");
+    }
+
+    private static async Task WaitForExecutionCountAsync(
+        RealtimeAnalysisController controller,
+        long expectedCount)
+    {
+        var timeout = DateTimeOffset.UtcNow.AddSeconds(5);
+        while (DateTimeOffset.UtcNow < timeout)
+        {
+            if (controller.AggregationExecutionCount >= expectedCount)
+            {
+                return;
+            }
+
+            await Task.Delay(25);
+        }
+
+        throw new TimeoutException("リアルタイム分析の実行を確認できませんでした。");
     }
 }

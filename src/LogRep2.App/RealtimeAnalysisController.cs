@@ -37,7 +37,14 @@ public sealed class RealtimeAnalysisController : IAsyncDisposable
     private int? _endIndex;
     private long _generation;
     private long _discardedCount;
+    private string? _cachedSessionId;
+    private int _cachedStartIndex;
+    private int _cachedEndIndex;
+    private RealtimeAnalysisResult? _cachedResult;
+    private ulong _cachedAnalysisFingerprint;
+    private long _aggregationExecutionCount;
     private RealtimeAnalysisSnapshot _current;
+    private ulong _latestAnalysisFingerprint;
     private bool _disposed;
 
     public RealtimeAnalysisController(
@@ -54,6 +61,11 @@ public sealed class RealtimeAnalysisController : IAsyncDisposable
     }
 
     public event EventHandler<RealtimeAnalysisSnapshot>? Updated;
+
+    internal long AggregationExecutionCount
+    {
+        get { lock (_sync) { return _aggregationExecutionCount; } }
+    }
 
     public RealtimeAnalysisSnapshot Current
     {
@@ -149,7 +161,11 @@ public sealed class RealtimeAnalysisController : IAsyncDisposable
                 return;
             }
 
+            var previousSnapshot = _latestSnapshot;
+            var previousFingerprint = _latestAnalysisFingerprint;
+            var analysisFingerprint = CalculateAnalysisFingerprint(snapshot);
             _latestSnapshot = snapshot;
+            _latestAnalysisFingerprint = analysisFingerprint;
             if (_state != RealtimeAnalysisState.Running)
             {
                 _current = CreateSnapshot(
@@ -171,6 +187,17 @@ public sealed class RealtimeAnalysisController : IAsyncDisposable
                 _sessionId = snapshot.SessionId;
                 _startIndex = 0;
                 _generation++;
+            }
+
+            else if (previousSnapshot is not null
+                && string.Equals(
+                    previousSnapshot.SessionId,
+                    snapshot.SessionId,
+                    StringComparison.Ordinal)
+                && previousSnapshot.Records.Count == snapshot.Records.Count
+                && previousFingerprint == analysisFingerprint)
+            {
+                return;
             }
 
             ScheduleLocked(_refreshInterval);
@@ -197,11 +224,21 @@ public sealed class RealtimeAnalysisController : IAsyncDisposable
             CanonicalSnapshot? source;
             int start;
             int end;
+            ulong analysisFingerprint;
+            RealtimeAnalysisResult? cachedResult;
             lock (_sync)
             {
                 source = _latestSnapshot;
                 start = _startIndex;
                 end = _endIndex ?? GetApplicableRecordCountLocked();
+                analysisFingerprint = _latestAnalysisFingerprint;
+                cachedResult = IsCachedRangeLocked(
+                    source,
+                    start,
+                    end,
+                    analysisFingerprint)
+                    ? _cachedResult
+                    : null;
             }
 
             if (source is null)
@@ -209,15 +246,33 @@ public sealed class RealtimeAnalysisController : IAsyncDisposable
                 return;
             }
 
-            var result = await Task.Run(
-                () => _engine.Analyze(source.Records, start, end),
-                cancellationToken).ConfigureAwait(false);
+            RealtimeAnalysisResult result;
+            if (cachedResult is not null)
+            {
+                result = cachedResult with { Elapsed = TimeSpan.Zero };
+            }
+            else
+            {
+                result = await Task.Run(
+                    () => _engine.Analyze(source.Records, start, end),
+                    cancellationToken).ConfigureAwait(false);
+            }
             lock (_sync)
             {
                 if (_disposed || generation != _generation)
                 {
                     _discardedCount++;
                     return;
+                }
+
+                if (cachedResult is null)
+                {
+                    _cachedSessionId = source.SessionId;
+                    _cachedStartIndex = start;
+                    _cachedEndIndex = end;
+                    _cachedAnalysisFingerprint = analysisFingerprint;
+                    _cachedResult = result;
+                    _aggregationExecutionCount++;
                 }
 
                 _current = CreateSnapshot(
@@ -255,6 +310,48 @@ public sealed class RealtimeAnalysisController : IAsyncDisposable
             && string.Equals(_sessionId, _latestSnapshot.SessionId, StringComparison.Ordinal)
                 ? _latestSnapshot.Records.Count
                 : 0;
+    }
+
+    private bool IsCachedRangeLocked(
+        CanonicalSnapshot? source,
+        int start,
+        int end,
+        ulong analysisFingerprint)
+    {
+        return source is not null
+            && _cachedResult is not null
+            && string.Equals(
+                _cachedSessionId,
+                source.SessionId,
+                StringComparison.Ordinal)
+            && _cachedStartIndex == start
+            && _cachedEndIndex == end
+            && _cachedAnalysisFingerprint == analysisFingerprint;
+    }
+
+    private static ulong CalculateAnalysisFingerprint(
+        CanonicalSnapshot snapshot)
+    {
+        const ulong offset = 14695981039346656037UL;
+        const ulong prime = 1099511628211UL;
+        var hash = offset;
+        foreach (var record in snapshot.Records)
+        {
+            hash = Mix(hash, record.Order ?? 0, prime);
+            hash = Mix(
+                hash,
+                record.LastSeenAt?.UtcTicks ?? 0,
+                prime);
+            hash = Mix(hash, record.SequenceHintMin ?? 0, prime);
+            hash = Mix(hash, record.SequenceHintMax ?? 0, prime);
+        }
+
+        return Mix(hash, snapshot.Records.Count, prime);
+    }
+
+    private static ulong Mix(ulong hash, long value, ulong prime)
+    {
+        return unchecked((hash ^ (ulong)value) * prime);
     }
 
     private void CancelPendingLocked(bool countAsDiscarded)

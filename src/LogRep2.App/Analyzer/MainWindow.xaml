@@ -21,13 +21,15 @@
     </Window.Resources>
 
     <DockPanel Margin="16">
-        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,12">
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,12">
             <Button Content="セッション出力先選択" Command="{Binding SelectSessionRootFolderCommand}" />
             <Button Content="更新" Command="{Binding RefreshSessionsCommand}" />
             <Button Content="選択解除" Command="{Binding RemoveSelectedSessionCommand}" />
             <Button Content="すべて解除" Command="{Binding ClearSessionsCommand}" />
+            <Button Content="フォルダーを開く" Command="{Binding OpenSelectedSessionFolderCommand}" />
+            <Button Content="削除" Command="{Binding DeleteSelectedSessionCommand}" />
             <TextBlock Text="{Binding StatusMessage}" Margin="8,0,0,0" TextWrapping="Wrap" />
-        </StackPanel>
+        </WrapPanel>
 
         <Border DockPanel.Dock="Top"
                 Margin="0,0,0,12"

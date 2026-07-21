@@ -10,6 +10,7 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     private readonly ActorNameClassifier _actorNameClassifier = new();
     private readonly ActorFilterService _actorFilterService = new();
     private readonly AnalyzerSettingsStore _settingsStore;
+    private readonly CsvExportService _csvExportService;
     private readonly List<ActorSummaryViewModel> _allActorSummaries = [];
     private readonly List<ActionSummaryViewModel> _allActionSummaries = [];
     private AnalyzerSettings _settings;
@@ -27,9 +28,18 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     }
 
     public AnalysisResultViewModel(AnalyzerSettingsStore settingsStore)
+        : this(settingsStore, new CsvExportService())
+    {
+    }
+
+    public AnalysisResultViewModel(
+        AnalyzerSettingsStore settingsStore,
+        CsvExportService csvExportService)
     {
         _settingsStore = settingsStore
             ?? throw new ArgumentNullException(nameof(settingsStore));
+        _csvExportService = csvExportService
+            ?? throw new ArgumentNullException(nameof(csvExportService));
         _settings = _settingsStore.Load();
         SelectAllActorsCommand = new RelayCommand(
             SelectAllActors,
@@ -46,6 +56,15 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         OpenActorRegistrationManagerCommand = new RelayCommand(
             OpenActorRegistrationManager,
             () => HasResult);
+        ExportActorSummariesCommand = new RelayCommand(
+            ExportActorSummaries,
+            () => HasResult);
+        ExportActionSummariesCommand = new RelayCommand(
+            ExportActionSummaries,
+            () => HasResult);
+        ExportLevelingPointsCommand = new RelayCommand(
+            ExportLevelingPoints,
+            () => HasResult);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -59,6 +78,12 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     public RelayCommand SelectRegisteredPcActorsCommand { get; }
 
     public RelayCommand OpenActorRegistrationManagerCommand { get; }
+
+    public RelayCommand ExportActorSummariesCommand { get; }
+
+    public RelayCommand ExportActionSummariesCommand { get; }
+
+    public RelayCommand ExportLevelingPointsCommand { get; }
 
     public ObservableCollection<ActorSummaryViewModel> ActorSummaries { get; } = [];
 
@@ -86,6 +111,9 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
                 SelectPcCandidateActorsCommand.RaiseCanExecuteChanged();
                 SelectRegisteredPcActorsCommand.RaiseCanExecuteChanged();
                 OpenActorRegistrationManagerCommand.RaiseCanExecuteChanged();
+                ExportActorSummariesCommand.RaiseCanExecuteChanged();
+                ExportActionSummariesCommand.RaiseCanExecuteChanged();
+                ExportLevelingPointsCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -347,6 +375,75 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
             Owner = System.Windows.Application.Current.MainWindow
         };
         window.ShowDialog();
+    }
+
+    private void ExportActorSummaries()
+    {
+        Export(
+            "LogRep2-キャラクター別.csv",
+            [
+                "キャラクター名", "総与ダメージ", "DPS", "DPS時間信頼度",
+                "通常攻撃命中率", "通常攻撃クリティカル率", "使用回数",
+                "命中回数", "非命中回数", "未分類件数",
+            ],
+            ActorSummaries.Select(summary => (IReadOnlyList<string>)
+            [
+                summary.Actor, summary.TotalDamage, summary.Dps,
+                summary.DpsTimeConfidence, summary.NormalAttackHitRate,
+                summary.NormalAttackCriticalRate, summary.TotalUseCount,
+                summary.TotalHitCount, summary.TotalMissCount,
+                summary.UnknownCount,
+            ]));
+    }
+
+    private void ExportActionSummaries()
+    {
+        Export(
+            "LogRep2-アクション別.csv",
+            [
+                "キャラクター名", "アクション名", "種別", "使用回数",
+                "命中回数", "非命中回数", "未分類件数", "命中率",
+                "総ダメージ", "最大ダメージ", "最小ダメージ", "平均ダメージ",
+            ],
+            ActionSummaries.Select(summary => (IReadOnlyList<string>)
+            [
+                summary.Actor, summary.ActionName, summary.ActionType,
+                summary.UseCount, summary.HitCount, summary.MissCount,
+                summary.UnknownCount, summary.HitRate, summary.TotalDamage,
+                summary.MaxDamage, summary.MinDamage, summary.AverageDamage,
+            ]));
+    }
+
+    private void ExportLevelingPoints()
+    {
+        Export(
+            "LogRep2-レベル上げ.csv",
+            ["ポイント種別", "総合計", "最大チェーン", "時給"],
+            LevelingPointSummaries.Select(summary => (IReadOnlyList<string>)
+            [
+                summary.PointName, summary.TotalPoints,
+                summary.MaxChainCount, summary.PointsPerHour,
+            ]));
+    }
+
+    private void Export(
+        string defaultFileName,
+        IReadOnlyList<string> headers,
+        IEnumerable<IReadOnlyList<string>> rows)
+    {
+        try
+        {
+            StatusMessage = _csvExportService.Export(
+                defaultFileName,
+                headers,
+                rows)
+                    ? "CSVファイルを保存しました。"
+                    : "CSV出力をキャンセルしました。";
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"CSVファイルを保存できませんでした: {exception.Message}";
+        }
     }
 
     private void SaveSettingsAndRefreshClassifications()

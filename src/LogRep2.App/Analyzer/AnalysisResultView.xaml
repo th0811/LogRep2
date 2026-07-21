@@ -20,10 +20,21 @@
     </UserControl.Resources>
 
     <DockPanel>
-        <TextBlock DockPanel.Dock="Top"
-                   Text="{Binding StatusMessage}"
-                   FontWeight="Bold"
-                   Margin="0,0,0,8" />
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Style="{StaticResource CompactButtonStyle}"
+                        Content="キャラクター別CSV"
+                        Command="{Binding ExportActorSummariesCommand}" />
+                <Button Style="{StaticResource CompactButtonStyle}"
+                        Content="アクション別CSV"
+                        Command="{Binding ExportActionSummariesCommand}" />
+                <Button Style="{StaticResource CompactButtonStyle}"
+                        Content="レベル上げCSV"
+                        Command="{Binding ExportLevelingPointsCommand}" />
+            </StackPanel>
+            <TextBlock Text="{Binding StatusMessage}"
+                       FontWeight="Bold" />
+        </DockPanel>
 
         <TabControl>
             <TabItem Header="キャラクター別サマリ">
