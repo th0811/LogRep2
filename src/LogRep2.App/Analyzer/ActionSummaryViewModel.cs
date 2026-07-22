@@ -15,8 +15,10 @@ public sealed class ActionSummaryViewModel
         UnknownCount = summary.UnknownCount.ToString("N0");
         HitRate = FormatRate(summary.HitRate);
         TotalDamage = summary.Damage.TotalDamage.ToString("N0");
-        MaxDamage = FormatNullable(summary.Damage.MaxDamage);
-        MinDamage = FormatNullable(summary.Damage.MinDamage);
+        MaxDamage = AnalysisNumberFormatter.FormatInteger(
+            summary.Damage.MaxDamage);
+        MinDamage = AnalysisNumberFormatter.FormatInteger(
+            summary.Damage.MinDamage);
         AverageDamage = FormatNullable(summary.Damage.AverageDamage);
     }
 
@@ -51,6 +53,6 @@ public sealed class ActionSummaryViewModel
 
     private static string FormatNullable(double? value)
     {
-        return value is null ? "-" : value.Value.ToString("0.###");
+        return AnalysisNumberFormatter.FormatDecimal(value);
     }
 }

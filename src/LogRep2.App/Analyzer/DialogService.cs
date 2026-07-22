@@ -1,37 +1,9 @@
 using System.Windows;
-using System.Windows.Forms;
-using Microsoft.Win32;
 
 namespace FFXI_LogAnalyzer.App;
 
 public sealed class DialogService
 {
-    public string? SelectSessionFolder()
-    {
-        using var dialog = new FolderBrowserDialog
-        {
-            Description = "セッションフォルダを選択してください。",
-            UseDescriptionForTitle = true
-        };
-
-        return dialog.ShowDialog() == DialogResult.OK
-            ? dialog.SelectedPath
-            : null;
-    }
-
-    public string? SelectSessionsRootFolder()
-    {
-        using var dialog = new FolderBrowserDialog
-        {
-            Description = "セッション出力先フォルダを選択してください。",
-            UseDescriptionForTitle = true
-        };
-
-        return dialog.ShowDialog() == DialogResult.OK
-            ? dialog.SelectedPath
-            : null;
-    }
-
     public bool ConfirmWarnings(IReadOnlyList<string> warnings)
     {
         var message = string.Join(Environment.NewLine, warnings) +

@@ -32,11 +32,15 @@ public sealed class ActorVisibilityViewModel : INotifyPropertyChanged
         _registerAsNpc = registerAsNpc;
         _clearRegistration = clearRegistration;
         RegisterAsPcCommand = new RelayCommand(
-            () => _registerAsPc(Actor));
+            () => _registerAsPc(Actor),
+            () => NameKind != ActorNameKind.RegisteredPc);
         RegisterAsNpcCommand = new RelayCommand(
-            () => _registerAsNpc(Actor));
+            () => _registerAsNpc(Actor),
+            () => NameKind != ActorNameKind.RegisteredNpc);
         ClearRegistrationCommand = new RelayCommand(
-            () => _clearRegistration(Actor));
+            () => _clearRegistration(Actor),
+            () => NameKind is ActorNameKind.RegisteredPc
+                or ActorNameKind.RegisteredNpc);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -68,6 +72,9 @@ public sealed class ActorVisibilityViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(ClassificationLabel));
             OnPropertyChanged(nameof(ClassificationBackground));
             OnPropertyChanged(nameof(ClassificationForeground));
+            RegisterAsPcCommand.RaiseCanExecuteChanged();
+            RegisterAsNpcCommand.RaiseCanExecuteChanged();
+            ClearRegistrationCommand.RaiseCanExecuteChanged();
         }
     }
 

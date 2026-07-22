@@ -62,6 +62,34 @@ public sealed class IntegratedWindowTests
     }
 
     [Fact]
+    public void オーバーレイにPT設定ボタンを常時配置する()
+    {
+        Exception? capturedException = null;
+        string? content = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                var window = new FfxiTempLogCollector.App.OverlayWindow();
+                var button = (System.Windows.Controls.Button)window.FindName(
+                    "PartyMemberSettingsButton");
+                content = button.Content?.ToString();
+                window.CloseForShutdown();
+            }
+            catch (Exception exception)
+            {
+                capturedException = exception;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
+
+        Assert.Null(capturedException);
+        Assert.Equal("PT設定", content);
+    }
+
+    [Fact]
     public void オーバーレイは常時移動とサイズ変更が可能である()
     {
         Exception? capturedException = null;

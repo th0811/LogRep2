@@ -473,7 +473,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
     private static string ToDurationText(double? durationSeconds)
     {
-        return durationSeconds?.ToString("0.###") ?? "-";
+        return AnalysisNumberFormatter.FormatDecimal(durationSeconds);
     }
 
     private string CreateExportRangeName()

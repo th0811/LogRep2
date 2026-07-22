@@ -257,7 +257,7 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         }
 
         SessionRows.Add(new SessionInfoRow("分析時刻の精度", AnalysisDisplayText.ToText(result.AnalysisTime.Confidence)));
-        SessionRows.Add(new SessionInfoRow("分析時間（秒）", result.AnalysisTime.DurationSeconds?.ToString("0.###") ?? "-"));
+        SessionRows.Add(new SessionInfoRow("分析時間（秒）", AnalysisNumberFormatter.FormatDecimal(result.AnalysisTime.DurationSeconds)));
         SessionRows.Add(new SessionInfoRow("DPS状態", ToDpsStatus(result.AnalysisTime)));
         SessionRows.Add(new SessionInfoRow("未解析ログ件数", UnparsedLogs.Count.ToString("N0")));
 
@@ -342,10 +342,8 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
 
     private void RegisterAsNpc(string actor)
     {
-        var normalized = actor.Trim();
-        RemoveName(
-            _settings.KnownPcNames,
-            ActorNameClassifier.NormalizePcName(actor));
+        var normalized = ActorNameClassifier.NormalizeRegisteredName(actor);
+        RemoveName(_settings.KnownPcNames, normalized);
         AddName(_settings.KnownNpcNames, normalized);
         SaveSettingsAndRefreshClassifications();
     }
@@ -355,7 +353,9 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         RemoveName(
             _settings.KnownPcNames,
             ActorNameClassifier.NormalizePcName(actor));
-        RemoveName(_settings.KnownNpcNames, actor.Trim());
+        RemoveName(
+            _settings.KnownNpcNames,
+            ActorNameClassifier.NormalizeRegisteredName(actor));
         SaveSettingsAndRefreshClassifications();
     }
 

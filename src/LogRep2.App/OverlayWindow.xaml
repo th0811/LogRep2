@@ -37,6 +37,13 @@
                 <StackPanel DockPanel.Dock="Right"
                             Cursor="Arrow"
                             Orientation="Horizontal">
+                    <Button x:Name="PartyMemberSettingsButton"
+                            MinWidth="56"
+                            Height="26"
+                            Margin="4,0,0,0"
+                            Command="{Binding OpenPartyMemberSettingsCommand}"
+                            Content="PT設定"
+                            ToolTip="PTメンバー設定を開く" />
                     <Button MinWidth="48"
                             Height="26"
                             Margin="4,0,0,0"

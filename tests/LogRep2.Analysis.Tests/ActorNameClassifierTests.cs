@@ -16,6 +16,19 @@ public sealed class ActorNameClassifierTests
     }
 
     [Theory]
+    [InlineData("gOBLIN", "Goblin")]
+    [InlineData("gOBLIN SMITH", "Goblin smith")]
+    [InlineData("  oRC WARRIOR  ", "Orc warrior")]
+    public void NormalizeRegisteredName_NormalizesPcAndNpcNames(
+        string input,
+        string expected)
+    {
+        Assert.Equal(
+            expected,
+            ActorNameClassifier.NormalizeRegisteredName(input));
+    }
+
+    [Theory]
     [InlineData("Aminon", true)]
     [InlineData("A", true)]
     [InlineData("Abcdefghijklmno", true)]

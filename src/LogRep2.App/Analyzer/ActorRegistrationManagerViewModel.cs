@@ -24,12 +24,12 @@ public sealed class ActorRegistrationManagerViewModel : INotifyPropertyChanged
 
         foreach (var name in settings.KnownPcNames)
         {
-            PcNames.Add(name);
+            AddName(PcNames, NormalizeInput(name));
         }
 
         foreach (var name in settings.KnownNpcNames)
         {
-            NpcNames.Add(name);
+            AddName(NpcNames, NormalizeInput(name));
         }
 
         AddPcNameCommand = new RelayCommand(AddPcName);
@@ -108,7 +108,7 @@ public sealed class ActorRegistrationManagerViewModel : INotifyPropertyChanged
 
     private void AddNpcName()
     {
-        var normalized = NpcNameInput.Trim();
+        var normalized = NormalizeInput(NpcNameInput);
         if (string.IsNullOrWhiteSpace(normalized))
         {
             return;
@@ -116,7 +116,7 @@ public sealed class ActorRegistrationManagerViewModel : INotifyPropertyChanged
 
         RemoveName(
             PcNames,
-            ActorNameClassifier.NormalizePcName(normalized));
+            normalized);
         AddName(NpcNames, normalized);
         NpcNameInput = string.Empty;
         Save();
@@ -155,7 +155,7 @@ public sealed class ActorRegistrationManagerViewModel : INotifyPropertyChanged
     {
         return string.IsNullOrWhiteSpace(input)
             ? string.Empty
-            : ActorNameClassifier.NormalizePcName(input);
+            : ActorNameClassifier.NormalizeRegisteredName(input);
     }
 
     private static void AddName(

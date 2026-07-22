@@ -6,6 +6,11 @@ public sealed partial class ActorNameClassifier
 {
     public static string NormalizePcName(string name)
     {
+        return NormalizeRegisteredName(name);
+    }
+
+    public static string NormalizeRegisteredName(string name)
+    {
         ArgumentNullException.ThrowIfNull(name);
 
         var trimmed = name.Trim();
@@ -32,14 +37,17 @@ public sealed partial class ActorNameClassifier
         ArgumentNullException.ThrowIfNull(registeredPcNames);
         ArgumentNullException.ThrowIfNull(registeredNpcNames);
 
-        var trimmed = actor.Trim();
-        var normalized = NormalizePcName(actor);
-        var pcNames = registeredPcNames.ToHashSet(
+        var normalized = NormalizeRegisteredName(actor);
+        var pcNames = registeredPcNames
+            .Select(NormalizeRegisteredName)
+            .ToHashSet(
             StringComparer.OrdinalIgnoreCase);
-        var npcNames = registeredNpcNames.ToHashSet(
+        var npcNames = registeredNpcNames
+            .Select(NormalizeRegisteredName)
+            .ToHashSet(
             StringComparer.OrdinalIgnoreCase);
 
-        if (npcNames.Contains(trimmed))
+        if (npcNames.Contains(normalized))
         {
             return ActorNameKind.RegisteredNpc;
         }

@@ -17,6 +17,16 @@
             <Setter Property="Margin" Value="0,0,12,4" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
+        <Style x:Key="NumericCellStyle" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="4,0" />
+            <Setter Property="TextAlignment" Value="Right" />
+            <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+        </Style>
+        <Style x:Key="NumericHeaderStyle" TargetType="DataGridColumnHeader">
+            <Setter Property="HorizontalContentAlignment" Value="Right" />
+            <Setter Property="Padding" Value="4,0" />
+        </Style>
     </UserControl.Resources>
 
     <DockPanel>
@@ -50,6 +60,10 @@
                               Padding="8">
                         <DockPanel>
                             <StackPanel DockPanel.Dock="Top">
+                                <TextBlock Margin="0,0,0,8"
+                                           Foreground="#4B5563"
+                                           Text="表示するキャラクターを選択します。「登録…」からPC・NPCの分類を変更できます。"
+                                           TextWrapping="Wrap" />
                                 <TextBox Text="{Binding ActorFilterText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                                          MinWidth="220"
                                          Margin="0,0,0,8" />
@@ -98,6 +112,11 @@
 
                             <ListBox ItemsSource="{Binding FilteredActorVisibilities}"
                                      ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                <ListBox.ItemContainerStyle>
+                                    <Style TargetType="ListBoxItem">
+                                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                                    </Style>
+                                </ListBox.ItemContainerStyle>
                                 <ListBox.ItemTemplate>
                                     <DataTemplate>
                                         <Border Padding="4"
@@ -120,19 +139,48 @@
                                             <Grid>
                                                 <Grid.ColumnDefinitions>
                                                     <ColumnDefinition Width="*" />
-                                                    <ColumnDefinition Width="Auto" />
+                                                    <ColumnDefinition Width="72" />
+                                                    <ColumnDefinition Width="60" />
                                                 </Grid.ColumnDefinitions>
                                                 <CheckBox Grid.Column="0"
-                                                          Content="{Binding Actor}"
                                                           IsChecked="{Binding IsVisible, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                                          VerticalAlignment="Center" />
+                                                          VerticalAlignment="Center">
+                                                    <TextBlock Text="{Binding Actor}"
+                                                               TextTrimming="CharacterEllipsis"
+                                                               ToolTip="{Binding Actor}" />
+                                                </CheckBox>
                                                 <TextBlock Grid.Column="1"
                                                            Text="{Binding ClassificationLabel}"
-                                                           HorizontalAlignment="Right"
+                                                           Margin="4,0"
+                                                           HorizontalAlignment="Stretch"
                                                            VerticalAlignment="Center"
                                                            Padding="8,2"
+                                                           TextAlignment="Center"
                                                            Foreground="{Binding ClassificationForeground}"
                                                            Background="{Binding ClassificationBackground}" />
+                                                <Button Grid.Column="2"
+                                                        Width="56"
+                                                        MinWidth="0"
+                                                        Margin="4,0,0,0"
+                                                        Padding="6,2"
+                                                        VerticalAlignment="Center"
+                                                        Click="OnRegistrationButtonClick"
+                                                        Content="登録…"
+                                                        ToolTip="PC・NPCの登録状態を変更">
+                                                    <Button.ContextMenu>
+                                                        <ContextMenu>
+                                                            <MenuItem Header="PC名として登録"
+                                                                      Command="{Binding PlacementTarget.DataContext.RegisterAsPcCommand,
+                                                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                                            <MenuItem Header="NPC名として登録"
+                                                                      Command="{Binding PlacementTarget.DataContext.RegisterAsNpcCommand,
+                                                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                                            <MenuItem Header="登録を解除"
+                                                                      Command="{Binding PlacementTarget.DataContext.ClearRegistrationCommand,
+                                                                                        RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
+                                                        </ContextMenu>
+                                                    </Button.ContextMenu>
+                                                </Button>
                                             </Grid>
                                         </Border>
                                     </DataTemplate>
@@ -155,12 +203,12 @@
                               HeadersVisibility="Column">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="キャラクター名" Binding="{Binding Actor}" Width="150" />
-                            <DataGridTextColumn Header="総与ダメージ" Binding="{Binding TotalDamage}" Width="110" />
-                            <DataGridTextColumn Header="DPS" Binding="{Binding Dps}" Width="90" />
+                            <DataGridTextColumn Header="総与ダメージ" Binding="{Binding TotalDamage}" Width="110" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                            <DataGridTextColumn Header="DPS" Binding="{Binding Dps}" Width="90" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
                             <DataGridTextColumn Header="DPS時間精度" Binding="{Binding DpsTimeConfidence}" Width="120" />
-                            <DataGridTextColumn Header="通常攻撃命中率" Binding="{Binding NormalAttackHitRate}" Width="150" />
-                            <DataGridTextColumn Header="通常攻撃クリティカル率" Binding="{Binding NormalAttackCriticalRate}" Width="170" />
-                            <DataGridTextColumn Header="未分類件数" Binding="{Binding UnknownCount}" Width="100" />
+                            <DataGridTextColumn Header="通常攻撃命中率" Binding="{Binding NormalAttackHitRate}" Width="150" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                            <DataGridTextColumn Header="通常攻撃クリティカル率" Binding="{Binding NormalAttackCriticalRate}" Width="170" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                            <DataGridTextColumn Header="未分類件数" Binding="{Binding UnknownCount}" Width="100" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Grid>
@@ -176,15 +224,15 @@
                         <DataGridTextColumn Header="キャラクター名" Binding="{Binding Actor}" Width="140" />
                         <DataGridTextColumn Header="アクション名" Binding="{Binding ActionName}" Width="170" />
                         <DataGridTextColumn Header="種別" Binding="{Binding ActionType}" Width="140" />
-                        <DataGridTextColumn Header="使用回数" Binding="{Binding UseCount}" Width="90" />
-                        <DataGridTextColumn Header="命中回数" Binding="{Binding HitCount}" Width="90" />
-                        <DataGridTextColumn Header="非命中回数" Binding="{Binding MissCount}" Width="100" />
-                        <DataGridTextColumn Header="未分類件数" Binding="{Binding UnknownCount}" Width="100" />
-                        <DataGridTextColumn Header="命中率" Binding="{Binding HitRate}" Width="90" />
-                        <DataGridTextColumn Header="総ダメージ" Binding="{Binding TotalDamage}" Width="100" />
-                        <DataGridTextColumn Header="最大ダメージ" Binding="{Binding MaxDamage}" Width="100" />
-                        <DataGridTextColumn Header="最小ダメージ" Binding="{Binding MinDamage}" Width="100" />
-                        <DataGridTextColumn Header="平均ダメージ" Binding="{Binding AverageDamage}" Width="100" />
+                        <DataGridTextColumn Header="使用回数" Binding="{Binding UseCount}" Width="90" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                        <DataGridTextColumn Header="命中回数" Binding="{Binding HitCount}" Width="90" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                        <DataGridTextColumn Header="非命中回数" Binding="{Binding MissCount}" Width="100" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                        <DataGridTextColumn Header="未分類件数" Binding="{Binding UnknownCount}" Width="100" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                        <DataGridTextColumn Header="命中率" Binding="{Binding HitRate}" Width="90" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                        <DataGridTextColumn Header="総ダメージ" Binding="{Binding TotalDamage}" Width="100" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                        <DataGridTextColumn Header="最大ダメージ" Binding="{Binding MaxDamage}" Width="100" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                        <DataGridTextColumn Header="最小ダメージ" Binding="{Binding MinDamage}" Width="100" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                        <DataGridTextColumn Header="平均ダメージ" Binding="{Binding AverageDamage}" Width="100" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>
@@ -197,9 +245,9 @@
                           HeadersVisibility="Column">
                     <DataGrid.Columns>
                         <DataGridTextColumn Header="ポイント種別" Binding="{Binding PointName}" Width="220" />
-                        <DataGridTextColumn Header="総合計" Binding="{Binding TotalPoints}" Width="140" />
-                        <DataGridTextColumn Header="最大チェーン" Binding="{Binding MaxChainCount}" Width="140" />
-                        <DataGridTextColumn Header="時給" Binding="{Binding PointsPerHour}" Width="140" />
+                        <DataGridTextColumn Header="総合計" Binding="{Binding TotalPoints}" Width="140" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                        <DataGridTextColumn Header="最大チェーン" Binding="{Binding MaxChainCount}" Width="140" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
+                        <DataGridTextColumn Header="時給" Binding="{Binding PointsPerHour}" Width="140" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericHeaderStyle}" />
                     </DataGrid.Columns>
                 </DataGrid>
             </TabItem>

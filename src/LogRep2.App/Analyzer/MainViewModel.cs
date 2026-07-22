@@ -8,19 +8,6 @@ using Microsoft.VisualBasic.FileIO;
 
 namespace FFXI_LogAnalyzer.App;
 
-// ステッパー（手順バー）の各ステップの状態。
-public enum StepState
-{
-    // 未着手。
-    Pending,
-
-    // 現在このステップを操作中。
-    Active,
-
-    // 完了済み。
-    Completed
-}
-
 public sealed class MainViewModel : INotifyPropertyChanged
 {
     private readonly SessionOpenService _sessionOpenService;
@@ -29,18 +16,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private readonly CanonicalRecordReader _canonicalRecordReader = new();
     private AnalyzerSettings _settings;
     private SessionSelectionViewModel? _selectedSession;
-    private string _statusMessage = "セッション出力先フォルダを選択してください。";
+    private string _statusMessage = "セッション出力先が設定されていません。メイン画面の設定で指定してください。";
     private string _sessionRootFolderPath = "未選択";
     private string _selectedFolderPath = "未選択";
     private int _selectedTabIndex;
-    private StepState _step1State = StepState.Active;
-    private StepState _step2State = StepState.Pending;
-    private StepState _step3State = StepState.Pending;
-    private string _nextStepText = string.Empty;
-    private string _nextStepButtonText = "分析区間へ進む";
-    private bool _showNextStepButton = true;
-    private int _nextStepTargetTabIndex = 1;
-    private bool _canGoToNextStep;
     private CancellationTokenSource? _loadCancellation;
     private bool _isBusy;
     private string _busyText = string.Empty;
@@ -67,49 +46,50 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _settings = _settingsStore.Load();
         AnalysisResult = new AnalysisResultViewModel(_settingsStore);
         AnalysisRange.AnalysisCompleted += OnAnalysisCompleted;
-        AnalysisRange.PropertyChanged += OnAnalysisRangePropertyChanged;
         AnalysisResult.PropertyChanged += OnAnalysisResultPropertyChanged;
-        GoToNextStepCommand = new RelayCommand(GoToNextStep, () => _canGoToNextStep);
-        SelectSessionRootFolderCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
-            SelectSessionRootFolderAsync,
-            () => !IsBusy);
+        GoToNextStepCommand = new RelayCommand(
+            () => SelectedTabIndex = 1,
+            () => HasSession);
+        OpenSessionRootFolderCommand = new RelayCommand(
+            OpenSessionRootFolder,
+            () => HasSessionRootFolder && !IsBusy);
         RefreshSessionsCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
             RefreshSessionsAsync,
             () => HasSessionRootFolder && !IsBusy);
         CancelLoadingCommand = new RelayCommand(
             CancelLoading,
             () => IsBusy);
-        RemoveSelectedSessionCommand = new RelayCommand(
-            RemoveSelectedSession,
-            () => SelectedSession is not null && !IsBusy);
         OpenSelectedSessionFolderCommand = new RelayCommand(
             OpenSelectedSessionFolder,
             () => SelectedSession is not null && !IsBusy);
         DeleteSelectedSessionCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
             DeleteSelectedSessionAsync,
             () => SelectedSession is not null && !IsBusy);
-        ClearSessionsCommand = new RelayCommand(
-            ClearSessions,
+        EnableAllSessionsCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
+            () => SetAllSessionsEnabledAsync(true),
+            () => Sessions.Count > 0 && !IsBusy);
+        DisableAllSessionsCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
+            () => SetAllSessionsEnabledAsync(false),
             () => Sessions.Count > 0 && !IsBusy);
         _ = LoadConfiguredSessionRootAsync();
-        RefreshStepStates();
+        RefreshNavigationState();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
-    public FfxiTempLogCollector.App.AsyncRelayCommand SelectSessionRootFolderCommand { get; }
+    public RelayCommand OpenSessionRootFolderCommand { get; }
 
     public FfxiTempLogCollector.App.AsyncRelayCommand RefreshSessionsCommand { get; }
 
     public RelayCommand CancelLoadingCommand { get; }
 
-    public RelayCommand RemoveSelectedSessionCommand { get; }
-
     public RelayCommand OpenSelectedSessionFolderCommand { get; }
 
     public FfxiTempLogCollector.App.AsyncRelayCommand DeleteSelectedSessionCommand { get; }
 
-    public RelayCommand ClearSessionsCommand { get; }
+    public FfxiTempLogCollector.App.AsyncRelayCommand EnableAllSessionsCommand { get; }
+
+    public FfxiTempLogCollector.App.AsyncRelayCommand DisableAllSessionsCommand { get; }
 
     public RelayCommand GoToNextStepCommand { get; }
 
@@ -130,7 +110,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             if (SetProperty(ref _selectedSession, value))
             {
-                RemoveSelectedSessionCommand.RaiseCanExecuteChanged();
                 OpenSelectedSessionFolderCommand.RaiseCanExecuteChanged();
                 DeleteSelectedSessionCommand.RaiseCanExecuteChanged();
             }
@@ -155,56 +134,15 @@ public sealed class MainViewModel : INotifyPropertyChanged
         private set => SetProperty(ref _selectedFolderPath, value);
     }
 
-    // TabControl.SelectedIndex とバインドし、ステッパーの「実行中」判定と誘導ボタンの遷移先に使う。
     public int SelectedTabIndex
     {
         get => _selectedTabIndex;
-        set
-        {
-            if (SetProperty(ref _selectedTabIndex, value))
-            {
-                RefreshStepStates();
-            }
-        }
+        set => SetProperty(ref _selectedTabIndex, value);
     }
 
-    public StepState Step1State
-    {
-        get => _step1State;
-        private set => SetProperty(ref _step1State, value);
-    }
-
-    public StepState Step2State
-    {
-        get => _step2State;
-        private set => SetProperty(ref _step2State, value);
-    }
-
-    public StepState Step3State
-    {
-        get => _step3State;
-        private set => SetProperty(ref _step3State, value);
-    }
-
-    // 現在のステップに応じた「次に何をすべきか」の案内文。
-    public string NextStepText
-    {
-        get => _nextStepText;
-        private set => SetProperty(ref _nextStepText, value);
-    }
-
-    public string NextStepButtonText
-    {
-        get => _nextStepButtonText;
-        private set => SetProperty(ref _nextStepButtonText, value);
-    }
-
-    // 最終ステップ（分析結果）では遷移先がないため誘導ボタンを隠す。
-    public bool ShowNextStepButton
-    {
-        get => _showNextStepButton;
-        private set => SetProperty(ref _showNextStepButton, value);
-    }
+    public string NextStepText => HasSession
+        ? "セッションを選択しました。次は分析区間を選びます。"
+        : "分析するセッションの「分析対象」列にチェックを入れてください。";
 
     public bool HasSession => Sessions.Any(session => session.IsEnabled);
 
@@ -219,11 +157,34 @@ public sealed class MainViewModel : INotifyPropertyChanged
             {
                 OnPropertyChanged(nameof(IsNotBusy));
                 RefreshCommandStates();
-                SelectSessionRootFolderCommand.RaiseCanExecuteChanged();
+                OpenSessionRootFolderCommand.RaiseCanExecuteChanged();
                 CancelLoadingCommand.RaiseCanExecuteChanged();
             }
         }
     }
+
+    public string AnalysisTargetSummary
+    {
+        get
+        {
+            var enabledCount = Sessions.Count(session => session.IsEnabled);
+            return enabledCount == 0
+                ? "なし"
+                : $"{enabledCount:N0}件のセッション";
+        }
+    }
+
+    public string SessionTabHeader => HasSession
+        ? "① セッション選択  ✓"
+        : "① セッション選択";
+
+    public string RangeTabHeader => AnalysisResult.HasResult
+        ? "② 分析区間  ✓"
+        : "② 分析区間";
+
+    public string ResultTabHeader => AnalysisResult.HasResult
+        ? "③ 分析結果  ✓"
+        : "③ 分析結果";
 
     public bool IsNotBusy => !IsBusy;
 
@@ -233,19 +194,25 @@ public sealed class MainViewModel : INotifyPropertyChanged
         private set => SetProperty(ref _busyText, value);
     }
 
-    private async Task SelectSessionRootFolderAsync()
+    private void OpenSessionRootFolder()
     {
-        var folderPath = _dialogService.SelectSessionsRootFolder();
-        if (string.IsNullOrWhiteSpace(folderPath))
+        if (string.IsNullOrWhiteSpace(_settings.SessionsRootFolderPath))
         {
-            StatusMessage = "セッション出力先選択をキャンセルしました。";
             return;
         }
 
-        _settings.SessionsRootFolderPath = Path.GetFullPath(folderPath);
-        SessionRootFolderPath = _settings.SessionsRootFolderPath ?? "未選択";
-        RefreshCommandStates();
-        await ReloadSessionsFromRootAsync(preserveEnabledStates: true);
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = _settings.SessionsRootFolderPath,
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"セッション出力先を開けませんでした: {exception.Message}";
+        }
     }
 
     public void ReloadSharedSessionRoot()
@@ -264,7 +231,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (string.IsNullOrWhiteSpace(_settings.SessionsRootFolderPath))
         {
             SessionRootFolderPath = "未選択";
-            StatusMessage = "セッション出力先フォルダを選択してください。";
+            StatusMessage = "セッション出力先が設定されていません。メイン画面の設定で指定してください。";
             RefreshCommandStates();
             return;
         }
@@ -279,7 +246,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             ClearSessionsInternal();
             ClearCombinedSession();
-            StatusMessage = "セッション出力先フォルダを選択してください。";
+            StatusMessage = "セッション出力先が設定されていません。メイン画面の設定で指定してください。";
             return;
         }
 
@@ -407,25 +374,46 @@ public sealed class MainViewModel : INotifyPropertyChanged
             []);
     }
 
-    private void RemoveSelectedSession()
+    private async Task SetAllSessionsEnabledAsync(bool isEnabled)
     {
-        if (SelectedSession is null)
+        IsBusy = true;
+        BusyText = "分析対象を更新中...";
+        try
         {
-            return;
+            foreach (var session in Sessions)
+            {
+                session.PropertyChanged -= OnSessionSelectionChanged;
+            }
+
+            try
+            {
+                foreach (var session in Sessions)
+                {
+                    session.IsEnabled = isEnabled;
+                }
+            }
+            finally
+            {
+                foreach (var session in Sessions)
+                {
+                    session.PropertyChanged += OnSessionSelectionChanged;
+                }
+            }
+
+            await RefreshCombinedSessionAsync(CancellationToken.None);
+            StatusMessage = isEnabled
+                ? "すべてのセッションを分析対象にしました。"
+                : "すべてのセッションを分析対象から外しました。";
         }
-
-        SelectedSession.PropertyChanged -= OnSessionSelectionChanged;
-        Sessions.Remove(SelectedSession);
-        SelectedSession = Sessions.LastOrDefault();
-        _ = RefreshCombinedSessionAsync(CancellationToken.None);
-        StatusMessage = "選択中のセッションを解除しました。";
-    }
-
-    private void ClearSessions()
-    {
-        ClearSessionsInternal();
-        ClearCombinedSession();
-        StatusMessage = "セッション選択をすべて解除しました。";
+        catch (Exception exception)
+        {
+            StatusMessage = $"分析対象を更新できませんでした: {exception.Message}";
+        }
+        finally
+        {
+            BusyText = string.Empty;
+            IsBusy = false;
+        }
     }
 
     private void ClearSessionsInternal()
@@ -717,84 +705,27 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         OnPropertyChanged(nameof(HasSession));
         OnPropertyChanged(nameof(HasSessionRootFolder));
+        OnPropertyChanged(nameof(AnalysisTargetSummary));
+        OnPropertyChanged(nameof(SessionTabHeader));
+        OnPropertyChanged(nameof(RangeTabHeader));
+        OnPropertyChanged(nameof(ResultTabHeader));
         RefreshSessionsCommand.RaiseCanExecuteChanged();
-        RemoveSelectedSessionCommand.RaiseCanExecuteChanged();
+        OpenSessionRootFolderCommand.RaiseCanExecuteChanged();
         OpenSelectedSessionFolderCommand.RaiseCanExecuteChanged();
         DeleteSelectedSessionCommand.RaiseCanExecuteChanged();
-        ClearSessionsCommand.RaiseCanExecuteChanged();
-        RefreshStepStates();
+        EnableAllSessionsCommand.RaiseCanExecuteChanged();
+        DisableAllSessionsCommand.RaiseCanExecuteChanged();
+        RefreshNavigationState();
     }
 
-    // 3ステップ（セッション選択→分析区間→分析実行）の状態と、次の手順への誘導表示を更新する。
-    private void RefreshStepStates()
+    private void RefreshNavigationState()
     {
-        // STEP2の完了は「区間が妥当か（IsRangeReady）」では判定しない。
-        // デフォルトの「ログ先頭→ログ最後尾」が常に妥当なため、起動直後から
-        // 完了扱いになってしまう。分析を実際に実行した時点をSTEP2の完了とみなす。
-        Step1State = ResolveStepState(0, HasSession);
-        Step2State = ResolveStepState(1, AnalysisResult.HasResult);
-        Step3State = ResolveStepState(2, AnalysisResult.HasResult);
-        UpdateNextStepGuidance();
-    }
-
-    // 対象タブを操作中なら「実行中」、完了条件を満たせば「完了」、それ以外は「未着手」。
-    private StepState ResolveStepState(int tabIndex, bool isDone)
-    {
-        if (SelectedTabIndex == tabIndex && !isDone)
-        {
-            return StepState.Active;
-        }
-
-        return isDone ? StepState.Completed : StepState.Pending;
-    }
-
-    private void UpdateNextStepGuidance()
-    {
-        switch (SelectedTabIndex)
-        {
-            case 0:
-                NextStepText = HasSession
-                    ? "セッションを選択しました。次は分析区間を選びます。"
-                    : "分析するセッションの「使用」列にチェックを入れてください。";
-                NextStepButtonText = "分析区間へ進む";
-                ShowNextStepButton = true;
-                _nextStepTargetTabIndex = 1;
-                _canGoToNextStep = HasSession;
-                break;
-            case 1:
-                NextStepText = AnalysisRange.IsRangeReady
-                    ? "分析区間を選択しました。「分析実行」ボタンを押してください。"
-                    : "分析区間（開始・終了ポイント）を選択してください。";
-                NextStepButtonText = "分析結果へ進む";
-                ShowNextStepButton = true;
-                _nextStepTargetTabIndex = 2;
-                _canGoToNextStep = AnalysisResult.HasResult;
-                break;
-            default:
-                NextStepText = AnalysisResult.HasResult
-                    ? "分析が完了しました。結果を確認できます。"
-                    : "「分析区間」タブで分析を実行すると結果が表示されます。";
-                ShowNextStepButton = false;
-                _canGoToNextStep = false;
-                break;
-        }
-
+        OnPropertyChanged(nameof(AnalysisTargetSummary));
+        OnPropertyChanged(nameof(SessionTabHeader));
+        OnPropertyChanged(nameof(RangeTabHeader));
+        OnPropertyChanged(nameof(ResultTabHeader));
+        OnPropertyChanged(nameof(NextStepText));
         GoToNextStepCommand.RaiseCanExecuteChanged();
-    }
-
-    private void GoToNextStep()
-    {
-        SelectedTabIndex = _nextStepTargetTabIndex;
-    }
-
-    private void OnAnalysisRangePropertyChanged(
-        object? sender,
-        PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName == nameof(AnalysisRangeViewModel.IsRangeReady))
-        {
-            RefreshStepStates();
-        }
     }
 
     private void OnAnalysisResultPropertyChanged(
@@ -812,7 +743,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             SelectedTabIndex = 2;
         }
 
-        RefreshStepStates();
+        RefreshNavigationState();
     }
 
     private static string ToDisplay(string? value)

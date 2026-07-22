@@ -9,7 +9,7 @@
         WindowStartupLocation="CenterOwner">
     <DockPanel Margin="16">
         <TextBlock DockPanel.Dock="Top"
-                   Text="PC名は先頭大文字、2文字目以降小文字へ正規化して保存します。NPC名は入力した表示名を保存します。"
+                   Text="PC名・NPC名ともに、先頭を大文字、2文字目以降を小文字へ正規化して保存します。"
                    TextWrapping="Wrap"
                    Margin="0,0,0,12" />
 

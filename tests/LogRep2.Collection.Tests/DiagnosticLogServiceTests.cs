@@ -61,4 +61,36 @@ public sealed class DiagnosticLogServiceTests
     {
         Assert.Equal(expected, AnalysisDisplayText.ToText(actionType));
     }
+
+    [Theory]
+    [InlineData(1234.567, "1,234.57")]
+    [InlineData(12.5, "12.50")]
+    public void 分析結果の小数を桁区切り付き2桁で表示する(
+        double value,
+        string expected)
+    {
+        Assert.Equal(expected, AnalysisNumberFormatter.FormatDecimal(value));
+    }
+
+    [Fact]
+    public void 値がない小数はハイフンで表示する()
+    {
+        Assert.Equal("-", AnalysisNumberFormatter.FormatDecimal(null));
+    }
+
+    [Theory]
+    [InlineData(1234, "1,234")]
+    [InlineData(0, "0")]
+    public void 最大最小ダメージを桁区切り付き整数で表示する(
+        int value,
+        string expected)
+    {
+        Assert.Equal(expected, AnalysisNumberFormatter.FormatInteger(value));
+    }
+
+    [Fact]
+    public void 値がない整数はハイフンで表示する()
+    {
+        Assert.Equal("-", AnalysisNumberFormatter.FormatInteger(null));
+    }
 }

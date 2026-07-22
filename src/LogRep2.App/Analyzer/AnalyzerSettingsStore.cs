@@ -71,7 +71,7 @@ public sealed class AnalyzerSettingsStore
     {
         return names
             .Where(name => !string.IsNullOrWhiteSpace(name))
-            .Select(name => name.Trim())
+            .Select(ActorNameClassifier.NormalizeRegisteredName)
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(name => name, StringComparer.OrdinalIgnoreCase)
             .ToList();

@@ -41,7 +41,7 @@ public sealed class UnifiedAnalyzerSettingsStoreTests
             {
                 SessionsRootFolderPath = "temporary-selection",
                 KnownPcNames = [" xitra "],
-                KnownNpcNames = ["Goblin"],
+                KnownNpcNames = ["gOBLIN"],
             });
         var reloaded = unifiedStore.Load();
 

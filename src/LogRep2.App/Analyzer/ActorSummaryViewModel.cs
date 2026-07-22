@@ -66,6 +66,6 @@ public sealed class ActorSummaryViewModel
 
     private static string FormatNullable(double? value)
     {
-        return value is null ? "-" : value.Value.ToString("0.###");
+        return AnalysisNumberFormatter.FormatDecimal(value);
     }
 }
