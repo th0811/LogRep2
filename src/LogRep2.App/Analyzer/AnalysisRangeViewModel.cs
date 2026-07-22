@@ -20,6 +20,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     private MarkerListViewModel? _selectedStartMarker;
     private MarkerListViewModel? _selectedEndMarker;
     private AreaStaySegmentListViewModel? _selectedAreaSegment;
+    private string _areaFilterText = string.Empty;
     private bool _isAreaSegmentMode;
     private string _validationMessage = "セッションを読み込むと分析区間を選択できます。";
     private string _rangeSummary = "-";
@@ -47,6 +48,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
     public ObservableCollection<AreaStaySegmentListViewModel> AreaSegments { get; } = [];
 
+    public ObservableCollection<AreaStaySegmentListViewModel> FilteredAreaSegments { get; } = [];
+
     public FfxiTempLogCollector.App.AsyncRelayCommand RunAnalysisCommand { get; }
 
     public RelayCommand CancelAnalysisCommand { get; }
@@ -67,6 +70,21 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     public bool HasMarkers => Markers.Count > 0;
 
     public bool HasAreaSegments => AreaSegments.Count > 0;
+
+    public string AreaFilterText
+    {
+        get => _areaFilterText;
+        set
+        {
+            if (SetProperty(ref _areaFilterText, value))
+            {
+                RefreshAreaSegmentFilter();
+            }
+        }
+    }
+
+    public string SelectedAreaSummary => SelectedAreaSegment?.SelectionSummary
+        ?? "エリア区間を選択してください。";
 
     public bool HasRecords => _records.Count > 0;
 
@@ -113,6 +131,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
                     IsAreaSegmentMode = true;
                 }
 
+                OnPropertyChanged(nameof(SelectedAreaSummary));
                 RefreshValidation();
             }
         }
@@ -262,6 +281,9 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             AreaSegments.Add(segment);
         }
 
+        _areaFilterText = string.Empty;
+        RefreshAreaSegmentFilter();
+
         _isStartLogStart = true;
         _isEndLogEnd = true;
         _selectedStartMarker = null;
@@ -275,6 +297,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SelectedStartMarker));
         OnPropertyChanged(nameof(SelectedEndMarker));
         OnPropertyChanged(nameof(SelectedAreaSegment));
+        OnPropertyChanged(nameof(AreaFilterText));
+        OnPropertyChanged(nameof(SelectedAreaSummary));
         OnPropertyChanged(nameof(IsAreaSegmentMode));
         OnPropertyChanged(nameof(IsManualRangeMode));
         OnPropertyChanged(nameof(HasMarkers));
@@ -290,6 +314,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         Markers.Clear();
         EndMarkerCandidates.Clear();
         AreaSegments.Clear();
+        FilteredAreaSegments.Clear();
+        _areaFilterText = string.Empty;
         SelectedStartMarker = null;
         SelectedEndMarker = null;
         SelectedAreaSegment = null;
@@ -297,6 +323,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         ValidationMessage = "セッションを読み込むと分析区間を選択できます。";
         OnPropertyChanged(nameof(HasMarkers));
         OnPropertyChanged(nameof(HasAreaSegments));
+        OnPropertyChanged(nameof(AreaFilterText));
+        OnPropertyChanged(nameof(SelectedAreaSummary));
         OnPropertyChanged(nameof(HasRecords));
         RaiseRunAnalysisState();
     }
@@ -409,6 +437,23 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    private void RefreshAreaSegmentFilter()
+    {
+        var filter = AreaFilterText.Trim();
+        FilteredAreaSegments.Clear();
+        foreach (var segment in AreaSegments.Where(segment =>
+                     filter.Length == 0
+                     || segment.AreaName.Contains(filter, StringComparison.OrdinalIgnoreCase)))
+        {
+            FilteredAreaSegments.Add(segment);
+        }
+
+        if (SelectedAreaSegment is not null && !FilteredAreaSegments.Contains(SelectedAreaSegment))
+        {
+            SelectedAreaSegment = null;
         }
     }
 

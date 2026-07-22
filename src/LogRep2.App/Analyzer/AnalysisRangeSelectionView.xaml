@@ -8,11 +8,16 @@
              d:DesignWidth="900">
     <UserControl.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <Style x:Key="RightAlignedCellText" TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Stretch" />
+            <Setter Property="TextAlignment" Value="Right" />
+        </Style>
     </UserControl.Resources>
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
@@ -26,25 +31,22 @@
                              Content="エリアログ区間" IsChecked="{Binding IsAreaSegmentMode}"
                              IsEnabled="{Binding HasAreaSegments}" />
             </StackPanel>
-            <ComboBox Margin="0,8,0,0"
-                      ItemsSource="{Binding AreaSegments}"
-                      SelectedItem="{Binding SelectedAreaSegment}"
-                      DisplayMemberPath="DisplayText"
-                      IsEnabled="{Binding IsAreaSegmentMode}" />
+            <DockPanel Margin="0,8,0,0"
+                       Visibility="{Binding IsAreaSegmentMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <TextBlock DockPanel.Dock="Left" Margin="0,0,8,0" VerticalAlignment="Center" Text="エリア名で絞り込み" />
+                <TextBox Text="{Binding AreaFilterText, UpdateSourceTrigger=PropertyChanged}" />
+            </DockPanel>
         </StackPanel>
 
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1"
+              Visibility="{Binding IsManualRangeMode, Converter={StaticResource BooleanToVisibilityConverter}}">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="2*" />
                 <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
-            <DataGrid Grid.Column="0"
-                      ItemsSource="{Binding Markers}"
-                      AutoGenerateColumns="False"
-                      CanUserAddRows="False"
-                      IsReadOnly="True"
-                      HeadersVisibility="Column">
+            <DataGrid Grid.Column="0" ItemsSource="{Binding Markers}" AutoGenerateColumns="False"
+                      CanUserAddRows="False" IsReadOnly="True" HeadersVisibility="Column">
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="セッションID" Binding="{Binding SessionId}" Width="140" />
                     <DataGridTextColumn Header="ログ順序" Binding="{Binding Order}" Width="80" />
@@ -56,51 +58,71 @@
             </DataGrid>
 
             <StackPanel Grid.Column="1" Margin="12,0,0,0">
-                <GroupBox Header="開始ポイント" Margin="0,0,0,10"
-                          IsEnabled="{Binding IsManualRangeMode}">
+                <GroupBox Header="開始ポイント" Margin="0,0,0,10">
                     <StackPanel Margin="8">
                         <RadioButton Content="ログ先頭" IsChecked="{Binding IsStartLogStart}" Margin="0,0,0,6" />
                         <RadioButton Content="マーカー" IsChecked="{Binding IsStartMarker}" Margin="0,0,0,6" />
-                        <ComboBox ItemsSource="{Binding Markers}"
-                                  SelectedItem="{Binding SelectedStartMarker}"
-                                  DisplayMemberPath="VisibleText"
-                                  IsEnabled="{Binding IsStartMarker}" />
+                        <ComboBox ItemsSource="{Binding Markers}" SelectedItem="{Binding SelectedStartMarker}"
+                                  DisplayMemberPath="VisibleText" IsEnabled="{Binding IsStartMarker}" />
                     </StackPanel>
                 </GroupBox>
-
-                <GroupBox Header="終了ポイント" Margin="0,0,0,10"
-                          IsEnabled="{Binding IsManualRangeMode}">
+                <GroupBox Header="終了ポイント">
                     <StackPanel Margin="8">
                         <RadioButton Content="マーカー" IsChecked="{Binding IsEndMarker}" Margin="0,0,0,6" />
-                        <ComboBox ItemsSource="{Binding EndMarkerCandidates}"
-                                  SelectedItem="{Binding SelectedEndMarker}"
-                                  DisplayMemberPath="VisibleText"
-                                  IsEnabled="{Binding IsEndMarker}"
-                                  Margin="0,0,0,8" />
+                        <ComboBox ItemsSource="{Binding EndMarkerCandidates}" SelectedItem="{Binding SelectedEndMarker}"
+                                  DisplayMemberPath="VisibleText" IsEnabled="{Binding IsEndMarker}" Margin="0,0,0,8" />
                         <RadioButton Content="ログ最後尾" IsChecked="{Binding IsEndLogEnd}" />
                     </StackPanel>
                 </GroupBox>
-
-                <TextBlock Text="{Binding ValidationMessage}" TextWrapping="Wrap" Margin="0,0,0,10" />
-                <StackPanel Orientation="Horizontal">
-                    <Button Content="分析実行"
-                            Command="{Binding RunAnalysisCommand}" />
-                    <Button Margin="8,0,0,0"
-                            Content="キャンセル"
-                            Command="{Binding CancelAnalysisCommand}"
-                            Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                </StackPanel>
-                <ProgressBar Height="12"
-                             Margin="0,8,0,0"
-                             IsIndeterminate="True"
-                             Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}" />
-                <TextBlock Text="{Binding RangeSummary}" TextWrapping="Wrap" Margin="0,10,0,0" />
             </StackPanel>
         </Grid>
 
-        <TextBlock Grid.Row="2"
-                   Margin="0,8,0,0"
+        <Grid Grid.Row="1"
+              Visibility="{Binding IsAreaSegmentMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <DataGrid Grid.Row="0" ItemsSource="{Binding FilteredAreaSegments}"
+                      SelectedItem="{Binding SelectedAreaSegment}" AutoGenerateColumns="False"
+                      CanUserAddRows="False" IsReadOnly="True" SelectionMode="Single"
+                      SelectionUnit="FullRow" HeadersVisibility="Column"
+                      MouseDoubleClick="OnAreaSegmentDoubleClick">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="#" Binding="{Binding Sequence}" Width="48"
+                                        ElementStyle="{StaticResource RightAlignedCellText}" />
+                    <DataGridTextColumn Header="エリア" Binding="{Binding AreaName}" Width="*" />
+                    <DataGridTextColumn Header="訪問" Binding="{Binding OccurrenceText}" Width="80" />
+                    <DataGridTextColumn Header="先頭ログ時刻" Binding="{Binding FirstMessageTimeText}" Width="130" />
+                    <DataGridTextColumn Header="ログ件数" Binding="{Binding RecordCount, StringFormat={}{0:N0}}" Width="90"
+                                        ElementStyle="{StaticResource RightAlignedCellText}" />
+                    <DataGridTextColumn Header="ログ順の範囲" Binding="{Binding OrderRangeText}" Width="150" />
+                </DataGrid.Columns>
+            </DataGrid>
+            <TextBlock Grid.Row="1" Margin="0,8,0,0" Text="{Binding SelectedAreaSummary}" TextWrapping="Wrap" />
+        </Grid>
+
+        <Grid Grid.Row="2" Margin="0,10,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <StackPanel Grid.Column="0" Margin="0,0,12,0">
+                <TextBlock Text="{Binding ValidationMessage}" TextWrapping="Wrap" />
+                <ProgressBar Height="12" Margin="0,8,0,0" IsIndeterminate="True"
+                             Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <TextBlock Text="{Binding RangeSummary}" TextWrapping="Wrap" Margin="0,8,0,0" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Top">
+                <Button Content="分析実行" Command="{Binding RunAnalysisCommand}" />
+                <Button Margin="8,0,0,0" Content="キャンセル" Command="{Binding CancelAnalysisCommand}"
+                        Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}" />
+            </StackPanel>
+        </Grid>
+
+        <TextBlock Grid.Row="3" Margin="0,8,0,0"
                    Text="終了マーカー候補には、開始マーカーより後ろのマーカーのみ表示されます。"
-                   TextWrapping="Wrap" />
+                   TextWrapping="Wrap"
+                   Visibility="{Binding IsManualRangeMode, Converter={StaticResource BooleanToVisibilityConverter}}" />
     </Grid>
 </UserControl>

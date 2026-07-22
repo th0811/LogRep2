@@ -20,4 +20,20 @@ public sealed class AreaStaySegmentListViewModel
     public AreaStaySegment Segment { get; }
 
     public string DisplayText { get; }
+
+    public int Sequence => Segment.Sequence;
+
+    public string AreaName => Segment.AreaName;
+
+    public string OccurrenceText => $"{Segment.AreaOccurrence}回目";
+
+    public string FirstMessageTimeText => string.IsNullOrWhiteSpace(Segment.FirstMessageTimeText)
+        ? "時刻なし"
+        : Segment.FirstMessageTimeText;
+
+    public int RecordCount => Segment.RecordCount;
+
+    public string OrderRangeText => $"{Segment.Start.Order}～{Segment.End?.Order.ToString() ?? "ログ末尾"}";
+
+    public string SelectionSummary => $"選択中: {AreaName}（{OccurrenceText}） / {RecordCount:N0}件 / ログ順 {OrderRangeText}";
 }
