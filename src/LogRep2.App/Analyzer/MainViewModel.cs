@@ -13,6 +13,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private readonly SessionOpenService _sessionOpenService;
     private readonly DialogService _dialogService;
     private readonly AnalyzerSettingsStore _settingsStore;
+    private readonly AssistantToolLauncher _assistantToolLauncher;
     private readonly CanonicalRecordReader _canonicalRecordReader = new();
     private AnalyzerSettings _settings;
     private SessionSelectionViewModel? _selectedSession;
@@ -28,14 +29,16 @@ public sealed class MainViewModel : INotifyPropertyChanged
         : this(
             sessionOpenService,
             dialogService,
-            new AnalyzerSettingsStore())
+            new AnalyzerSettingsStore(),
+            new AssistantToolLauncher())
     {
     }
 
     public MainViewModel(
         SessionOpenService sessionOpenService,
         DialogService dialogService,
-        AnalyzerSettingsStore settingsStore)
+        AnalyzerSettingsStore settingsStore,
+        AssistantToolLauncher? assistantToolLauncher = null)
     {
         _sessionOpenService = sessionOpenService
             ?? throw new ArgumentNullException(nameof(sessionOpenService));
@@ -43,6 +46,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
             ?? throw new ArgumentNullException(nameof(dialogService));
         _settingsStore = settingsStore
             ?? throw new ArgumentNullException(nameof(settingsStore));
+        _assistantToolLauncher = assistantToolLauncher
+            ?? new AssistantToolLauncher();
         _settings = _settingsStore.Load();
         AnalysisResult = new AnalysisResultViewModel(_settingsStore);
         AnalysisRange.AnalysisCompleted += OnAnalysisCompleted;
@@ -61,6 +66,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
             () => IsBusy);
         OpenSelectedSessionFolderCommand = new RelayCommand(
             OpenSelectedSessionFolder,
+            () => SelectedSession is not null && !IsBusy);
+        OpenGameLogCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
+            OpenGameLogAsync,
             () => SelectedSession is not null && !IsBusy);
         DeleteSelectedSessionCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
             DeleteSelectedSessionAsync,
@@ -84,6 +92,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public RelayCommand CancelLoadingCommand { get; }
 
     public RelayCommand OpenSelectedSessionFolderCommand { get; }
+
+    public FfxiTempLogCollector.App.AsyncRelayCommand OpenGameLogCommand { get; }
 
     public FfxiTempLogCollector.App.AsyncRelayCommand DeleteSelectedSessionCommand { get; }
 
@@ -111,6 +121,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             if (SetProperty(ref _selectedSession, value))
             {
                 OpenSelectedSessionFolderCommand.RaiseCanExecuteChanged();
+                OpenGameLogCommand.RaiseCanExecuteChanged();
                 DeleteSelectedSessionCommand.RaiseCanExecuteChanged();
             }
         }
@@ -449,6 +460,30 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private async Task OpenGameLogAsync()
+    {
+        var session = SelectedSession;
+        if (session is null)
+        {
+            return;
+        }
+
+        IsBusy = true;
+        BusyText = "ゲーム内ログのスナップショットを作成しています...";
+
+        try
+        {
+            var result = await Task.Run(
+                () => _assistantToolLauncher.Launch(session.FolderPath));
+            StatusMessage = result.Message;
+        }
+        finally
+        {
+            BusyText = string.Empty;
+            IsBusy = false;
+        }
+    }
+
     private async Task DeleteSelectedSessionAsync()
     {
         var session = SelectedSession;
@@ -712,6 +747,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         RefreshSessionsCommand.RaiseCanExecuteChanged();
         OpenSessionRootFolderCommand.RaiseCanExecuteChanged();
         OpenSelectedSessionFolderCommand.RaiseCanExecuteChanged();
+        OpenGameLogCommand.RaiseCanExecuteChanged();
         DeleteSelectedSessionCommand.RaiseCanExecuteChanged();
         EnableAllSessionsCommand.RaiseCanExecuteChanged();
         DisableAllSessionsCommand.RaiseCanExecuteChanged();

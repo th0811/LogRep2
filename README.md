@@ -70,7 +70,9 @@ dotnet publish src/LogRep2.App/LogRep2.App.csproj `
 
 ### AssistantToolを使う
 
-`AssistantTool/index.html`をEdgeなどで開き、LogRep2が出力した`raw_records.jsonl`をドラッグ＆ドロップします。
+過去ログ分析画面でセッションを選択し、「ゲーム内ログを表示」を押すと、ボタンを押した時点の`raw_records.jsonl`を既定のブラウザで表示します。収集中のセッションも表示できます。
+
+AssistantToolを単体で使う場合は、`AssistantTool/index.html`をEdgeなどで開き、LogRep2が出力した`raw_records.jsonl`をドラッグ＆ドロップします。
 
 詳しい使い方は`AssistantTool/README.md`を参照してください。
 

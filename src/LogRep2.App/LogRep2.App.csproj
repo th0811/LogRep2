@@ -31,18 +31,22 @@
     </Content>
     <Content Include="..\..\AssistantTool\index.html"
              Link="AssistantTool\index.html">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
     <Content Include="..\..\AssistantTool\app.js"
              Link="AssistantTool\app.js">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
     <Content Include="..\..\AssistantTool\style.css"
              Link="AssistantTool\style.css">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
     <Content Include="..\..\AssistantTool\README.md"
              Link="AssistantTool\README.md">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <CopyToPublishDirectory>Always</CopyToPublishDirectory>
     </Content>
   </ItemGroup>

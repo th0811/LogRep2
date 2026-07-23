@@ -24,6 +24,9 @@
             <Button Content="セッション出力先を開く" Command="{Binding OpenSessionRootFolderCommand}" />
             <Button Content="更新" Command="{Binding RefreshSessionsCommand}" />
             <Button Content="選択セッションを開く" Command="{Binding OpenSelectedSessionFolderCommand}" />
+            <Button Content="ゲーム内ログを表示"
+                    Command="{Binding OpenGameLogCommand}"
+                    ToolTip="選択中のセッションをAssistantToolで開きます" />
             <Button Content="削除" Command="{Binding DeleteSelectedSessionCommand}" />
         </WrapPanel>
 

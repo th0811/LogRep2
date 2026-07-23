@@ -134,6 +134,8 @@ elements.clearButton.addEventListener("click", () => {
   clearAll();
 });
 
+void loadEmbeddedFile();
+
 document.addEventListener("keydown", (event) => {
   if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "c") {
     if (state.selected) {
@@ -149,13 +151,22 @@ async function loadFile(file) {
 
   try {
     const text = await file.text();
+    loadText(text, file.name);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    setStatus(`読込失敗: ${message}`);
+  }
+}
+
+function loadText(text, fileName) {
+  try {
     const result = parseJsonl(text);
     state.records = result.records;
     state.columns = buildColumns(result.records);
     state.columnFilters = new Map();
     state.page = 0;
     state.selected = null;
-    state.sourceFileName = file.name;
+    state.sourceFileName = fileName;
     elements.clearButton.disabled = false;
     elements.copySelectedButton.disabled = true;
     elements.exportCsvButton.disabled = result.records.length === 0;
@@ -167,10 +178,34 @@ async function loadFile(file) {
     const errorMessage = result.errors.length
       ? ` / 解析エラー ${result.errors.length} 行`
       : "";
-    setStatus(`${file.name}: ${result.records.length} 件${errorMessage}`);
+    setStatus(`${fileName}: ${result.records.length} 件${errorMessage}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     setStatus(`読込失敗: ${message}`);
+  }
+}
+
+async function loadEmbeddedFile() {
+  const dataElement = document.getElementById("logrep2EmbeddedData");
+  if (!dataElement) {
+    return;
+  }
+
+  setStatus("LogRep2からスナップショットを読込中...");
+
+  try {
+    const binary = atob(dataElement.textContent.trim());
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+
+    const text = new TextDecoder("utf-8").decode(bytes);
+    const fileName = dataElement.dataset.fileName || "raw_records.jsonl";
+    loadText(text, fileName);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    setStatus(`LogRep2からの読込に失敗しました: ${message}`);
   }
 }
 
