@@ -4,16 +4,6 @@
 
 ## publish（exeファイルの生成）
 
-.NET 8 SDK とWindows環境が必要です。
-
-配布用ZIPとSHA-256ファイルを作成する場合は、次のスクリプトを使用します。全テストが成功した場合だけ`artifacts`フォルダーへ自己完結型の配布物を作成します。
-
-```powershell
-.\scripts\Publish-Release.ps1 -Version 0.1.0
-```
-
-.NET 8 Desktop Runtimeを別途必要とするランタイムなし版は、`-FrameworkDependent`を追加します。
-
 ### ランタイムなし版
 
 ```powershell
@@ -37,6 +27,18 @@ dotnet publish src/LogRep2.App/LogRep2.App.csproj `
   -p:PublishProfile=win-x64 `
   -o publish/
 ```
+
+### 配布用ZIP
+.NET 8 SDK とWindows環境が必要です。
+
+配布用ZIPとSHA-256ファイルを作成する場合は、次のスクリプトを使用します。全テストが成功した場合だけ`artifacts`フォルダーへ自己完結型の配布物を作成します。
+
+```powershell
+.\scripts\Publish-Release.ps1 -Version 0.1.0
+```
+
+.NET 8 Desktop Runtimeを別途必要とするランタイムなし版は、`-FrameworkDependent`を追加します。
+
 
 ## 基本的な使い方
 
