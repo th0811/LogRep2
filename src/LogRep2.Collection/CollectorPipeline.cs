@@ -36,7 +36,8 @@ public sealed class CollectorPipeline
         RawDeduplicator rawDeduplicator,
         CanonicalDeduplicator canonicalDeduplicator,
         CollectorStats stats,
-        DateTimeOffset firstSeenAt)
+        DateTimeOffset firstSeenAt,
+        IReadOnlySet<string>? excludedRecordFingerprints = null)
     {
         ArgumentNullException.ThrowIfNull(snapshot);
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionId);
@@ -63,6 +64,13 @@ public sealed class CollectorPipeline
 
         foreach (var parsedRecord in parsedFile.Records)
         {
+            if (excludedRecordFingerprints?.Contains(
+                    RecordFingerprintFactory.Create(parsedRecord)) == true)
+            {
+                stats.BaselineRecordsSkipped++;
+                continue;
+            }
+
             var decodedMessage = _recordDecoder.Decode(parsedRecord);
             var timestamp = _timestampExtractor.Extract(
                 decodedMessage.VisibleText);

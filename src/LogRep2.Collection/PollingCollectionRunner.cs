@@ -8,6 +8,7 @@ public sealed class PollingCollectionRunner
 
     private readonly TempLogWatchTargetBuilder _targetBuilder;
     private readonly TempLogPoller _poller;
+    private readonly TempLogFileParser _fileParser;
     private readonly CollectorPipeline _pipeline;
     private readonly SessionManager _sessionManager;
     private readonly StateStore _stateStore;
@@ -23,6 +24,7 @@ public sealed class PollingCollectionRunner
         StateStore? stateStore = null,
         StatsStore? statsStore = null,
         CanonicalRecordJsonlWriter? canonicalWriter = null,
+        TempLogFileParser? fileParser = null,
         Func<DateTimeOffset>? clock = null)
     {
         _targetBuilder = targetBuilder ?? new TempLogWatchTargetBuilder();
@@ -33,6 +35,7 @@ public sealed class PollingCollectionRunner
         _statsStore = statsStore ?? new StatsStore();
         _canonicalWriter = canonicalWriter
             ?? new CanonicalRecordJsonlWriter();
+        _fileParser = fileParser ?? new TempLogFileParser();
         _clock = clock ?? (() => DateTimeOffset.Now);
     }
 
@@ -113,6 +116,10 @@ public sealed class PollingCollectionRunner
         var stats = new CollectorStats();
         var rawDeduplicator = new RawDeduplicator();
         var canonicalDeduplicator = new CanonicalDeduplicator();
+        _poller.Reset();
+        var baselineFingerprints = CaptureBaseline(
+            targets,
+            result);
         var lastCheckpointAt = startedAt;
         var hasUnsavedChanges = false;
 
@@ -134,7 +141,8 @@ public sealed class PollingCollectionRunner
                         rawDeduplicator,
                         canonicalDeduplicator,
                         stats,
-                        _clock());
+                        _clock(),
+                        baselineFingerprints);
                     result.FilesProcessed++;
                 }
 
@@ -240,11 +248,33 @@ public sealed class PollingCollectionRunner
                 stats.DuplicateRawRecordsSkipped,
             DuplicateCanonicalRecordsSkipped =
                 stats.DuplicateCanonicalRecordsSkipped,
+            BaselineRecordsSkipped = stats.BaselineRecordsSkipped,
             ParseErrors = stats.ParseErrors,
             DecodeErrors = stats.DecodeErrors,
             GapWarnings = stats.GapWarnings,
             LastSeenAt = stats.LastSeenAt,
         };
+    }
+
+    private HashSet<string> CaptureBaseline(
+        IReadOnlyList<string> targets,
+        PollingCollectionResult result)
+    {
+        var baseline = new HashSet<string>(StringComparer.Ordinal);
+        var pollingResult = _poller.Poll(targets);
+        result.Errors.AddRange(pollingResult.Errors);
+
+        foreach (var snapshot in pollingResult.ChangedFiles)
+        {
+            var parsedFile = _fileParser.Parse(snapshot.Content);
+
+            foreach (var record in parsedFile.Records)
+            {
+                baseline.Add(RecordFingerprintFactory.Create(record));
+            }
+        }
+
+        return baseline;
     }
 
     private void SaveProgress(

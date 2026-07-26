@@ -10,6 +10,8 @@ public sealed class CollectorStats
 
     public long DuplicateCanonicalRecordsSkipped { get; set; }
 
+    public long BaselineRecordsSkipped { get; set; }
+
     public long ParseErrors { get; set; }
 
     public long DecodeErrors { get; set; }

@@ -24,4 +24,9 @@ public sealed class FileSnapshotStore
 
         _states[Path.GetFullPath(path)] = state;
     }
+
+    public void Clear()
+    {
+        _states.Clear();
+    }
 }

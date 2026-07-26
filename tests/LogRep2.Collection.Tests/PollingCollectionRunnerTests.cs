@@ -32,7 +32,7 @@ public sealed class PollingCollectionRunnerTests
     }
 
     [Fact]
-    public async Task CancellationTokenで停止してSessionをCompletedにする()
+    public async Task 開始前のログを除外してSessionをCompletedにする()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var tempDirectory = temporaryDirectory.GetPath("TEMP");
@@ -51,8 +51,8 @@ public sealed class PollingCollectionRunnerTests
             cancellation.Token);
 
         Assert.True(actual.PollCount >= 1);
-        Assert.Equal(1, actual.RawRecordsWritten);
-        Assert.Equal(1, actual.CanonicalRecordsWritten);
+        Assert.Equal(0, actual.RawRecordsWritten);
+        Assert.Equal(0, actual.CanonicalRecordsWritten);
 
         var session = new SessionManager().Load(
             actual.SessionDirectory);
@@ -60,7 +60,7 @@ public sealed class PollingCollectionRunnerTests
     }
 
     [Fact]
-    public async Task 変更されたファイルだけ処理して上書き後の新規レコードを保存する()
+    public async Task 開始後に更新されたファイルの新規レコードだけ保存する()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var tempDirectory = temporaryDirectory.GetPath("TEMP");
@@ -69,7 +69,7 @@ public sealed class PollingCollectionRunnerTests
         var logPath = Path.Combine(tempDirectory, "1_0.log");
         File.WriteAllBytes(
             logPath,
-            TempLogTestFileBuilder.Create("ローテーション前"));
+            TempLogTestFileBuilder.CreateMany("開始前の既存レコード"));
         var config = CreateConfig(tempDirectory, outputDirectory);
         using var cancellation = new CancellationTokenSource();
         var runnerTask = new PollingCollectionRunner().RunAsync(
@@ -82,28 +82,95 @@ public sealed class PollingCollectionRunnerTests
         var rawPath = Path.Combine(
             sessionDirectory,
             RawRecordJsonlWriter.FileName);
-        await WaitUntilAsync(
-            () => File.Exists(rawPath)
-                && File.ReadAllLines(rawPath).Length == 1);
 
         File.WriteAllBytes(
             logPath,
-            TempLogTestFileBuilder.Create(
-                "ローテーション後の別レコード"));
+            TempLogTestFileBuilder.CreateMany(
+                "開始前の既存レコード",
+                "開始後の新規レコード"));
         File.SetLastWriteTimeUtc(
             logPath,
             DateTime.UtcNow.AddSeconds(2));
 
         await WaitUntilAsync(
-            () => File.ReadAllLines(rawPath).Length == 2);
+            () => File.Exists(rawPath)
+                && File.ReadAllLines(rawPath).Length == 1);
         cancellation.Cancel();
 
         var actual = await runnerTask;
 
-        Assert.Equal(2, actual.FilesProcessed);
-        Assert.Equal(2, actual.RawRecordsWritten);
-        Assert.Equal(2, File.ReadAllLines(rawPath).Length);
+        Assert.Equal(1, actual.FilesProcessed);
+        Assert.Equal(1, actual.RawRecordsWritten);
+        Assert.Single(File.ReadAllLines(rawPath));
         Assert.Empty(actual.Errors);
+    }
+
+    [Fact]
+    public async Task 停止中に更新されたログは再開後のSessionへ出力しない()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var tempDirectory = temporaryDirectory.GetPath("TEMP");
+        Directory.CreateDirectory(tempDirectory);
+        var logPath = Path.Combine(tempDirectory, "1_0.log");
+        File.WriteAllBytes(
+            logPath,
+            TempLogTestFileBuilder.Create("開始前"));
+        var runner = new PollingCollectionRunner();
+
+        var first = await RunBrieflyAsync(
+            runner,
+            CreateConfig(
+                tempDirectory,
+                temporaryDirectory.GetPath("sessions-1")));
+        Assert.Equal(0, first.RawRecordsWritten);
+
+        File.WriteAllBytes(
+            logPath,
+            TempLogTestFileBuilder.Create("停止中の更新"));
+        File.SetLastWriteTimeUtc(
+            logPath,
+            DateTime.UtcNow.AddSeconds(2));
+
+        var second = await RunBrieflyAsync(
+            runner,
+            CreateConfig(
+                tempDirectory,
+                temporaryDirectory.GetPath("sessions-2")));
+
+        Assert.Equal(0, second.RawRecordsWritten);
+        Assert.Equal(0, second.CanonicalRecordsWritten);
+    }
+
+    [Fact]
+    public async Task ベースラインと同じレコードが別スロットへ移動しても出力しない()
+    {
+        using var temporaryDirectory = new TemporaryDirectory();
+        var tempDirectory = temporaryDirectory.GetPath("TEMP");
+        var outputDirectory = temporaryDirectory.GetPath("sessions");
+        Directory.CreateDirectory(tempDirectory);
+        var bytes = TempLogTestFileBuilder.Create("ローテーション済み");
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory, "1_0.log"),
+            bytes);
+        var config = CreateConfig(tempDirectory, outputDirectory);
+        config.RotationSlots = 2;
+        using var cancellation = new CancellationTokenSource();
+        var runnerTask = new PollingCollectionRunner().RunAsync(
+            config,
+            new PollingOptions { IntervalMs = 250 },
+            cancellation.Token);
+
+        await WaitForSessionDirectoryAsync(outputDirectory);
+        File.WriteAllBytes(
+            Path.Combine(tempDirectory, "1_1.log"),
+            bytes);
+        await Task.Delay(400);
+        cancellation.Cancel();
+
+        var actual = await runnerTask;
+
+        Assert.Equal(0, actual.RawRecordsWritten);
+        Assert.Equal(0, actual.CanonicalRecordsWritten);
     }
 
     private static CollectorConfig CreateConfig(
@@ -154,5 +221,17 @@ public sealed class PollingCollectionRunnerTests
 
             await Task.Delay(25);
         }
+    }
+
+    private static async Task<PollingCollectionResult> RunBrieflyAsync(
+        PollingCollectionRunner runner,
+        CollectorConfig config)
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.CancelAfter(TimeSpan.FromMilliseconds(400));
+        return await runner.RunAsync(
+            config,
+            new PollingOptions { IntervalMs = 250 },
+            cancellation.Token);
     }
 }

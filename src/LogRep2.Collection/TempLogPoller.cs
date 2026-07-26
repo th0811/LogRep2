@@ -18,6 +18,11 @@ public sealed class TempLogPoller
 
     public FileSnapshotStore SnapshotStore => _snapshotStore;
 
+    public void Reset()
+    {
+        _snapshotStore.Clear();
+    }
+
     public PollingResult Poll(IEnumerable<string> targets)
     {
         ArgumentNullException.ThrowIfNull(targets);
