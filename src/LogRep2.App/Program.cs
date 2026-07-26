@@ -1,6 +1,7 @@
 using FfxiTempLogCollector.Core;
 using FfxiTempLogCollector.Ipc;
 using System.IO;
+using System.Net.Http;
 using System.Runtime.InteropServices;
 using LogRep2.Infrastructure;
 
@@ -113,7 +114,12 @@ public static class Program
             controller,
             application.Dispatcher,
             realtimeAnalysis);
-        var mainWindow = new MainWindow(viewModel);
+        using var updateHttpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(10),
+        };
+        var updateService = new GitHubReleaseUpdateService(updateHttpClient);
+        var mainWindow = new MainWindow(viewModel, updateService);
         controller.AttachWindow(mainWindow);
         application.DispatcherUnhandledException += (_, eventArgs) =>
         {

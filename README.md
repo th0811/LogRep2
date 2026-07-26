@@ -175,6 +175,8 @@ stats.json
 
 `config.example.json`は開発時の参照用としてリポジトリにのみ保持し、リリース成果物には含めません。
 
+GitHub Releasesを使った開発者向けの公開手順と、利用者向けの詳しい更新手順は、[LogRep2のバージョンアップと更新手順](GITHUB_RELEASE_UPDATE_GUIDE.md)を参照してください。
+
 ## CLI
 
 引数なしで起動するとGUIを開始します。引数を指定するとCLIとして動作します。
