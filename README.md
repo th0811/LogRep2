@@ -1,6 +1,15 @@
 # LogRep2
 
-`logRep_r`のログ収集機能と`logAnalyzer`のログ分析機能を統合したWindowsアプリです。ログ収集、過去ログ分析、リアルタイム分析、分析結果オーバーレイを一つのアプリで利用できます。
+`logRep_r`のログ収集機能と`logAnalyzer`のログ分析機能を統合したWindowsアプリです。  
+ログ収集、過去ログ分析、リアルタイム分析、分析結果オーバーレイを一つのアプリで利用できます。
+
+ビルド・実行には .NET 8 SDKが必要です。  
+https://dotnet.microsoft.com/ja-jp/download/dotnet/8.0
+
+ビルド済み実行ファイルは [Releases](https://github.com/th0811/LogRep2/releases) で公開しています。
+
+.NET 8 SDKがインストールされていない端末で実行したい場合は  
+[Releases](https://github.com/th0811/LogRep2/releases) より、 `self-contained` バージョンをダウンロードしてください。
 
 ## publish（exeファイルの生成）
 
@@ -17,7 +26,7 @@ dotnet publish src/LogRep2.App/LogRep2.App.csproj `
 
 ### 自己完結式（ランタイム同梱版）
 
-.NET 8 SDKがインストールされていないPCでも実行可能ですが、容量が肥大化します。
+.NET 8 Desktop RuntimeがインストールされていないPCでも実行可能ですが、容量が肥大化します。
 
 ```powershell
 dotnet publish src/LogRep2.App/LogRep2.App.csproj `
@@ -31,14 +40,33 @@ dotnet publish src/LogRep2.App/LogRep2.App.csproj `
 ### 配布用ZIP
 .NET 8 SDK とWindows環境が必要です。
 
-配布用ZIPとSHA-256ファイルを作成する場合は、次のスクリプトを使用します。全テストが成功した場合だけ`artifacts`フォルダーへ自己完結型の配布物を作成します。
+配布用ZIPとSHA-256ファイルを作成する場合は、次のスクリプトを使用します。全テストが成功した場合だけ、`artifacts`フォルダーへ標準のランタイム非同梱版を作成します。
 
 ```powershell
-.\scripts\Publish-Release.ps1 -Version 0.1.0
+.\scripts\Publish-Release.ps1 -Version 0.2.0
 ```
 
-.NET 8 Desktop Runtimeを別途必要とするランタイムなし版は、`-FrameworkDependent`を追加します。
+```text
+artifacts/
+├─ LogRep2-0.2.0-win-x64/
+├─ LogRep2-0.2.0-win-x64.zip
+└─ LogRep2-0.2.0-win-x64.zip.sha256
+```
 
+ランタイム同梱版も追加で作成する場合は、`-IncludeSelfContained`を指定します。
+
+```powershell
+.\scripts\Publish-Release.ps1 -Version 0.2.0 -IncludeSelfContained
+```
+
+ランタイム同梱版には、ファイル名の末尾に`-self-contained`が付きます。
+
+```text
+artifacts/
+├─ LogRep2-0.2.0-win-x64-self-contained/
+├─ LogRep2-0.2.0-win-x64-self-contained.zip
+└─ LogRep2-0.2.0-win-x64-self-contained.zip.sha256
+```
 
 ## 基本的な使い方
 
@@ -80,12 +108,12 @@ AssistantToolを単体で使う場合は、`AssistantTool/index.html`をEdgeな�
 
 ## 配布版を使う
 
-1. `LogRep2-win-x64.zip`を任意の書き込み可能なフォルダーへ展開する。
+1. `LogRep2-バージョン-win-x64.zip`を任意の書き込み可能なフォルダーへ展開する。
 2. `LogRep2.exe`を起動する。
 3. TEMPフォルダーと出力先を設定する。
 4. 「収集開始」を押す。
 
-x64自己完結型配布物には.NETランタイムが含まれるため、利用PCへ.NET 8 Desktop Runtimeを別途インストールする必要はありません。
+標準のランタイム非同梱版を利用するには、利用PCへ.NET 8 Desktop Runtimeを別途インストールする必要があります。ファイル名に`-self-contained`が付くランタイム同梱版では、別途インストールする必要はありません。
 
 設定はポータブル方式です。`Program Files`など一般ユーザーが書き込めないフォルダーは避けてください。設定をAppDataやレジストリへ保存することはありません。
 
