@@ -237,7 +237,7 @@
                 </DataGrid>
             </TabItem>
 
-            <TabItem Header="レベル上げ">
+            <TabItem Header="ポイント">
                 <DataGrid ItemsSource="{Binding LevelingPointSummaries}"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"

@@ -10,7 +10,8 @@ public sealed partial class LevelingPointAggregator
     [
         "経験値",
         "リミットポイント",
-        "エクゼンプラーポイント"
+        "エクゼンプラーポイント",
+        "ガリモーフリー"
     ];
 
     public IReadOnlyList<LevelingPointSummary> Aggregate(
@@ -39,6 +40,14 @@ public sealed partial class LevelingPointAggregator
             var match = PointGainRegex().Match(record.VisibleText);
             if (!match.Success)
             {
+                var gallimaufryMatch = GallimaufryGainRegex().Match(record.VisibleText);
+                if (gallimaufryMatch.Success)
+                {
+                    totals["ガリモーフリー"] += long.Parse(
+                        gallimaufryMatch.Groups["points"].Value,
+                        CultureInfo.InvariantCulture);
+                }
+
                 continue;
             }
 
@@ -85,4 +94,7 @@ public sealed partial class LevelingPointAggregator
 
     [GeneratedRegex(@"^→?.+?は、(?:(?<chain>\d+)チェーン[！!])?(?<points>\d+)(?<pointName>経験値|リミットポイント|エクゼンプラーポイント)を獲得した。?$")]
     private static partial Regex PointGainRegex();
+
+    [GeneratedRegex(@"^→?.+?は、ガリモーフリーを(?<points>\d+)得た、\d+になった。?$")]
+    private static partial Regex GallimaufryGainRegex();
 }

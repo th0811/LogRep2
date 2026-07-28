@@ -12,11 +12,15 @@ public sealed class LevelingPointAggregatorTests
             "Xitraは、1024経験値を獲得した。",
             "Xitraは、200リミットポイントを獲得した。",
             "Xitraは、300エクゼンプラーポイントを獲得した。",
+            "Xitraは、ガリモーフリーを57得た、3795360になった。",
+            "Xitraは、ガリモーフリーを43得た、3795403になった。",
             "Xitraは、24経験値を獲得した。");
 
         Assert.Equal(1048, Find(summaries, "経験値").TotalPoints);
         Assert.Equal(200, Find(summaries, "リミットポイント").TotalPoints);
         Assert.Equal(300, Find(summaries, "エクゼンプラーポイント").TotalPoints);
+        Assert.Equal(100, Find(summaries, "ガリモーフリー").TotalPoints);
+        Assert.Equal(0, Find(summaries, "ガリモーフリー").MaxChainCount);
     }
 
     [Fact]
@@ -24,9 +28,11 @@ public sealed class LevelingPointAggregatorTests
     {
         var summaries = Aggregate(
             new AnalysisTimeResult(TimeConfidence.Exact, 1800, null, null, []),
-            "Xitraは、1024経験値を獲得した。");
+            "Xitraは、1024経験値を獲得した。",
+            "Xitraは、ガリモーフリーを57得た、3795360になった。");
 
         Assert.Equal(2048, Find(summaries, "経験値").PointsPerHour);
+        Assert.Equal(114, Find(summaries, "ガリモーフリー").PointsPerHour);
     }
 
     [Fact]
@@ -46,7 +52,7 @@ public sealed class LevelingPointAggregatorTests
             new AnalysisTimeResult(TimeConfidence.Exact, 1800, null, null, []),
             "ポイントではないログ");
 
-        Assert.Equal(3, summaries.Count);
+        Assert.Equal(4, summaries.Count);
         Assert.All(summaries, summary => Assert.Equal(0, summary.TotalPoints));
     }
 
