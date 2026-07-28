@@ -18,7 +18,8 @@ public sealed class HitStatusClassifier : IHitStatusClassifier
         "かわした",
         "効果なし",
         "効果がなかった",
-        "レジストされた"
+        "レジストされた",
+        "魔法効果をレジストした"
     ];
 
     public HitStatus Classify(ActionGroup group, ParsedDamageResult damage)

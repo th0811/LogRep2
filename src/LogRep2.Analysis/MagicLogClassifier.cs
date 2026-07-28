@@ -52,7 +52,10 @@ public sealed partial class MagicLogClassifier
     {
         return group.VisibleTexts.Any(
             text => EffectRegex().IsMatch(text)
-                || StatusRegex().IsMatch(text));
+                || StatusRegex().IsMatch(text)
+                || ResourceAbsorbRegex().IsMatch(text)
+                || HpRecoveryRegex().IsMatch(text)
+                || StatusRemovalRegex().IsMatch(text));
     }
 
     private static bool TryParseCastStart(
@@ -95,4 +98,13 @@ public sealed partial class MagicLogClassifier
 
     [GeneratedRegex(@"^→?.+?は、.+?の状態になった！?$")]
     private static partial Regex StatusRegex();
+
+    [GeneratedRegex(@"(?:^|→).+?から、\d+(?:MP|TP)吸収。?$")]
+    private static partial Regex ResourceAbsorbRegex();
+
+    [GeneratedRegex(@"(?:^|→).+?のHPが、\d+回復[！。]?$")]
+    private static partial Regex HpRecoveryRegex();
+
+    [GeneratedRegex(@"(?:^|→).+?の.+?の効果を消し去った！?$")]
+    private static partial Regex StatusRemovalRegex();
 }
