@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
@@ -9,6 +10,9 @@ namespace FfxiTempLogCollector.App;
 
 public partial class MainWindow : Window
 {
+    private const string GitHubRepositoryUri =
+        "https://github.com/th0811/LogRep2";
+
     private readonly MainViewModel _viewModel;
     private readonly GitHubReleaseUpdateService _updateService;
     private readonly bool _checkForUpdatesOnLaunch;
@@ -85,6 +89,109 @@ public partial class MainWindow : Window
                 "アップデート確認エラー",
                 exception);
         }
+    }
+
+    private void OnOpenGitHubClick(
+        object sender,
+        RoutedEventArgs eventArgs)
+    {
+        OpenWithDefaultApplication(
+            GitHubRepositoryUri,
+            "GitHubリポジトリ");
+    }
+
+    private void OnOpenAssistantToolClick(
+        object sender,
+        RoutedEventArgs eventArgs)
+    {
+        var assistantToolPath = Path.Combine(
+            AppContext.BaseDirectory,
+            "AssistantTool",
+            "index.html");
+
+        OpenWithDefaultApplication(
+            assistantToolPath,
+            "ログ再現ツール",
+            requireExistingFile: true);
+    }
+
+    private void OnOpenReadmeClick(
+        object sender,
+        RoutedEventArgs eventArgs)
+    {
+        var readmePath = Path.Combine(
+            AppContext.BaseDirectory,
+            "README.md");
+
+        if (!File.Exists(readmePath))
+        {
+            ShowOpenError(
+                "README",
+                $"READMEファイルが見つかりません。\n{readmePath}");
+            return;
+        }
+
+        try
+        {
+            var window = new ReadmeWindow(readmePath)
+            {
+                Owner = this,
+            };
+            window.Show();
+        }
+        catch (Exception exception)
+        {
+            DiagnosticLogService.Write(
+                "README表示エラー",
+                exception);
+            ShowOpenError(
+                "README",
+                $"READMEを表示できませんでした。\n{exception.Message}");
+        }
+    }
+
+    private void OpenWithDefaultApplication(
+        string target,
+        string displayName,
+        bool requireExistingFile = false)
+    {
+        if (requireExistingFile && !File.Exists(target))
+        {
+            ShowOpenError(
+                displayName,
+                $"{displayName}が見つかりません。\n{target}");
+            return;
+        }
+
+        try
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = target,
+                UseShellExecute = true,
+            });
+        }
+        catch (Exception exception)
+        {
+            DiagnosticLogService.Write(
+                $"{displayName}起動エラー",
+                exception);
+            ShowOpenError(
+                displayName,
+                $"{displayName}を開けませんでした。\n{exception.Message}");
+        }
+    }
+
+    private void ShowOpenError(
+        string displayName,
+        string message)
+    {
+        MessageBox.Show(
+            this,
+            message,
+            $"{displayName} 起動エラー",
+            MessageBoxButton.OK,
+            MessageBoxImage.Error);
     }
 
     private void OnStateChanged(
