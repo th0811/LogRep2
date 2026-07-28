@@ -119,7 +119,10 @@ public static class Program
             Timeout = TimeSpan.FromSeconds(10),
         };
         var updateService = new GitHubReleaseUpdateService(updateHttpClient);
-        var mainWindow = new MainWindow(viewModel, updateService);
+        var mainWindow = new MainWindow(
+            viewModel,
+            updateService,
+            config.CheckForUpdatesOnLaunch);
         controller.AttachWindow(mainWindow);
         application.DispatcherUnhandledException += (_, eventArgs) =>
         {

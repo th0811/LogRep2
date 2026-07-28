@@ -110,6 +110,21 @@ public class AnalysisAggregatorTests
     }
 
     [Fact]
+    public void Aggregate_NormalAttackAbsorptionCountsAsHitWithoutDamage()
+    {
+        var result = Aggregate(
+            Action("Leshonn", "通常攻撃", ActionType.NormalAttack, HitStatus.Hit, []));
+
+        var action = Assert.Single(result.ActionSummaries);
+        var actor = Assert.Single(result.ActorSummaries);
+        Assert.Equal(1, action.HitCount);
+        Assert.Equal(0, action.Damage.TotalDamage);
+        Assert.Empty(action.Damage.DamageValues);
+        Assert.Equal(1, actor.NormalAttackSummary.HitCount);
+        Assert.Equal(0, actor.TotalDamage);
+    }
+
+    [Fact]
     public void Aggregate_ExcludesUnknownFromHitRateDenominator()
     {
         var result = Aggregate(

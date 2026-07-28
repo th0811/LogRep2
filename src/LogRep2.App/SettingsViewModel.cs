@@ -26,6 +26,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     private bool _minimizeToTrayWhileCollecting;
     private bool _minimizeToTray;
     private bool _showTrayNotifications;
+    private bool _checkForUpdatesOnLaunch;
     private bool _showOverlayOnRealtimeAnalysisStart;
     private string _closeButtonBehavior;
     private string _logLevel;
@@ -70,6 +71,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         _minimizeToTray =
             editable.MinimizeButtonBehavior == "tray";
         _showTrayNotifications = editable.ShowTrayNotifications;
+        _checkForUpdatesOnLaunch =
+            editable.CheckForUpdatesOnLaunch;
         _showOverlayOnRealtimeAnalysisStart =
             showOverlayOnRealtimeAnalysisStart;
         _closeButtonBehavior =
@@ -180,6 +183,12 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         set => SetProperty(ref _showTrayNotifications, value);
     }
 
+    public bool CheckForUpdatesOnLaunch
+    {
+        get => _checkForUpdatesOnLaunch;
+        set => SetProperty(ref _checkForUpdatesOnLaunch, value);
+    }
+
     public bool ShowOverlayOnRealtimeAnalysisStart
     {
         get => _showOverlayOnRealtimeAnalysisStart;
@@ -261,6 +270,7 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             MinimizeToTray ? "tray" : "normal";
         edited.CloseButtonBehavior = CloseButtonBehavior;
         edited.ShowTrayNotifications = ShowTrayNotifications;
+        edited.CheckForUpdatesOnLaunch = CheckForUpdatesOnLaunch;
         edited.LogLevel = LogLevel;
 
         var validation = _configEditService.Validate(edited);

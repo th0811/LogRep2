@@ -16,6 +16,135 @@
         Closing="OnClosing">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibility" />
+        <Style x:Key="HeaderIconButtonStyle"
+               TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="64" />
+            <Setter Property="Height" Value="58" />
+            <Setter Property="Margin" Value="4,0,0,0" />
+            <Setter Property="Padding" Value="4" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="ToolTipService.ShowDuration" Value="10000" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="ButtonBorder"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="5">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Background"
+                                        Value="#3A4D61" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Background"
+                                        Value="#172433" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="BorderBrush"
+                                        Value="White" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="FooterCommandButtonStyle"
+               TargetType="{x:Type Button}">
+            <Setter Property="Height" Value="36" />
+            <Setter Property="Padding" Value="14,4" />
+            <Setter Property="Foreground" Value="#344054" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="BorderBrush" Value="#D0D5DD" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Tag" Value="#F2F4F7" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type Button}">
+                        <Border x:Name="ButtonBorder"
+                                Padding="{TemplateBinding Padding}"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="6">
+                            <ContentPresenter HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              RecognizesAccessKey="True" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Background"
+                                        Value="{Binding Tag,
+                                                        RelativeSource={RelativeSource TemplatedParent}}" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="Opacity"
+                                        Value="0.78" />
+                            </Trigger>
+                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                <Setter TargetName="ButtonBorder"
+                                        Property="BorderBrush"
+                                        Value="#60A5FA" />
+                                <Setter TargetName="ButtonBorder"
+                                        Property="BorderThickness"
+                                        Value="2" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter Property="Opacity" Value="0.45" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="FooterPrimaryButtonStyle"
+               BasedOn="{StaticResource FooterCommandButtonStyle}"
+               TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="128" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Background" Value="#2563EB" />
+            <Setter Property="BorderBrush" Value="#2563EB" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Tag" Value="#1D4ED8" />
+        </Style>
+        <Style x:Key="FooterSecondaryButtonStyle"
+               BasedOn="{StaticResource FooterCommandButtonStyle}"
+               TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="88" />
+        </Style>
+        <Style x:Key="FooterGhostButtonStyle"
+               BasedOn="{StaticResource FooterCommandButtonStyle}"
+               TargetType="{x:Type Button}">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style x:Key="FooterDangerButtonStyle"
+               BasedOn="{StaticResource FooterGhostButtonStyle}"
+               TargetType="{x:Type Button}">
+            <Setter Property="Width" Value="72" />
+            <Setter Property="Foreground" Value="#B42318" />
+            <Setter Property="Tag" Value="#FEF3F2" />
+        </Style>
     </Window.Resources>
     <Grid Background="#F4F6F8">
         <Grid.RowDefinitions>
@@ -25,18 +154,83 @@
         </Grid.RowDefinitions>
 
         <Border Grid.Row="0"
-                Padding="24,18"
+                Padding="20,10"
                 Background="#243447">
             <DockPanel>
-                <StackPanel>
-                    <TextBlock Foreground="White"
-                               FontSize="24"
-                               FontWeight="SemiBold"
-                               Text="LogRep2" />
-                    <TextBlock Margin="0,4,0,0"
-                               Foreground="#C9D4DF"
-                               Text="TEMPログを継続的に退避します" />
+                <StackPanel DockPanel.Dock="Right"
+                            Orientation="Horizontal">
+                    <Button AutomationProperties.Name="GitHubリポジトリを開く"
+                            Click="OnOpenGitHubClick"
+                            Style="{StaticResource HeaderIconButtonStyle}"
+                            ToolTip="GitHubリポジトリを開きます">
+                        <StackPanel>
+                            <Path Width="23"
+                                  Height="23"
+                                  HorizontalAlignment="Center"
+                                  Data="M12,2 C6.48,2 2,6.58 2,12.26 C2,16.81 4.87,20.67 8.84,22.03 C9.34,22.13 9.52,21.81 9.52,21.53 C9.52,21.29 9.51,20.5 9.5,19.69 C6.73,20.31 6.14,18.5 6.14,18.5 C5.68,17.31 5,16.99 5,16.99 C4.07,16.34 5.07,16.35 5.07,16.35 C6.1,16.43 6.64,17.44 6.64,17.44 C7.55,19.05 9.03,18.59 9.61,18.32 C9.7,17.64 9.97,17.17 10.26,16.9 C8.05,16.64 5.73,15.77 5.73,11.84 C5.73,10.72 6.12,9.81 6.77,9.1 C6.67,8.84 6.32,7.79 6.87,6.4 C6.87,6.4 7.72,6.12 9.62,7.45 C10.42,7.22 11.27,7.1 12.12,7.1 C12.97,7.1 13.82,7.22 14.62,7.45 C16.52,6.12 17.37,6.4 17.37,6.4 C17.92,7.79 17.57,8.84 17.47,9.1 C18.12,9.81 18.51,10.72 18.51,11.84 C18.51,15.78 16.18,16.63 13.96,16.89 C14.32,17.21 14.64,17.83 14.64,18.79 C14.64,20.16 14.63,21.26 14.63,21.53 C14.63,21.81 14.81,22.14 15.32,22.03 C19.28,20.66 22.14,16.81 22.14,12.26 C22.14,6.58 17.66,2 12,2 Z"
+                                  Fill="White"
+                                  Stretch="Uniform" />
+                            <TextBlock Margin="0,3,0,0"
+                                       HorizontalAlignment="Center"
+                                       FontSize="10"
+                                       Foreground="White"
+                                       Text="GitHub" />
+                        </StackPanel>
+                    </Button>
+                    <Button AutomationProperties.Name="ログ再現ツールを開く"
+                            Click="OnOpenAssistantToolClick"
+                            Style="{StaticResource HeaderIconButtonStyle}"
+                            ToolTip="ログ再現ツールを開きます">
+                        <StackPanel>
+                            <Path Width="23"
+                                  Height="23"
+                                  HorizontalAlignment="Center"
+                                  Data="M3,4 L21,4 L21,20 L3,20 Z M3,8 L21,8 M6,6 L7,6 M9,6 L10,6"
+                                  Fill="Transparent"
+                                  Stroke="White"
+                                  StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round"
+                                  StrokeStartLineCap="Round"
+                                  StrokeThickness="1.6"
+                                  Stretch="Uniform" />
+                            <TextBlock Margin="0,3,0,0"
+                                       HorizontalAlignment="Center"
+                                       FontSize="10"
+                                       Foreground="White"
+                                       Text="ログ再現" />
+                        </StackPanel>
+                    </Button>
+                    <Button AutomationProperties.Name="READMEを表示"
+                            Click="OnOpenReadmeClick"
+                            Style="{StaticResource HeaderIconButtonStyle}"
+                            ToolTip="READMEを開きます">
+                        <StackPanel>
+                            <Path Width="23"
+                                  Height="23"
+                                  HorizontalAlignment="Center"
+                                  Data="M12,6 C10.2,4.5 7.8,3.75 5,3.75 C4.45,3.75 4,4.2 4,4.75 L4,18.5 C4,19.05 4.45,19.5 5,19.5 C7.8,19.5 10.2,20.25 12,21.75 C13.8,20.25 16.2,19.5 19,19.5 C19.55,19.5 20,19.05 20,18.5 L20,4.75 C20,4.2 19.55,3.75 19,3.75 C16.2,3.75 13.8,4.5 12,6 Z M12,6 L12,21.75"
+                                  Fill="Transparent"
+                                  Stroke="White"
+                                  StrokeEndLineCap="Round"
+                                  StrokeLineJoin="Round"
+                                  StrokeStartLineCap="Round"
+                                  StrokeThickness="1.6"
+                                  Stretch="Uniform" />
+                            <TextBlock Margin="0,3,0,0"
+                                       HorizontalAlignment="Center"
+                                       FontSize="10"
+                                       Foreground="White"
+                                       Text="README" />
+                        </StackPanel>
+                    </Button>
                 </StackPanel>
+                <TextBlock Margin="4,0,20,0"
+                           HorizontalAlignment="Left"
+                           VerticalAlignment="Center"
+                           Foreground="White"
+                           FontSize="24"
+                           FontWeight="SemiBold"
+                           Text="LogRep2" />
             </DockPanel>
         </Border>
 
@@ -371,49 +565,54 @@
         </ScrollViewer>
 
         <Border Grid.Row="2"
-                Padding="20,14"
+                Padding="20,12"
                 Background="White"
                 BorderBrush="#D9DEE5"
                 BorderThickness="0,1,0,0">
-            <DockPanel>
-                <StackPanel DockPanel.Dock="Left"
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0"
                             Orientation="Horizontal">
-                    <Button Width="90"
-                            Height="34"
+                    <Button Command="{Binding AnalysisCommand}"
+                            Content="過去ログ分析"
                             Margin="0,0,8,0"
-                            Command="{Binding SettingsCommand}"
-                            Content="設定" />
-                    <Button Width="112"
-                            Height="34"
-                            Margin="0,0,8,0"
-                            Command="{Binding AnalysisCommand}"
-                            Content="過去ログ分析" />
+                            Style="{StaticResource FooterPrimaryButtonStyle}" />
+                    <Button Command="{Binding SettingsCommand}"
+                            Content="設定"
+                            Style="{StaticResource FooterSecondaryButtonStyle}" />
                 </StackPanel>
 
-                <StackPanel DockPanel.Dock="Right"
-                            Orientation="Horizontal">
-                    <Button Width="112"
-                            Height="34"
-                            Margin="0,0,8,0"
-                            Command="{Binding OpenDiagnosticLogsCommand}"
-                            Content="診断ログ" />
-                    <Button Width="128"
-                            Height="34"
-                            Margin="16,0,8,0"
-                            Command="{Binding MinimizeCommand}"
-                            Content="タスクトレイへ格納" />
-                    <Button Width="80"
-                            Height="34"
-                            Command="{Binding ExitCommand}"
-                            Content="終了" />
-                </StackPanel>
-
-                <TextBlock Margin="16,0"
+                <TextBlock Grid.Column="1"
+                           Margin="16,0"
                            HorizontalAlignment="Center"
                            VerticalAlignment="Center"
-                           Foreground="#6B7280"
-                           Text="{Binding VersionText}" />
-            </DockPanel>
+                           Foreground="#667085"
+                           Text="{Binding VersionText}"
+                           TextTrimming="CharacterEllipsis"
+                           ToolTip="{Binding VersionText}" />
+
+                <StackPanel Grid.Column="2"
+                            Orientation="Horizontal">
+                    <Button Width="96"
+                            Margin="0,0,8,0"
+                            Command="{Binding OpenDiagnosticLogsCommand}"
+                            Content="診断ログ"
+                            Style="{StaticResource FooterGhostButtonStyle}" />
+                    <Button Width="136"
+                            Margin="0,0,8,0"
+                            Command="{Binding MinimizeCommand}"
+                            Content="タスクトレイへ格納"
+                            Style="{StaticResource FooterGhostButtonStyle}" />
+                    <Button Command="{Binding ExitCommand}"
+                            Content="終了"
+                            Style="{StaticResource FooterDangerButtonStyle}" />
+                </StackPanel>
+            </Grid>
         </Border>
     </Grid>
 </Window>

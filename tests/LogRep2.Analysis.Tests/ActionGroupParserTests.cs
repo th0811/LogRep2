@@ -191,6 +191,74 @@ public class ActionGroupParserTests
         Assert.Equal(HitStatus.Hit, result.Parsed.HitStatus);
     }
 
+    [Theory]
+    [InlineData("MP")]
+    [InlineData("TP")]
+    public void ParseGroup_MpOrTpAbsorbIsHitWithoutDamage(string resource)
+    {
+        var result = Parse(
+            "Alegreのアブゾタックが発動。",
+            $"→Skomoraから、30{resource}吸収。");
+
+        Assert.True(result.IsParsed);
+        Assert.Equal("Alegre", result.Parsed!.Actor);
+        Assert.Equal("アブゾタック", result.Parsed.ActionName);
+        Assert.Equal(ActionType.Magic, result.Parsed.ActionType);
+        Assert.False(result.Parsed.Damage.HasDamage);
+        Assert.Equal(HitStatus.Hit, result.Parsed.HitStatus);
+    }
+
+    [Fact]
+    public void ParseGroup_MagicRecoveryIsHitWithoutDamage()
+    {
+        var result = Parse(
+            "TaechinzのケアルIVが発動。",
+            "→AlegreのHPが、100回復。");
+
+        Assert.True(result.IsParsed);
+        Assert.Equal(ActionType.Magic, result.Parsed!.ActionType);
+        Assert.False(result.Parsed.Damage.HasDamage);
+        Assert.Equal(HitStatus.Hit, result.Parsed.HitStatus);
+    }
+
+    [Fact]
+    public void ParseGroup_MagicStatusRemovalIsHitWithoutDamage()
+    {
+        var result = Parse(
+            "Taechinzのイレースが発動。",
+            "→Alegreのバイオの効果を消し去った！");
+
+        Assert.True(result.IsParsed);
+        Assert.Equal(ActionType.Magic, result.Parsed!.ActionType);
+        Assert.False(result.Parsed.Damage.HasDamage);
+        Assert.Equal(HitStatus.Hit, result.Parsed.HitStatus);
+    }
+
+    [Fact]
+    public void ParseGroup_MagicResistIsMiss()
+    {
+        var result = Parse(
+            "Alegreのフラッシュが発動。",
+            "→Degeiは、魔法効果をレジストした！");
+
+        Assert.True(result.IsParsed);
+        Assert.Equal(ActionType.Magic, result.Parsed!.ActionType);
+        Assert.False(result.Parsed.Damage.HasDamage);
+        Assert.Equal(HitStatus.Miss, result.Parsed.HitStatus);
+    }
+
+    [Fact]
+    public void ParseGroup_NormalAttackAbsorptionIsHitWithoutDamage()
+    {
+        var result = Parse("Leshonnの攻撃→AlegreのHPが、101回復！");
+
+        Assert.True(result.IsParsed);
+        Assert.Equal("Leshonn", result.Parsed!.Actor);
+        Assert.Equal(ActionType.NormalAttack, result.Parsed.ActionType);
+        Assert.False(result.Parsed.Damage.HasDamage);
+        Assert.Equal(HitStatus.Hit, result.Parsed.HitStatus);
+    }
+
     [Fact]
     public void ParseGroup_MagicEffectActivationCanBeParsed()
     {

@@ -31,6 +31,7 @@ public class HitStatusClassifierTests
     [InlineData("効果なし。")]
     [InlineData("効果がなかった。")]
     [InlineData("レジストされた！")]
+    [InlineData("→Degeiは、魔法効果をレジストした！")]
     public void Classify_MissKeywordsAreMiss(string visibleText)
     {
         var status = Classify(CreateGroup(visibleText), ParsedDamageResult.None);
@@ -47,6 +48,19 @@ public class HitStatusClassifierTests
         var status = Classify(CreateGroup(visibleText), ParsedDamageResult.None);
 
         Assert.Equal(HitStatus.Excluded, status);
+    }
+
+    [Theory]
+    [InlineData("→Skomoraから、30MP吸収。")]
+    [InlineData("→Skomoraから、30TP吸収。")]
+    [InlineData("→AlegreのHPが、100回復。")]
+    [InlineData("→AlegreのHPが、101回復！")]
+    [InlineData("→Alegreのバイオの効果を消し去った！")]
+    public void Classify_SuccessfulNonDamageEffectIsHit(string visibleText)
+    {
+        var status = Classify(CreateGroup(visibleText), ParsedDamageResult.None);
+
+        Assert.Equal(HitStatus.Hit, status);
     }
 
     [Fact]
