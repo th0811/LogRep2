@@ -37,6 +37,7 @@
     "minimize_to_tray_while_collecting": false,
     "minimize_button_behavior": "tray",
     "close_button_behavior": "tray_when_collecting",
-    "show_tray_notifications": true
+    "show_tray_notifications": true,
+    "check_for_updates_on_launch": true
   }
 }

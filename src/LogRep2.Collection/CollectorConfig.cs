@@ -43,4 +43,6 @@ public sealed class CollectorConfig
     public string CloseButtonBehavior { get; set; } = "tray_when_collecting";
 
     public bool ShowTrayNotifications { get; set; } = true;
+
+    public bool CheckForUpdatesOnLaunch { get; set; } = true;
 }

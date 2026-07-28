@@ -150,6 +150,9 @@
                         <CheckBox Margin="0,0,0,12"
                                   IsChecked="{Binding ShowTrayNotifications}"
                                   Content="タスクトレイ通知を表示する" />
+                        <CheckBox Margin="0,0,0,12"
+                                  IsChecked="{Binding CheckForUpdatesOnLaunch}"
+                                  Content="起動時に新しいバージョンを確認する" />
                         <DockPanel>
                             <TextBlock Width="220"
                                        VerticalAlignment="Center"

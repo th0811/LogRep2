@@ -42,6 +42,8 @@ public sealed class LogRep2Settings
                 Application.MinimizeButtonBehavior,
             CloseButtonBehavior = Application.CloseButtonBehavior,
             ShowTrayNotifications = Application.ShowTrayNotifications,
+            CheckForUpdatesOnLaunch =
+                Application.CheckForUpdatesOnLaunch,
         };
     }
 
@@ -70,6 +72,8 @@ public sealed class LogRep2Settings
         Application.CloseButtonBehavior = config.CloseButtonBehavior;
         Application.ShowTrayNotifications =
             config.ShowTrayNotifications;
+        Application.CheckForUpdatesOnLaunch =
+            config.CheckForUpdatesOnLaunch;
     }
 }
 
@@ -150,4 +154,6 @@ public sealed class ApplicationSettings
         "tray_when_collecting";
 
     public bool ShowTrayNotifications { get; set; } = true;
+
+    public bool CheckForUpdatesOnLaunch { get; set; } = true;
 }

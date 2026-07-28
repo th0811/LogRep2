@@ -208,5 +208,7 @@ public sealed class ConfigEditService
             source.CloseButtonBehavior;
         destination.ShowTrayNotifications =
             source.ShowTrayNotifications;
+        destination.CheckForUpdatesOnLaunch =
+            source.CheckForUpdatesOnLaunch;
     }
 }

@@ -7,6 +7,49 @@ namespace FfxiTempLogCollector.Tests;
 public sealed class LogRep2SettingsStoreTests
 {
     [Fact]
+    public void 新規設定では起動時の更新確認が有効である()
+    {
+        var settings = new LogRep2Settings();
+
+        Assert.True(settings.Application.CheckForUpdatesOnLaunch);
+    }
+
+    [Fact]
+    public void 起動時の更新確認設定を保存できる()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = new LogRep2SettingsStore(directory.Path);
+        var settings = new LogRep2Settings();
+        settings.Application.CheckForUpdatesOnLaunch = false;
+
+        store.Save(settings);
+
+        Assert.False(
+            store.Load().Application.CheckForUpdatesOnLaunch);
+    }
+
+    [Fact]
+    public void 既存設定では起動時の更新確認を有効として読み込む()
+    {
+        using var directory = new TemporaryDirectory();
+        var store = new LogRep2SettingsStore(directory.Path);
+        File.WriteAllText(
+            store.SettingsPath,
+            """
+            {
+              "schema_version": 1,
+              "application": {
+                "log_level": "info"
+              }
+            }
+            """);
+
+        var settings = store.Load();
+
+        Assert.True(settings.Application.CheckForUpdatesOnLaunch);
+    }
+
+    [Fact]
     public void 読み込めない設定を失わずにバックアップできる()
     {
         using var directory = new TemporaryDirectory();

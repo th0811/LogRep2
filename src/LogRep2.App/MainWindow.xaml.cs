@@ -11,12 +11,14 @@ public partial class MainWindow : Window
 {
     private readonly MainViewModel _viewModel;
     private readonly GitHubReleaseUpdateService _updateService;
+    private readonly bool _checkForUpdatesOnLaunch;
     private bool _shutdownCompleted;
     private bool _updateCheckStarted;
 
     internal MainWindow(
         MainViewModel viewModel,
-        GitHubReleaseUpdateService updateService)
+        GitHubReleaseUpdateService updateService,
+        bool checkForUpdatesOnLaunch)
     {
         ArgumentNullException.ThrowIfNull(viewModel);
         ArgumentNullException.ThrowIfNull(updateService);
@@ -24,6 +26,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         _viewModel = viewModel;
         _updateService = updateService;
+        _checkForUpdatesOnLaunch = checkForUpdatesOnLaunch;
         DataContext = viewModel;
     }
 
@@ -32,7 +35,10 @@ public partial class MainWindow : Window
         RoutedEventArgs eventArgs)
     {
         await _viewModel.InitializeAsync();
-        await CheckForUpdateAsync();
+        if (_checkForUpdatesOnLaunch)
+        {
+            await CheckForUpdateAsync();
+        }
     }
 
     private async Task CheckForUpdateAsync()
