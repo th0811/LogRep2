@@ -23,6 +23,8 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     private AnalysisTimeResult _analysisTime = AnalysisTimeResult.Unknown([]);
     private DateTimeOffset? _fallbackSessionTime;
     private string _rangeName = "指定範囲";
+    private string _orderRangeText = "-";
+    private int _recordCount;
     private string _statusMessage = "分析結果はまだありません。";
 
     public AnalysisResultViewModel()
@@ -44,6 +46,7 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         _csvExportService = csvExportService
             ?? throw new ArgumentNullException(nameof(csvExportService));
         _settings = _settingsStore.Load();
+        GoBackCommand = new RelayCommand(() => GoBackRequested?.Invoke());
         SelectAllActorsCommand = new RelayCommand(
             SelectAllActors,
             () => HasResult);
@@ -71,6 +74,11 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    /// <summary>フッターの「← 分析区間へ戻る」。遷移先はウィンドウ側が決める。</summary>
+    public event Action? GoBackRequested;
+
+    public RelayCommand GoBackCommand { get; }
 
     public RelayCommand SelectAllActorsCommand { get; }
 
@@ -196,17 +204,68 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         }
     }
 
+    // ===== 条件バー =====
+
+    /// <summary>分析した区間名。例「Ceizak Battlegrounds」。</summary>
+    public string RangeLabel => _rangeName;
+
+    /// <summary>分析した区間のログ順。例「1,205 – 16,086」。</summary>
+    public string OrderRangeText => _orderRangeText;
+
+    /// <summary>分析対象のログ件数。</summary>
+    public string RecordCountText => $"{_recordCount:N0}件";
+
+    /// <summary>分析区間の経過時間。例「47分33秒」。</summary>
+    public string ElapsedText => FormatElapsed(_analysisTime.DurationSeconds);
+
+    /// <summary>未解析ログのバッジ文言。</summary>
+    public string UnparsedCountText => $"未解析ログ {UnparsedLogs.Count:N0}件";
+
+    public bool HasUnparsedLogs => UnparsedLogs.Count > 0;
+
+    private static string FormatElapsed(double? durationSeconds)
+    {
+        if (durationSeconds is not { } seconds || seconds <= 0)
+        {
+            return "-";
+        }
+
+        var elapsed = TimeSpan.FromSeconds(seconds);
+        if (elapsed.TotalHours >= 1)
+        {
+            return $"{(int)elapsed.TotalHours}時間{elapsed.Minutes}分{elapsed.Seconds}秒";
+        }
+
+        return elapsed.TotalMinutes >= 1
+            ? $"{elapsed.Minutes}分{elapsed.Seconds}秒"
+            : $"{elapsed.Seconds}秒";
+    }
+
+    private void RefreshConditionBar()
+    {
+        OnPropertyChanged(nameof(RangeLabel));
+        OnPropertyChanged(nameof(OrderRangeText));
+        OnPropertyChanged(nameof(RecordCountText));
+        OnPropertyChanged(nameof(ElapsedText));
+        OnPropertyChanged(nameof(UnparsedCountText));
+        OnPropertyChanged(nameof(HasUnparsedLogs));
+    }
+
     public void Load(
         AnalysisResult result,
         IReadOnlyList<SessionInfoRow> sessionRows,
         DateTimeOffset? fallbackSessionTime = null,
-        string rangeName = "指定範囲")
+        string rangeName = "指定範囲",
+        string orderRangeText = "-",
+        int recordCount = 0)
     {
         ClearVisibilitySubscriptions();
         _settings = _settingsStore.Load();
         _analysisTime = result.AnalysisTime;
         _fallbackSessionTime = fallbackSessionTime;
         _rangeName = rangeName;
+        _orderRangeText = orderRangeText;
+        _recordCount = recordCount;
 
         _allActorSummaries.Clear();
         _allActorSummaries.AddRange(
@@ -264,6 +323,9 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         RefreshActorVisibilityFilter();
         RefreshFilteredResults();
 
+        RefreshConditionBar();
+        OnPropertyChanged(nameof(ActorSelectionSummary));
+
         HasResult = true;
         StatusMessage = "分析結果を表示しています。";
     }
@@ -283,9 +345,12 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         _analysisTime = AnalysisTimeResult.Unknown([]);
         _fallbackSessionTime = null;
         _rangeName = "指定範囲";
+        _orderRangeText = "-";
+        _recordCount = 0;
         HasResult = false;
         StatusMessage = "分析結果はまだありません。";
         OnPropertyChanged(nameof(ActorSelectionSummary));
+        RefreshConditionBar();
     }
 
     private static string ToDpsStatus(AnalysisTimeResult analysisTime)

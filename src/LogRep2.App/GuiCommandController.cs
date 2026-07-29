@@ -152,7 +152,8 @@ public sealed class GuiCommandController : IAsyncDisposable
         return _unifiedSettingsStore?.Load().Analysis.RealtimePartyMembers ?? [];
     }
 
-    public void ShowPartyMemberSettings(IEnumerable<string> detectedActors)
+    public void ShowPartyMemberSettings(
+        IEnumerable<FFXI_LogAnalyzer.Core.ActorSummary> detectedActors)
     {
         var store = _unifiedSettingsStore
             ?? throw new InvalidOperationException("統合設定を利用できません。");
@@ -160,12 +161,15 @@ public sealed class GuiCommandController : IAsyncDisposable
         var classifier = new FFXI_LogAnalyzer.Core.ActorNameClassifier();
         var candidates = detectedActors
             .Where(actor => classifier.Classify(
-                actor,
+                actor.Actor,
                 settings.Analysis.KnownPcNames,
                 settings.Analysis.KnownNpcNames)
                 is FFXI_LogAnalyzer.Core.ActorNameKind.RegisteredPc
                     or FFXI_LogAnalyzer.Core.ActorNameKind.PcCandidate)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .GroupBy(actor => actor.Actor, StringComparer.OrdinalIgnoreCase)
+            .Select(group => new PartyMemberCandidate(
+                group.Key,
+                group.Sum(actor => actor.TotalUseCount)))
             .ToArray();
         var window = new PartyMemberManagerWindow
         {

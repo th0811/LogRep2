@@ -34,11 +34,13 @@ public sealed class OverlayViewModelTests
 
         Assert.Equal(
             [
-                new PartyMemberMetric("Bob", "20.00", "90.0%"),
-                new PartyMemberMetric("Alice", "10.00", "80.0%"),
-                new PartyMemberMetric("未登場", "-", "-"),
+                new PartyMemberMetric("Bob", "20.00", "90.0%", 1),
+                new PartyMemberMetric("Alice", "10.00", "80.0%", 0.5),
+                new PartyMemberMetric("未登場", "-", "-", 0),
             ],
             viewModel.PartyMembers);
+        Assert.Equal("30.00", viewModel.TotalDps);
+        Assert.Equal("85.0%", viewModel.TotalHitRate);
     }
 
     [Fact]

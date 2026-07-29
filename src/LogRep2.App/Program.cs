@@ -106,7 +106,6 @@ public static class Program
                 new InvalidOperationException(message)),
             () => controller.ShowPartyMemberSettings(
                 realtimeAnalysis.Current.Result?.ActorSummaries
-                    .Select(actor => actor.Actor)
                     ?? []));
         controller.AttachOverlayManager(overlayManager);
         controller.StartOverlayNotifications();

@@ -6,157 +6,280 @@
         xmlns:local="clr-namespace:FFXI_LogAnalyzer.App"
         mc:Ignorable="d"
         Icon="pack://application:,,,/LogRep2;component/app.ico"
-        Title="LogRep2 - 過去ログ分析" Height="900" Width="1600" MinHeight="520" MinWidth="760">
+        Title="LogRep2 - 過去ログ分析"
+        Height="900" Width="1600" MinHeight="600" MinWidth="1000"
+        FontFamily="{StaticResource UiFontFamily}"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display"
+        TextOptions.TextRenderingMode="ClearType">
     <Window.Resources>
         <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
-        <Style TargetType="Button">
-            <Setter Property="Padding" Value="12,6" />
-            <Setter Property="Margin" Value="0,0,8,0" />
-            <Setter Property="MinWidth" Value="120" />
-        </Style>
-        <Style TargetType="TextBlock">
-            <Setter Property="VerticalAlignment" Value="Center" />
+
+        <!--
+          ステップヘッダーと本文を上下に分けた TabControl。
+          ヘッダー帯は白（上のツールバーと地続き）、本文は画面背景色の上に配置する。
+        -->
+        <Style x:Key="AnalyzerStepTabControlStyle"
+               BasedOn="{StaticResource StepTabControlStyle}"
+               TargetType="{x:Type TabControl}">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="{x:Type TabControl}">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Border Grid.Row="0"
+                                    Padding="20,0"
+                                    Background="{StaticResource SurfaceBrush}"
+                                    BorderBrush="{StaticResource BorderBrushDefault}"
+                                    BorderThickness="0,0,0,1">
+                                <DockPanel>
+                                    <TextBlock DockPanel.Dock="Right"
+                                               Margin="12,0,0,0"
+                                               VerticalAlignment="Center"
+                                               Style="{StaticResource FieldLabelStyle}">
+                                        <Run Text="分析対象 " />
+                                        <Run FontWeight="SemiBold"
+                                             Foreground="{StaticResource TextPrimaryBrush}"
+                                             Text="{Binding AnalysisTargetSummary, Mode=OneWay}" />
+                                    </TextBlock>
+                                    <TabPanel IsItemsHost="True" HorizontalAlignment="Left" />
+                                </DockPanel>
+                            </Border>
+
+                            <!-- 本文の余白は各ステップのビューが持つ（フッターを端まで伸ばすため） -->
+                            <Border Grid.Row="1">
+                                <DockPanel>
+                                    <!-- 読み込み中 -->
+                                    <Border DockPanel.Dock="Top"
+                                            Margin="20,16,20,0"
+                                            Padding="12,10"
+                                            CornerRadius="6"
+                                            Background="{StaticResource PrimarySoftBrush}"
+                                            BorderBrush="{StaticResource PrimarySoftBorderBrush}"
+                                            BorderThickness="1"
+                                            Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                        <DockPanel>
+                                            <Button DockPanel.Dock="Right"
+                                                    Style="{StaticResource SmallButtonStyle}"
+                                                    Command="{Binding CancelLoadingCommand}"
+                                                    Content="キャンセル" />
+                                            <ProgressBar Width="180" Height="6" Margin="0,0,12,0"
+                                                         IsIndeterminate="True"
+                                                         Background="#FFDBEAFE"
+                                                         Foreground="{StaticResource PrimaryBrush}"
+                                                         BorderThickness="0" />
+                                            <TextBlock VerticalAlignment="Center"
+                                                       Foreground="{StaticResource PrimaryTextBrush}"
+                                                       Text="{Binding BusyText}" />
+                                        </DockPanel>
+                                    </Border>
+                                    <ContentPresenter ContentSource="SelectedContent" />
+                                </DockPanel>
+                            </Border>
+                        </Grid>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
 
-    <DockPanel Margin="16">
-        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,12">
-            <Button Content="セッション出力先を開く" Command="{Binding OpenSessionRootFolderCommand}" />
-            <Button Content="更新" Command="{Binding RefreshSessionsCommand}" />
-            <Button Content="選択セッションを開く" Command="{Binding OpenSelectedSessionFolderCommand}" />
-            <Button Content="ゲーム内ログを表示"
-                    Command="{Binding OpenGameLogCommand}"
-                    ToolTip="選択中のセッションをAssistantToolで開きます" />
-            <Button Content="削除" Command="{Binding DeleteSelectedSessionCommand}" />
-        </WrapPanel>
+    <Grid Background="{StaticResource AppBackgroundBrush}">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
-        <Border DockPanel.Dock="Top"
-                Margin="0,0,0,12"
-                Padding="10"
-                Background="#EFF6FF"
-                BorderBrush="#60A5FA"
-                BorderThickness="1"
-                Visibility="{Binding IsBusy, Converter={StaticResource BooleanToVisibilityConverter}}">
+        <!-- ===== ツールバー ===== -->
+        <Border Grid.Row="0" Padding="20,12,20,10" Background="{StaticResource SurfaceBrush}">
             <DockPanel>
-                <Button DockPanel.Dock="Right"
-                        MinWidth="96"
-                        Content="キャンセル"
-                        Command="{Binding CancelLoadingCommand}" />
-                <ProgressBar Width="180"
-                             Height="16"
-                             Margin="0,0,12,0"
-                             IsIndeterminate="True" />
-                <TextBlock Text="{Binding BusyText}" />
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Style="{StaticResource ToolbarButtonStyle}"
+                            Command="{Binding RefreshSessionsCommand}" Content="更新" />
+                    <Button Style="{StaticResource ToolbarButtonStyle}"
+                            Command="{Binding OpenSessionRootFolderCommand}" Content="出力先を開く" />
+                    <Button Style="{StaticResource ToolbarButtonStyle}"
+                            Command="{Binding OpenSelectedSessionFolderCommand}" Content="選択セッションを開く" />
+                    <Button Style="{StaticResource ToolbarButtonStyle}"
+                            Command="{Binding OpenGameLogCommand}"
+                            Content="ゲーム内ログを表示"
+                            ToolTip="選択中のセッションをAssistantToolで開きます" />
+                    <Button Style="{StaticResource ToolbarButtonStyle}" Margin="0"
+                            BorderBrush="Transparent"
+                            Foreground="{StaticResource DangerBrush}"
+                            Tag="#FEF3F2"
+                            Command="{Binding DeleteSelectedSessionCommand}" Content="削除" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock FontSize="15" FontWeight="SemiBold"
+                               Foreground="{StaticResource TextPrimaryBrush}" Text="過去ログ分析" />
+                    <TextBlock Margin="14,0,0,0" Style="{StaticResource FieldLabelStyle}" Text="出力先" />
+                    <TextBlock Margin="6,0,0,0" Style="{StaticResource MonoTextStyle}"
+                               MaxWidth="420" TextTrimming="CharacterEllipsis"
+                               Text="{Binding SessionRootFolderPath}"
+                               ToolTip="{Binding SessionRootFolderPath}" />
+                </StackPanel>
             </DockPanel>
         </Border>
 
-        <Border DockPanel.Dock="Top" BorderBrush="#D0D7DE" BorderThickness="1" Padding="10,6" Margin="0,0,0,8">
-            <Grid>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="*" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" Text="分析対象:" FontWeight="Bold" />
-                <TextBlock Grid.Column="1" Text="{Binding AnalysisTargetSummary}" Margin="6,0,20,0" />
-                <TextBlock Grid.Column="2" Text="出力先:" FontWeight="Bold" />
-                <TextBlock Grid.Column="3"
-                           Text="{Binding SessionRootFolderPath}"
-                           ToolTip="{Binding SessionRootFolderPath}"
-                           Margin="6,0,0,0"
-                           TextTrimming="CharacterEllipsis" />
-            </Grid>
-        </Border>
+        <!-- ===== ステップヘッダー ＋ 本文 ===== -->
+        <TabControl x:Name="StepTabs"
+                    Grid.Row="1"
+                    Style="{StaticResource AnalyzerStepTabControlStyle}"
+                    SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
+            <TabItem Tag="{Binding SessionStepBadge}">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="セッション選択" />
+                        <TextBlock Margin="9,0,0,0" FontSize="11" FontWeight="Normal"
+                                   Typography.NumeralAlignment="Tabular"
+                                   Foreground="{StaticResource TextFaintBrush}"
+                                   Text="{Binding SessionStepSummary}" />
+                    </StackPanel>
+                </TabItem.Header>
 
-        <Border DockPanel.Dock="Bottom"
-                Margin="0,8,0,0"
-                Padding="8,5"
-                Background="#F6F8FA"
-                BorderBrush="#D0D7DE"
-                BorderThickness="1">
-            <TextBlock Text="{Binding StatusMessage}"
-                       TextTrimming="CharacterEllipsis"
-                       ToolTip="{Binding StatusMessage}" />
-        </Border>
-
-        <TabControl SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}">
-            <TabItem Header="{Binding SessionTabHeader}">
-                <Grid Margin="0,8,0,0">
+                <!-- ===== ① セッション選択 ===== -->
+                <Grid Margin="20,16">
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="2*" />
-                        <RowDefinition Height="12" />
                         <RowDefinition Height="*" />
-                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="14" />
+                        <RowDefinition Height="230" />
                     </Grid.RowDefinitions>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*" />
+                        <ColumnDefinition Width="14" />
                         <ColumnDefinition Width="*" />
                     </Grid.ColumnDefinitions>
 
-                    <GroupBox Header="セッション一覧" Grid.Row="0" Grid.ColumnSpan="2" Margin="0,0,0,0">
-                        <DockPanel Margin="8">
-                            <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                                <Button Content="すべて分析対象にする"
-                                        Command="{Binding EnableAllSessionsCommand}" />
-                                <Button Content="分析対象をすべて外す"
-                                        Command="{Binding DisableAllSessionsCommand}" />
-                            </WrapPanel>
-                            <DataGrid ItemsSource="{Binding Sessions}"
-                                  SelectedItem="{Binding SelectedSession, Mode=TwoWay}"
-                                  AutoGenerateColumns="False"
-                                  CanUserAddRows="False"
-                                  IsReadOnly="False"
-                                  HeadersVisibility="Column">
-                            <DataGrid.Columns>
-                                <DataGridCheckBoxColumn Header="分析対象" Binding="{Binding IsEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" Width="80" />
-                                <DataGridTextColumn Header="セッションID" Binding="{Binding SessionId}" Width="150" IsReadOnly="True" />
-                                <DataGridTextColumn Header="開始時刻" Binding="{Binding StartedAt}" Width="170" IsReadOnly="True" />
-                                <DataGridTextColumn Header="終了時刻" Binding="{Binding EndedAt}" Width="170" IsReadOnly="True" />
-                                <DataGridTextColumn Header="レコード数" Binding="{Binding RecordCount}" Width="100" IsReadOnly="True" />
-                                <DataGridTextColumn Header="マーカー数" Binding="{Binding MarkerCount}" Width="100" IsReadOnly="True" />
-                                <DataGridTextColumn Header="状態" Binding="{Binding Status}" Width="100" IsReadOnly="True" />
-                                <DataGridTextColumn Header="フォルダ" Binding="{Binding FolderPath}" Width="*" IsReadOnly="True" />
-                            </DataGrid.Columns>
+                    <!-- セッション一覧 -->
+                    <Border Grid.Row="0" Grid.ColumnSpan="3" Style="{StaticResource CardBorderStyle}">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Top" Style="{StaticResource CardHeaderBorderStyle}">
+                                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                    <TextBlock Style="{StaticResource CardHeaderTextStyle}" Text="セッション一覧" />
+                                    <TextBlock Margin="20,0,8,0" Style="{StaticResource FieldLabelStyle}"
+                                               Text="一括操作" />
+                                    <StackPanel x:Name="SessionBulkActionsPanel" Orientation="Horizontal">
+                                        <Button Margin="0,0,6,0" Style="{StaticResource SmallButtonStyle}"
+                                                Command="{Binding EnableAllSessionsCommand}"
+                                                Content="すべて対象にする" />
+                                        <Button Style="{StaticResource SmallButtonStyle}"
+                                                Command="{Binding DisableAllSessionsCommand}"
+                                                Content="すべて外す" />
+                                    </StackPanel>
+                                </StackPanel>
+                            </Border>
+                            <DataGrid Style="{StaticResource AppDataGridStyle}"
+                                      IsReadOnly="False"
+                                      ItemsSource="{Binding Sessions}"
+                                      SelectedItem="{Binding SelectedSession, Mode=TwoWay}">
+                                <DataGrid.Columns>
+                                    <DataGridCheckBoxColumn Header="対象" Width="72"
+                                                            Binding="{Binding IsEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <DataGridTextColumn Header="セッションID" Width="152" IsReadOnly="True" Binding="{Binding SessionId}" />
+                                    <DataGridTextColumn Header="開始" Width="170" IsReadOnly="True" Binding="{Binding StartedAt}" />
+                                    <DataGridTextColumn Header="終了" Width="170" IsReadOnly="True" Binding="{Binding EndedAt}" />
+                                    <DataGridTextColumn Header="レコード" Width="96" IsReadOnly="True"
+                                                        Binding="{Binding RecordCount, StringFormat={}{0:N0}}"
+                                                        ElementStyle="{StaticResource NumericCellStyle}"
+                                                        HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                                    <DataGridTextColumn Header="マーカー" Width="96" IsReadOnly="True"
+                                                        Binding="{Binding MarkerCount, StringFormat={}{0:N0}}"
+                                                        ElementStyle="{StaticResource NumericCellStyle}"
+                                                        HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                                    <DataGridTextColumn Header="状態" Width="96" IsReadOnly="True" Binding="{Binding Status}" />
+                                    <DataGridTextColumn Header="フォルダ" Width="*" IsReadOnly="True"
+                                                        Binding="{Binding FolderPath}"
+                                                        ElementStyle="{StaticResource MonoCellStyle}" />
+                                </DataGrid.Columns>
                             </DataGrid>
                         </DockPanel>
-                    </GroupBox>
+                    </Border>
 
-                    <GroupBox Header="セッション情報" Grid.Row="2" Grid.Column="0" Margin="0,0,12,0">
-                        <DataGrid ItemsSource="{Binding SessionInfoRows}"
-                                  AutoGenerateColumns="False"
-                                  CanUserAddRows="False"
-                                  IsReadOnly="True"
-                                  HeadersVisibility="Column"
-                                  Visibility="{Binding HasSession, Converter={StaticResource BooleanToVisibilityConverter}}">
-                            <DataGrid.Columns>
-                                <DataGridTextColumn Header="項目" Binding="{Binding Label}" Width="220" />
-                                <DataGridTextColumn Header="値" Binding="{Binding Value}" Width="*" />
-                            </DataGrid.Columns>
-                        </DataGrid>
-                    </GroupBox>
+                    <!-- セッション情報 -->
+                    <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource CardBorderStyle}">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Top" Style="{StaticResource CardHeaderBorderStyle}">
+                                <TextBlock Style="{StaticResource CardHeaderTextStyle}" Text="セッション情報" />
+                            </Border>
+                            <DataGrid Style="{StaticResource AppDataGridStyle}" IsReadOnly="True"
+                                      ItemsSource="{Binding SessionInfoRows}"
+                                      Visibility="{Binding HasSession, Converter={StaticResource BooleanToVisibilityConverter}}">
+                                <DataGrid.Columns>
+                                    <DataGridTextColumn Header="項目" Width="220" Binding="{Binding Label}" />
+                                    <DataGridTextColumn Header="値" Width="*" Binding="{Binding Value}" />
+                                </DataGrid.Columns>
+                            </DataGrid>
+                        </DockPanel>
+                    </Border>
 
-                    <GroupBox Header="警告" Grid.Row="2" Grid.Column="1">
-                        <ListBox ItemsSource="{Binding Warnings}" />
-                    </GroupBox>
-
-                    <DockPanel Grid.Row="3" Grid.ColumnSpan="2" Margin="0,8,0,0">
-                        <Button DockPanel.Dock="Right"
-                                Content="分析区間へ進む"
-                                Command="{Binding GoToNextStepCommand}" />
-                        <TextBlock Text="{Binding NextStepText}"
-                                   TextWrapping="Wrap" />
-                    </DockPanel>
+                    <!-- 警告 -->
+                    <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource CardBorderStyle}">
+                        <DockPanel>
+                            <Border DockPanel.Dock="Top" Style="{StaticResource CardHeaderBorderStyle}">
+                                <DockPanel>
+                                    <Border DockPanel.Dock="Right" CornerRadius="10" Padding="8,4"
+                                            Background="{StaticResource WarningSoftBrush}"
+                                            BorderBrush="{StaticResource WarningBorderBrush}" BorderThickness="1">
+                                        <TextBlock FontSize="11" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource WarningBrush}"
+                                                   Text="{Binding Warnings.Count}" />
+                                    </Border>
+                                    <TextBlock Style="{StaticResource CardHeaderTextStyle}" Text="警告" />
+                                </DockPanel>
+                            </Border>
+                            <ListBox Style="{StaticResource AppListBoxStyle}"
+                                     ItemContainerStyle="{StaticResource AppListBoxItemStyle}"
+                                     ItemsSource="{Binding Warnings}">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Left" Margin="0,0,8,0"
+                                                       VerticalAlignment="Top"
+                                                       Foreground="#FFF79009" Text="●" />
+                                            <TextBlock Foreground="{StaticResource TextSecondaryBrush}"
+                                                       Text="{Binding}" TextWrapping="Wrap" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </DockPanel>
+                    </Border>
                 </Grid>
             </TabItem>
 
-            <TabItem Header="{Binding RangeTabHeader}">
-                <local:AnalysisRangeSelectionView DataContext="{Binding AnalysisRange}" Margin="0,8,0,0" />
+            <TabItem Tag="{Binding RangeStepBadge}" IsEnabled="{Binding IsRangeStepEnabled}">
+                <TabItem.Header>
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="分析区間" />
+                        <TextBlock Margin="9,0,0,0" FontSize="11" FontWeight="Normal"
+                                   Foreground="{StaticResource TextFaintBrush}"
+                                   Text="{Binding RangeStepSummary}" />
+                    </StackPanel>
+                </TabItem.Header>
+                <local:AnalysisRangeSelectionView DataContext="{Binding AnalysisRange}" />
             </TabItem>
 
-            <TabItem Header="{Binding ResultTabHeader}">
-                <local:AnalysisResultView DataContext="{Binding AnalysisResult}" Margin="0,8,0,0" />
+            <TabItem Tag="{Binding ResultStepBadge}" IsEnabled="{Binding IsResultStepEnabled}" Header="分析結果">
+                <local:AnalysisResultView DataContext="{Binding AnalysisResult}" />
             </TabItem>
         </TabControl>
-    </DockPanel>
+
+        <!-- ===== フッター（① のみ。②③ は各ビューが自前のフッターを持つ） ===== -->
+        <Border Grid.Row="2" Padding="20,12" Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrushFooter}" BorderThickness="0,1,0,0"
+                Visibility="{Binding IsSessionStepSelected, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Width="164"
+                        Command="{Binding GoToNextStepCommand}" Content="分析区間へ進む →" />
+                <TextBlock Style="{StaticResource FieldLabelStyle}" TextTrimming="CharacterEllipsis"
+                           Text="{Binding StatusMessage}" ToolTip="{Binding StatusMessage}" />
+            </DockPanel>
+        </Border>
+    </Grid>
 </Window>

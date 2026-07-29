@@ -20,8 +20,8 @@ public sealed class SessionSelectionViewModel : INotifyPropertyChanged
         SessionId = string.IsNullOrWhiteSpace(session.SessionInfo.SessionId)
             ? "-"
             : session.SessionInfo.SessionId;
-        StartedAt = ToDisplay(session.SessionInfo.StartedAt);
-        EndedAt = ToDisplay(session.SessionInfo.EndedAt);
+        StartedAt = AnalysisDisplayText.ToDateTimeText(session.SessionInfo.StartedAt);
+        EndedAt = AnalysisDisplayText.ToDateTimeText(session.SessionInfo.EndedAt);
         RecordCount = records.Count.ToString("N0");
         MarkerCount = records.Count(record => record.IsMarker).ToString("N0");
         Status = AnalysisDisplayText.ToText(session.SessionInfo.Status);
@@ -63,11 +63,6 @@ public sealed class SessionSelectionViewModel : INotifyPropertyChanged
     public string Status { get; }
 
     public string FolderPath { get; }
-
-    private static string ToDisplay(DateTimeOffset? value)
-    {
-        return value?.ToString("yyyy-MM-dd HH:mm:ss zzz") ?? "-";
-    }
 
     private void OnPropertyChanged(
         [CallerMemberName] string? propertyName = null)

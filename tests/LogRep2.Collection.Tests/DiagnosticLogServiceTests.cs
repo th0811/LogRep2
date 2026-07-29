@@ -49,6 +49,29 @@ public sealed class DiagnosticLogServiceTests
         Assert.Equal(expected, AnalysisDisplayText.ToText(confidence));
     }
 
+    [Fact]
+    public void 分析画面の日時表示からタイムゾーンを除外する()
+    {
+        var timestamp = new DateTimeOffset(
+            2026,
+            7,
+            29,
+            14,
+            30,
+            0,
+            TimeSpan.FromHours(9));
+
+        Assert.Equal(
+            "2026-07-29 14:30:00",
+            AnalysisDisplayText.ToDateTimeText(timestamp));
+    }
+
+    [Fact]
+    public void 分析画面の日時がない場合はハイフンを表示する()
+    {
+        Assert.Equal("-", AnalysisDisplayText.ToDateTimeText(null));
+    }
+
     [Theory]
     [InlineData(ActionType.NormalAttack, "通常攻撃")]
     [InlineData(ActionType.NormalAttackCritical, "通常攻撃（クリティカル）")]

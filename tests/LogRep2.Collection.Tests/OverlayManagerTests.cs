@@ -19,6 +19,7 @@ public sealed class OverlayManagerTests
         {
             try
             {
+                WpfTestApplication.Ensure();
                 var events = new CollectorEvents();
                 var realtime = new RealtimeAnalysisController(events, 500);
                 using var manager = new OverlayManager(

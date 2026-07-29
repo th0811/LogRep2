@@ -51,7 +51,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _settings = _settingsStore.Load();
         AnalysisResult = new AnalysisResultViewModel(_settingsStore);
         AnalysisRange.AnalysisCompleted += OnAnalysisCompleted;
+        AnalysisRange.PropertyChanged += OnAnalysisRangePropertyChanged;
+        AnalysisRange.GoBackRequested += () => SelectedTabIndex = 0;
         AnalysisResult.PropertyChanged += OnAnalysisResultPropertyChanged;
+        AnalysisResult.GoBackRequested += () => SelectedTabIndex = 1;
         GoToNextStepCommand = new RelayCommand(
             () => SelectedTabIndex = 1,
             () => HasSession);
@@ -148,7 +151,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public int SelectedTabIndex
     {
         get => _selectedTabIndex;
-        set => SetProperty(ref _selectedTabIndex, value);
+        set
+        {
+            if (SetProperty(ref _selectedTabIndex, value))
+            {
+                RefreshStepState();
+            }
+        }
     }
 
     public string NextStepText => HasSession
@@ -196,6 +205,59 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public string ResultTabHeader => AnalysisResult.HasResult
         ? "③ 分析結果  ✓"
         : "③ 分析結果";
+
+    // ステップヘッダーの丸バッジ。完了済みで、かつ今そのステップを開いていない場合だけ ✓ にする。
+    public string SessionStepBadge => StepBadge("1", HasSession, stepIndex: 0);
+
+    public string RangeStepBadge => StepBadge("2", AnalysisResult.HasResult, stepIndex: 1);
+
+    public string ResultStepBadge => StepBadge("3", AnalysisResult.HasResult, stepIndex: 2);
+
+    /// <summary>ステップ①の確定内容。例「2件 / 34,551」。</summary>
+    public string SessionStepSummary
+    {
+        get
+        {
+            var enabledSessions = Sessions
+                .Where(session => session.IsEnabled)
+                .ToArray();
+            if (enabledSessions.Length == 0)
+            {
+                return string.Empty;
+            }
+
+            var recordCount = enabledSessions.Sum(session => session.Records.Count);
+            return $"{enabledSessions.Length:N0}件 / {recordCount:N0}";
+        }
+    }
+
+    /// <summary>ステップ②の確定内容。例「Ceizak Battlegrounds」。</summary>
+    public string RangeStepSummary
+    {
+        get
+        {
+            if (AnalysisResult.HasResult)
+            {
+                return AnalysisRange.LastCompletedRangeName;
+            }
+
+            return AnalysisRange.SelectedAreaSegment?.AreaName ?? string.Empty;
+        }
+    }
+
+    /// <summary>セッション未選択の間は②を開けない。</summary>
+    public bool IsRangeStepEnabled => HasSession;
+
+    /// <summary>分析未実行の間は③を開けない。</summary>
+    public bool IsResultStepEnabled => AnalysisResult.HasResult;
+
+    // ②③ は各ビューが自前のフッターを持つため、ウィンドウ側フッターは① のときだけ出す。
+    public bool IsSessionStepSelected => SelectedTabIndex == 0;
+
+    private string StepBadge(string number, bool isCompleted, int stepIndex) =>
+        isCompleted && SelectedTabIndex != stepIndex
+            ? "✓"
+            : number;
 
     public bool IsNotBusy => !IsBusy;
 
@@ -676,7 +738,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
             result,
             SessionInfoRows.ToArray(),
             fallbackSessionTime,
-            AnalysisRange.LastCompletedRangeName);
+            AnalysisRange.LastCompletedRangeName,
+            AnalysisRange.LastCompletedOrderRangeText,
+            AnalysisRange.LastCompletedRecordCount);
         StatusMessage = "分析結果を表示しました。";
     }
 
@@ -692,8 +756,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         [
             new SessionInfoRow("選択セッション数", sessions.Count.ToString("N0")),
             new SessionInfoRow("セッションID", string.Join(", ", sessions.Select(session => session.SessionId))),
-            new SessionInfoRow("最も早い開始時刻", ToDisplay(sessions.Min(session => session.Session.SessionInfo.StartedAt))),
-            new SessionInfoRow("最も遅い終了時刻", ToDisplay(sessions.Max(session => session.Session.SessionInfo.EndedAt))),
+            new SessionInfoRow("最も早い開始時刻", AnalysisDisplayText.ToDateTimeText(sessions.Min(session => session.Session.SessionInfo.StartedAt))),
+            new SessionInfoRow("最も遅い終了時刻", AnalysisDisplayText.ToDateTimeText(sessions.Max(session => session.Session.SessionInfo.EndedAt))),
             new SessionInfoRow("正規化ログ件数", sessions.Sum(session => session.Records.Count).ToString("N0")),
             new SessionInfoRow("マーカー件数", sessions.Sum(session => session.Records.Count(record => record.IsMarker)).ToString("N0")),
             new SessionInfoRow("欠落警告数", sessions.Sum(session => session.Session.StatsInfo.GapWarnings).ToString("N0")),
@@ -711,8 +775,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         [
             new SessionInfoRow("セッションID", ToDisplay(info.SessionId)),
             new SessionInfoRow("状態", AnalysisDisplayText.ToText(info.Status)),
-            new SessionInfoRow("開始時刻", ToDisplay(info.StartedAt)),
-            new SessionInfoRow("終了時刻", ToDisplay(info.EndedAt)),
+            new SessionInfoRow("開始時刻", AnalysisDisplayText.ToDateTimeText(info.StartedAt)),
+            new SessionInfoRow("終了時刻", AnalysisDisplayText.ToDateTimeText(info.EndedAt)),
             new SessionInfoRow("収集機能バージョン", ToDisplay(info.CollectorVersion)),
             new SessionInfoRow("セッション形式バージョン", ToDisplay(info.SchemaVersion)),
             new SessionInfoRow("元ログ形式バージョン", ToDisplay(info.RawSchemaVersion)),
@@ -761,7 +825,30 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(RangeTabHeader));
         OnPropertyChanged(nameof(ResultTabHeader));
         OnPropertyChanged(nameof(NextStepText));
+        RefreshStepState();
         GoToNextStepCommand.RaiseCanExecuteChanged();
+    }
+
+    private void RefreshStepState()
+    {
+        OnPropertyChanged(nameof(SessionStepBadge));
+        OnPropertyChanged(nameof(RangeStepBadge));
+        OnPropertyChanged(nameof(ResultStepBadge));
+        OnPropertyChanged(nameof(SessionStepSummary));
+        OnPropertyChanged(nameof(RangeStepSummary));
+        OnPropertyChanged(nameof(IsRangeStepEnabled));
+        OnPropertyChanged(nameof(IsResultStepEnabled));
+        OnPropertyChanged(nameof(IsSessionStepSelected));
+    }
+
+    private void OnAnalysisRangePropertyChanged(
+        object? sender,
+        PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(AnalysisRangeViewModel.SelectedAreaSegment))
+        {
+            OnPropertyChanged(nameof(RangeStepSummary));
+        }
     }
 
     private void OnAnalysisResultPropertyChanged(
@@ -785,11 +872,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private static string ToDisplay(string? value)
     {
         return string.IsNullOrWhiteSpace(value) ? "-" : value;
-    }
-
-    private static string ToDisplay(DateTimeOffset? value)
-    {
-        return value?.ToString("yyyy-MM-dd HH:mm:ss zzz") ?? "-";
     }
 
     private bool SetProperty<T>(

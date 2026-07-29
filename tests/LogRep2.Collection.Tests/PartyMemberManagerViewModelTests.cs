@@ -9,10 +9,10 @@ public sealed class PartyMemberManagerViewModelTests
     {
         var viewModel = new PartyMemberManagerViewModel(
             ["Alice"],
-            ["Charlie", "Bob"],
+            Candidates("Charlie", "Bob"),
             _ => { });
 
-        Assert.Equal("Bob", viewModel.SelectedCandidate);
+        Assert.Equal("Bob", viewModel.SelectedCandidate?.Name);
     }
 
     [Fact]
@@ -21,10 +21,10 @@ public sealed class PartyMemberManagerViewModelTests
         IReadOnlyList<string> saved = [];
         var viewModel = new PartyMemberManagerViewModel(
             ["Alice"],
-            ["Bob"],
+            Candidates("Bob"),
             members => saved = members);
 
-        viewModel.SelectedCandidate = "Bob";
+        Select(viewModel, "Bob");
         viewModel.AddCandidateCommand.Execute(null);
         viewModel.SelectedMember = "Bob";
         viewModel.MoveUpCommand.Execute(null);
@@ -38,10 +38,10 @@ public sealed class PartyMemberManagerViewModelTests
     {
         var viewModel = new PartyMemberManagerViewModel(
             ["A", "B", "C", "D", "E", "F"],
-            ["G"],
+            Candidates("G"),
             _ => { });
 
-        viewModel.SelectedCandidate = "G";
+        Select(viewModel, "G");
 
         Assert.False(viewModel.AddCandidateCommand.CanExecute(null));
     }
@@ -51,13 +51,13 @@ public sealed class PartyMemberManagerViewModelTests
     {
         var viewModel = new PartyMemberManagerViewModel(
             ["Alice"],
-            ["Bob", "Charlie", "Dave"],
+            Candidates("Bob", "Charlie", "Dave"),
             _ => { });
-        viewModel.SelectedCandidate = "Charlie";
+        Select(viewModel, "Charlie");
 
         viewModel.AddCandidateCommand.Execute(null);
 
-        Assert.Equal("Dave", viewModel.SelectedCandidate);
+        Assert.Equal("Dave", viewModel.SelectedCandidate?.Name);
     }
 
     [Fact]
@@ -65,13 +65,13 @@ public sealed class PartyMemberManagerViewModelTests
     {
         var viewModel = new PartyMemberManagerViewModel(
             ["Alice"],
-            ["Bob", "Charlie"],
+            Candidates("Bob", "Charlie"),
             _ => { });
-        viewModel.SelectedCandidate = "Charlie";
+        Select(viewModel, "Charlie");
 
         viewModel.AddCandidateCommand.Execute(null);
 
-        Assert.Equal("Bob", viewModel.SelectedCandidate);
+        Assert.Equal("Bob", viewModel.SelectedCandidate?.Name);
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public sealed class PartyMemberManagerViewModelTests
     {
         var viewModel = new PartyMemberManagerViewModel(
             ["A", "B", "C", "D", "E"],
-            ["F", "G"],
+            Candidates("F", "G"),
             _ => { });
 
         viewModel.AddCandidateCommand.Execute(null);
@@ -115,4 +115,53 @@ public sealed class PartyMemberManagerViewModelTests
         Assert.Null(viewModel.SelectedCandidate);
         Assert.False(viewModel.AddCandidateCommand.CanExecute(null));
     }
+
+    [Fact]
+    public void 候補の出現数を書式化する()
+    {
+        var viewModel = new PartyMemberManagerViewModel(
+            [],
+            [new PartyMemberCandidate("Alice", 1284), new PartyMemberCandidate("Bob", 0)],
+            _ => { });
+
+        Assert.Equal("1,284行", viewModel.Candidates[0].OccurrenceText);
+        Assert.Equal(string.Empty, viewModel.Candidates[1].OccurrenceText);
+    }
+
+    [Fact]
+    public void 登録メンバーから外した候補は出現数を保つ()
+    {
+        var viewModel = new PartyMemberManagerViewModel(
+            [],
+            [new PartyMemberCandidate("Alice", 1284)],
+            _ => { });
+        Select(viewModel, "Alice");
+        viewModel.AddCandidateCommand.Execute(null);
+
+        viewModel.SelectedMember = "Alice";
+        viewModel.RemoveCommand.Execute(null);
+
+        Assert.Equal("1,284行", viewModel.Candidates.Single().OccurrenceText);
+    }
+
+    [Fact]
+    public void 人数上限を進捗バー向けに公開する()
+    {
+        var viewModel = new PartyMemberManagerViewModel(
+            ["Alice", "Bob"],
+            [],
+            _ => { });
+
+        Assert.Equal(2, viewModel.MemberCount);
+        Assert.Equal(6, viewModel.MemberCapacity);
+    }
+
+    private static PartyMemberCandidate[] Candidates(params string[] names) =>
+        [.. names.Select(name => new PartyMemberCandidate(name, 0))];
+
+    private static void Select(
+        PartyMemberManagerViewModel viewModel,
+        string name) =>
+        viewModel.SelectedCandidate = viewModel.Candidates
+            .Single(candidate => candidate.Name == name);
 }

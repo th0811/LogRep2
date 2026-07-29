@@ -15,8 +15,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private readonly RealtimeAnalysisController _realtimeAnalysis;
 
     private string _statusText = "停止中";
-    private string _statusForeground = "#FFFFFF";
-    private string _statusBackground = "#162331";
+    private string _statusForeground = StatusPalette.Neutral.Foreground;
+    private string _statusBackground = StatusPalette.Neutral.Background;
+    private string _statusBorder = StatusPalette.Neutral.Border;
+    private string _statusDot = StatusPalette.Neutral.Dot;
     private string _sessionId = "-";
     private long _rawRecordsWritten;
     private long _canonicalRecordsWritten;
@@ -25,8 +27,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private string _lastError = "-";
     private bool _isShuttingDown;
     private string _realtimeStateText = "停止中";
-    private string _realtimeStateForeground = "#FFFFFF";
-    private string _realtimeStateBackground = "#162331";
+    private string _realtimeStateForeground = StatusPalette.Neutral.Foreground;
+    private string _realtimeStateBackground = StatusPalette.Neutral.Background;
+    private string _realtimeStateBorder = StatusPalette.Neutral.Border;
+    private string _realtimeStateDot = StatusPalette.Neutral.Dot;
     private int _realtimeTargetCount;
     private int _realtimeCanonicalCount;
     private long _realtimeTotalDamage;
@@ -129,6 +133,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public string RealtimeStateBackground { get => _realtimeStateBackground; private set => SetProperty(ref _realtimeStateBackground, value); }
 
+    public string RealtimeStateBorder { get => _realtimeStateBorder; private set => SetProperty(ref _realtimeStateBorder, value); }
+
+    public string RealtimeStateDot { get => _realtimeStateDot; private set => SetProperty(ref _realtimeStateDot, value); }
+
     public int RealtimeTargetCount { get => _realtimeTargetCount; private set => SetProperty(ref _realtimeTargetCount, value); }
 
     public int RealtimeCanonicalCount { get => _realtimeCanonicalCount; private set => SetProperty(ref _realtimeCanonicalCount, value); }
@@ -183,6 +191,18 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         get => _statusBackground;
         private set => SetProperty(ref _statusBackground, value);
+    }
+
+    public string StatusBorder
+    {
+        get => _statusBorder;
+        private set => SetProperty(ref _statusBorder, value);
+    }
+
+    public string StatusDot
+    {
+        get => _statusDot;
+        private set => SetProperty(ref _statusDot, value);
     }
 
     public bool IsShuttingDown
@@ -331,8 +351,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
         IsShuttingDown = true;
         StatusText = "終了しています...";
-        StatusForeground = "#FFFFFF";
-        StatusBackground = "#B45309";
+        ApplyStatusPalette(StatusPalette.Warning);
         RaiseCommandCanExecuteChanged();
     }
 
@@ -418,7 +437,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private void ShowPartyMemberSettings()
     {
         var actors = _realtimeAnalysis.Current.Result?.ActorSummaries
-            .Select(actor => actor.Actor)
             ?? [];
         _controller.ShowPartyMemberSettings(actors);
     }
@@ -448,12 +466,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
             RealtimeAnalysisState.Completed => "分析終了",
             _ => "停止中",
         };
-        RealtimeStateForeground = snapshot.State == RealtimeAnalysisState.Running
-            ? "#ECFDF5"
-            : "#FFFFFF";
-        RealtimeStateBackground = snapshot.State == RealtimeAnalysisState.Running
-            ? "#047857"
-            : "#162331";
+        var realtimePalette = snapshot.State == RealtimeAnalysisState.Running
+            ? StatusPalette.Success
+            : StatusPalette.Neutral;
+        RealtimeStateForeground = realtimePalette.Foreground;
+        RealtimeStateBackground = realtimePalette.Background;
+        RealtimeStateBorder = realtimePalette.Border;
+        RealtimeStateDot = realtimePalette.Dot;
         RealtimeTargetCount = snapshot.TargetRecordCount;
         RealtimeCanonicalCount = snapshot.CanonicalRecordCount;
         RealtimeTotalDamage = snapshot.Result?.ActorSummaries.Sum(actor => (long)actor.TotalDamage) ?? 0;
@@ -488,8 +507,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             RealtimeWarningText = string.Empty;
         }
         StatusText = GetStatusText(snapshot.Status);
-        StatusForeground = GetStatusForeground(snapshot.Status);
-        StatusBackground = GetStatusBackground(snapshot.Status);
+        ApplyStatusPalette(GetStatusPalette(snapshot.Status));
         SessionId = string.IsNullOrWhiteSpace(snapshot.SessionId)
             ? "-"
             : snapshot.SessionId;
@@ -548,16 +566,24 @@ public sealed class MainViewModel : INotifyPropertyChanged
         };
     }
 
-    private static string GetStatusForeground(CollectorStatus status)
+    private static StatusPalette GetStatusPalette(CollectorStatus status)
     {
         return status switch
         {
-            CollectorStatus.Running => "#ECFDF5",
-            CollectorStatus.Starting => "#FFFBEB",
-            CollectorStatus.Stopping => "#FFFBEB",
-            CollectorStatus.Error => "#FEF2F2",
-            _ => "#FFFFFF",
+            CollectorStatus.Running => StatusPalette.Success,
+            CollectorStatus.Starting => StatusPalette.Warning,
+            CollectorStatus.Stopping => StatusPalette.Warning,
+            CollectorStatus.Error => StatusPalette.Danger,
+            _ => StatusPalette.Neutral,
         };
+    }
+
+    private void ApplyStatusPalette(StatusPalette palette)
+    {
+        StatusForeground = palette.Foreground;
+        StatusBackground = palette.Background;
+        StatusBorder = palette.Border;
+        StatusDot = palette.Dot;
     }
 
     private static void OpenDiagnosticLogs()
@@ -577,18 +603,6 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 MessageBoxButton.OK,
                 MessageBoxImage.Warning);
         }
-    }
-
-    private static string GetStatusBackground(CollectorStatus status)
-    {
-        return status switch
-        {
-            CollectorStatus.Running => "#047857",
-            CollectorStatus.Starting => "#B45309",
-            CollectorStatus.Stopping => "#B45309",
-            CollectorStatus.Error => "#B42318",
-            _ => "#162331",
-        };
     }
 
     private void RaiseCommandCanExecuteChanged()

@@ -7,7 +7,10 @@ public partial class AnalysisResultView : System.Windows.Controls.UserControl
         InitializeComponent();
     }
 
-    private void OnRegistrationButtonClick(
+    /// <summary>
+    /// 分割ボタン（CSV出力・登録名など）。クリックで自前の ContextMenu をその場に開く。
+    /// </summary>
+    private void OnSplitButtonClick(
         object sender,
         System.Windows.RoutedEventArgs e)
     {
@@ -18,6 +21,8 @@ public partial class AnalysisResultView : System.Windows.Controls.UserControl
         }
 
         button.ContextMenu.PlacementTarget = button;
+        button.ContextMenu.Placement =
+            System.Windows.Controls.Primitives.PlacementMode.Bottom;
         button.ContextMenu.IsOpen = true;
         e.Handled = true;
     }

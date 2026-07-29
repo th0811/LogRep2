@@ -1,0 +1,654 @@
+<!--
+  LogRep2 共通スタイル (Theme/Styles.xaml)
+  App.xaml で ResourceDictionary をマージして使用します:
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceDictionary Source="Theme/Styles.xaml" />
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  既存の MainWindow.xaml 内にある HeaderIconButtonStyle / Footer*ButtonStyle は
+  このファイルへ移設済みです（キー名は変更していません）。
+-->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- ====== 色トークン ====== -->
+    <Color x:Key="HeaderNavyColor">#FF243447</Color>
+    <SolidColorBrush x:Key="HeaderNavyBrush" Color="{StaticResource HeaderNavyColor}" />
+    <SolidColorBrush x:Key="HeaderNavyHoverBrush" Color="#FF3A4D61" />
+    <SolidColorBrush x:Key="HeaderNavyPressedBrush" Color="#FF172433" />
+    <SolidColorBrush x:Key="HeaderSubTextBrush" Color="#FF9BB0C2" />
+
+    <SolidColorBrush x:Key="AppBackgroundBrush" Color="#FFF4F6F8" />
+    <SolidColorBrush x:Key="SurfaceBrush" Color="#FFFFFFFF" />
+    <SolidColorBrush x:Key="SurfaceMutedBrush" Color="#FFFBFCFD" />
+    <SolidColorBrush x:Key="SurfaceSubtleBrush" Color="#FFF9FAFB" />
+
+    <SolidColorBrush x:Key="BorderBrushSoft" Color="#FFEEF1F4" />
+    <SolidColorBrush x:Key="BorderBrushDefault" Color="#FFE4E8ED" />
+    <SolidColorBrush x:Key="BorderBrushStrong" Color="#FFD0D5DD" />
+    <SolidColorBrush x:Key="BorderBrushFooter" Color="#FFD9DEE5" />
+    <SolidColorBrush x:Key="RowDividerBrush" Color="#FFF2F4F7" />
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FF101828" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#FF475467" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#FF667085" />
+    <SolidColorBrush x:Key="TextFaintBrush" Color="#FF98A2B3" />
+    <SolidColorBrush x:Key="SectionLabelBrush" Color="#FF8A94A6" />
+
+    <SolidColorBrush x:Key="PrimaryBrush" Color="#FF2563EB" />
+    <SolidColorBrush x:Key="PrimaryHoverBrush" Color="#FF1D4ED8" />
+    <SolidColorBrush x:Key="PrimarySoftBrush" Color="#FFEFF6FF" />
+    <SolidColorBrush x:Key="PrimarySoftBorderBrush" Color="#FFB2DDFF" />
+    <SolidColorBrush x:Key="PrimaryTextBrush" Color="#FF175CD3" />
+
+    <SolidColorBrush x:Key="SuccessBrush" Color="#FF067647" />
+    <SolidColorBrush x:Key="SuccessSoftBrush" Color="#FFECFDF3" />
+    <SolidColorBrush x:Key="SuccessBorderBrush" Color="#FFABEFC6" />
+    <SolidColorBrush x:Key="SuccessDotBrush" Color="#FF12B76A" />
+    <SolidColorBrush x:Key="SuccessBadgeBrush" Color="#FFD1FADF" />
+
+    <SolidColorBrush x:Key="WarningBrush" Color="#FFB54708" />
+    <SolidColorBrush x:Key="WarningSoftBrush" Color="#FFFFFAEB" />
+    <SolidColorBrush x:Key="WarningBorderBrush" Color="#FFFEDF89" />
+
+    <SolidColorBrush x:Key="DangerBrush" Color="#FFB42318" />
+    <SolidColorBrush x:Key="DangerSoftBrush" Color="#FFFEF3F2" />
+
+    <SolidColorBrush x:Key="StepInactiveBrush" Color="#FFEAECF0" />
+
+    <!-- ====== 文字 ====== -->
+    <FontFamily x:Key="UiFontFamily">Yu Gothic UI, Meiryo UI, Segoe UI</FontFamily>
+    <FontFamily x:Key="MonoFontFamily">Consolas, Yu Gothic UI</FontFamily>
+
+    <Style x:Key="BaseTextStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+    </Style>
+
+    <!-- セクション見出し（HTML では letter-spacing:.1em。WPF に相当プロパティが無いため
+         文字間は諦めるか、必要なら 1 文字ずつ空白を入れず FontStretch は変更しないこと） -->
+    <Style x:Key="SectionLabelStyle" BasedOn="{StaticResource BaseTextStyle}" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Foreground" Value="{StaticResource SectionLabelBrush}" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+
+    <Style x:Key="CardTitleStyle" BasedOn="{StaticResource BaseTextStyle}" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="14" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="CardHeaderTextStyle" BasedOn="{StaticResource BaseTextStyle}" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="FieldLabelStyle" BasedOn="{StaticResource BaseTextStyle}" TargetType="{x:Type TextBlock}">
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+    </Style>
+
+    <Style x:Key="ValueTextStyle" BasedOn="{StaticResource BaseTextStyle}" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+
+    <Style x:Key="CaptionTextStyle" BasedOn="{StaticResource BaseTextStyle}" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+    </Style>
+
+    <Style x:Key="MonoTextStyle" BasedOn="{StaticResource BaseTextStyle}" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+
+    <!-- ====== 面（旧 GroupBox の置き換え） ====== -->
+    <Style x:Key="CardBorderStyle" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDefault}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <!-- 補助情報用（一段落とした面） -->
+    <Style x:Key="MutedCardBorderStyle" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource SurfaceMutedBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDefault}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="SnapsToDevicePixels" Value="True" />
+    </Style>
+
+    <Style x:Key="CardHeaderBorderStyle" TargetType="{x:Type Border}">
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="14,10" />
+    </Style>
+
+    <Style x:Key="RowDividerBorderStyle" TargetType="{x:Type Border}">
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushSoft}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="0,6" />
+    </Style>
+
+    <!-- ステータスピル / チップ -->
+    <Style x:Key="StatusPillBorderStyle" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource SuccessSoftBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource SuccessBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="Padding" Value="9,5" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="ChipBorderStyle" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDefault}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="11" />
+        <Setter Property="Padding" Value="9,4" />
+        <Setter Property="Margin" Value="0,0,5,5" />
+    </Style>
+
+    <!-- ====== ボタン ====== -->
+    <Style x:Key="AppButtonBaseStyle" TargetType="{x:Type Button}">
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="12,4" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="Foreground" Value="#FF344054" />
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushStrong}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Cursor" Value="Hand" />
+        <!-- Tag = ホバー時の背景色 -->
+        <Setter Property="Tag" Value="#F2F4F7" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="ButtonBorder"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="6"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"
+                                          RecognizesAccessKey="True" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ButtonBorder" Property="Background"
+                                    Value="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="ButtonBorder" Property="Opacity" Value="0.78" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="#FF60A5FA" />
+                            <Setter TargetName="ButtonBorder" Property="BorderThickness" Value="2" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="ButtonBorder" Property="Background" Value="{StaticResource SurfaceSubtleBrush}" />
+                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="{StaticResource BorderBrushDefault}" />
+                            <Setter Property="Foreground" Value="#FFB0B8C4" />
+                            <Setter Property="Cursor" Value="Arrow" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="PrimaryButtonStyle" BasedOn="{StaticResource AppButtonBaseStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="Tag" Value="#1D4ED8" />
+    </Style>
+
+    <!-- 稼働コントロールの主操作（実行可能な側）。濃紺ソリッド -->
+    <Style x:Key="RunControlPrimaryButtonStyle" BasedOn="{StaticResource AppButtonBaseStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Height" Value="34" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+
+    <Style x:Key="SecondaryButtonStyle" BasedOn="{StaticResource AppButtonBaseStyle}" TargetType="{x:Type Button}" />
+
+    <Style x:Key="SmallButtonStyle" BasedOn="{StaticResource AppButtonBaseStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Height" Value="26" />
+        <Setter Property="Padding" Value="10,2" />
+        <Setter Property="FontSize" Value="12" />
+    </Style>
+
+    <Style x:Key="ToolbarButtonStyle" BasedOn="{StaticResource AppButtonBaseStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="11,2" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Margin" Value="0,0,6,0" />
+    </Style>
+
+    <Style x:Key="GhostButtonStyle" BasedOn="{StaticResource AppButtonBaseStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Height" Value="36" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
+    <Style x:Key="DangerButtonStyle" BasedOn="{StaticResource GhostButtonStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+        <Setter Property="Tag" Value="#FEF3F2" />
+    </Style>
+
+    <!-- リンク風ボタン（結果画面の「すべて選択」等） -->
+    <Style x:Key="LinkButtonStyle" BasedOn="{StaticResource AppButtonBaseStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource PrimaryBrush}" />
+        <Setter Property="Height" Value="24" />
+        <Setter Property="Padding" Value="9,2" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Tag" Value="#EFF6FF" />
+    </Style>
+
+    <!-- 既存キー名を維持（MainWindow フッター用） -->
+    <Style x:Key="FooterCommandButtonStyle" BasedOn="{StaticResource AppButtonBaseStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Height" Value="36" />
+        <Setter Property="Padding" Value="14,4" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+    <Style x:Key="FooterPrimaryButtonStyle" BasedOn="{StaticResource FooterCommandButtonStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Width" Value="128" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="{StaticResource PrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Tag" Value="#1D4ED8" />
+    </Style>
+    <Style x:Key="FooterSecondaryButtonStyle" BasedOn="{StaticResource FooterCommandButtonStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Width" Value="88" />
+    </Style>
+    <Style x:Key="FooterGhostButtonStyle" BasedOn="{StaticResource FooterCommandButtonStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+    </Style>
+    <Style x:Key="FooterDangerButtonStyle" BasedOn="{StaticResource FooterGhostButtonStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Width" Value="72" />
+        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+        <Setter Property="Tag" Value="#FEF3F2" />
+    </Style>
+
+    <!-- ヘッダーのアイコンボタン（既存実装をそのまま移設） -->
+    <Style x:Key="HeaderIconButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Width" Value="64" />
+        <Setter Property="Height" Value="58" />
+        <Setter Property="Margin" Value="4,0,0,0" />
+        <Setter Property="Padding" Value="4" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="ToolTipService.ShowDuration" Value="10000" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="ButtonBorder"
+                            Padding="{TemplateBinding Padding}"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="5">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="True" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="ButtonBorder" Property="Background" Value="{StaticResource HeaderNavyHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="ButtonBorder" Property="Background" Value="{StaticResource HeaderNavyPressedBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="ButtonBorder" Property="BorderBrush" Value="White" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- ====== 入力 ====== -->
+    <Style x:Key="AppTextBoxStyle" TargetType="{x:Type TextBox}">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushStrong}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TextBox}">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="5"
+                            SnapsToDevicePixels="True">
+                        <ScrollViewer x:Name="PART_ContentHost"
+                                      Margin="{TemplateBinding Padding}"
+                                      VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsKeyboardFocused" Value="True">
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsReadOnly" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceSubtleBrush}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BorderBrushDefault}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- パス表示用（読み取り専用・等幅） -->
+    <Style x:Key="PathTextBoxStyle" BasedOn="{StaticResource AppTextBoxStyle}" TargetType="{x:Type TextBox}">
+        <Setter Property="IsReadOnly" Value="True" />
+        <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+    </Style>
+
+    <Style x:Key="AppCheckBoxStyle" TargetType="{x:Type CheckBox}">
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="Foreground" Value="#FF344054" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+
+    <!-- AppCheckBoxStyle の RadioButton 版（Style の TargetType は継承関係でも一致が必要なため別定義） -->
+    <Style x:Key="AppRadioButtonStyle" TargetType="{x:Type RadioButton}">
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="Foreground" Value="#FF344054" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Margin" Value="0,0,0,10" />
+    </Style>
+
+    <Style x:Key="AppComboBoxStyle" TargetType="{x:Type ComboBox}">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Padding" Value="8,0" />
+    </Style>
+
+    <!-- ====== DataGrid ====== -->
+    <Style x:Key="AppDataGridColumnHeaderStyle" TargetType="{x:Type DataGridColumnHeader}">
+        <Setter Property="Background" Value="{StaticResource SurfaceSubtleBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="10,8" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDefault}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="SeparatorBrush" Value="Transparent" />
+    </Style>
+
+    <Style x:Key="NumericColumnHeaderStyle" BasedOn="{StaticResource AppDataGridColumnHeaderStyle}" TargetType="{x:Type DataGridColumnHeader}">
+        <Setter Property="HorizontalContentAlignment" Value="Right" />
+    </Style>
+
+    <Style x:Key="AppDataGridRowStyle" TargetType="{x:Type DataGridRow}">
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="MinHeight" Value="31" />
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{StaticResource SurfaceSubtleBrush}" />
+            </Trigger>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="{StaticResource PrimarySoftBrush}" />
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="AppDataGridCellStyle" TargetType="{x:Type DataGridCell}">
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="10,9" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type DataGridCell}">
+                    <Border Background="Transparent" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsSelected" Value="True">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <Style x:Key="AppDataGridStyle" TargetType="{x:Type DataGrid}">
+        <Setter Property="AutoGenerateColumns" Value="False" />
+        <Setter Property="CanUserAddRows" Value="False" />
+        <Setter Property="HeadersVisibility" Value="Column" />
+        <Setter Property="GridLinesVisibility" Value="Horizontal" />
+        <Setter Property="HorizontalGridLinesBrush" Value="{StaticResource RowDividerBrush}" />
+        <Setter Property="VerticalGridLinesBrush" Value="Transparent" />
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="RowHeaderWidth" Value="0" />
+        <Setter Property="SelectionMode" Value="Single" />
+        <Setter Property="SelectionUnit" Value="FullRow" />
+        <Setter Property="ColumnHeaderStyle" Value="{StaticResource AppDataGridColumnHeaderStyle}" />
+        <Setter Property="RowStyle" Value="{StaticResource AppDataGridRowStyle}" />
+        <Setter Property="CellStyle" Value="{StaticResource AppDataGridCellStyle}" />
+    </Style>
+
+    <!-- 数値セル（右揃え・等幅数字） -->
+    <Style x:Key="NumericCellStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="TextAlignment" Value="Right" />
+        <Setter Property="HorizontalAlignment" Value="Stretch" />
+        <Setter Property="Typography.NumeralAlignment" Value="Tabular" />
+    </Style>
+
+    <Style x:Key="MonoCellStyle" TargetType="{x:Type TextBlock}">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+        <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <!-- ====== ステップ型 TabControl（過去ログ分析） ======
+         使い方: TabItem に Tag（バッジ文字）と Header（見出し）を与える。
+           Tag="1" / "2" / "3" … 未完了ステップ
+           Tag="✓"            … 完了ステップ（緑）
+         VM 側で SessionStepBadge / RangeStepBadge / ResultStepBadge を用意し、
+         Tag="{Binding SessionStepBadge}" のようにバインドすると進行に応じて切り替わります。
+         サブラベル（「2件 / 34,551」等）は TabItem.HeaderTemplate ではなく
+         Header に文字列を渡し、下の DataTemplate 側で分割せず 1 本の文字列として扱う設計でも可。 -->
+    <Style x:Key="StepTabItemStyle" TargetType="{x:Type TabItem}">
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabItem}">
+                    <Grid>
+                        <Border x:Name="Underline"
+                                Background="Transparent"
+                                BorderBrush="Transparent"
+                                BorderThickness="0,0,0,2"
+                                Padding="16,9,16,9">
+                            <StackPanel Orientation="Horizontal">
+                                <Border x:Name="Badge"
+                                        Width="20" Height="20"
+                                        CornerRadius="10"
+                                        Background="{StaticResource StepInactiveBrush}"
+                                        VerticalAlignment="Center">
+                                    <TextBlock x:Name="BadgeText"
+                                               Text="{TemplateBinding Tag}"
+                                               FontSize="11"
+                                               FontWeight="SemiBold"
+                                               Foreground="{StaticResource TextMutedBrush}"
+                                               HorizontalAlignment="Center"
+                                               VerticalAlignment="Center" />
+                                </Border>
+                                <ContentPresenter x:Name="HeaderText"
+                                                  Margin="9,0,0,0"
+                                                  VerticalAlignment="Center"
+                                                  ContentSource="Header"
+                                                  RecognizesAccessKey="True" />
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Underline" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                            <Setter TargetName="Badge" Property="Background" Value="{StaticResource PrimaryBrush}" />
+                            <Setter TargetName="BadgeText" Property="Foreground" Value="White" />
+                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                        <Trigger Property="Tag" Value="✓">
+                            <Setter TargetName="Badge" Property="Background" Value="{StaticResource SuccessBadgeBrush}" />
+                            <Setter TargetName="BadgeText" Property="Foreground" Value="{StaticResource SuccessBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter Property="Foreground" Value="{StaticResource TextFaintBrush}" />
+                            <Setter TargetName="BadgeText" Property="Foreground" Value="{StaticResource TextFaintBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="StepTabControlStyle" TargetType="{x:Type TabControl}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="ItemContainerStyle" Value="{StaticResource StepTabItemStyle}" />
+    </Style>
+
+    <!-- 結果画面の通常タブ（キャラクター別サマリ等） -->
+    <Style x:Key="ResultTabItemStyle" TargetType="{x:Type TabItem}">
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TabItem}">
+                    <Border x:Name="Bd"
+                            Background="Transparent"
+                            BorderBrush="Transparent"
+                            BorderThickness="1,1,1,0"
+                            CornerRadius="6,6,0,0"
+                            Margin="0,0,2,0"
+                            Padding="14,8">
+                        <ContentPresenter ContentSource="Header" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceBrush}" />
+                            <Setter TargetName="Bd" Property="BorderBrush" Value="{StaticResource BorderBrushDefault}" />
+                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="ResultTabControlStyle" TargetType="{x:Type TabControl}">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="ItemContainerStyle" Value="{StaticResource ResultTabItemStyle}" />
+    </Style>
+
+    <!-- ====== ListBox（PTメンバー・キャラクター選択） ====== -->
+    <Style x:Key="AppListBoxStyle" TargetType="{x:Type ListBox}">
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="13" />
+        <Setter Property="TextOptions.TextFormattingMode" Value="Display" />
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Disabled" />
+    </Style>
+
+    <Style x:Key="AppListBoxItemStyle" TargetType="{x:Type ListBoxItem}">
+        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+        <Setter Property="Padding" Value="13,9" />
+        <Setter Property="BorderBrush" Value="{StaticResource RowDividerBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ListBoxItem}">
+                    <Border x:Name="Bd"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceSubtleBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PrimarySoftBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+</ResourceDictionary>
