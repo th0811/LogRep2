@@ -1,7 +1,7 @@
 ﻿[CmdletBinding()]
 param(
     [string]$Version,
-    [switch]$FrameworkDependent
+    [switch]$IncludeSelfContained
 )
 
 $ErrorActionPreference = 'Stop'
@@ -18,43 +18,63 @@ if ($Version -notmatch '^\d+\.\d+\.\d+([-.][0-9A-Za-z.-]+)?$') {
 }
 
 $artifactRoot = Join-Path $repositoryRoot 'artifacts'
-$artifactName = "LogRep2-$Version-win-x64"
-$publishDirectory = Join-Path $artifactRoot $artifactName
-$zipPath = Join-Path $artifactRoot "$artifactName.zip"
-$hashPath = "$zipPath.sha256"
-$selfContained = if ($FrameworkDependent) { 'false' } else { 'true' }
 
 New-Item -ItemType Directory -Path $artifactRoot -Force | Out-Null
-if (Test-Path -LiteralPath $publishDirectory) {
-    Remove-Item -LiteralPath $publishDirectory -Recurse -Force
-}
-if (Test-Path -LiteralPath $zipPath) {
-    Remove-Item -LiteralPath $zipPath -Force
-}
-if (Test-Path -LiteralPath $hashPath) {
-    Remove-Item -LiteralPath $hashPath -Force
-}
 
 dotnet test (Join-Path $repositoryRoot 'LogRep2.sln') -c Release
 if ($LASTEXITCODE -ne 0) {
     throw 'テストに失敗したため、リリース作成を中止しました。'
 }
 
-dotnet publish $projectPath `
-    -c Release `
-    -r win-x64 `
-    --self-contained $selfContained `
-    -p:PublishProfile=win-x64 `
-    -p:Version=$Version `
-    -p:ContinuousIntegrationBuild=true `
-    -o $publishDirectory
-if ($LASTEXITCODE -ne 0) {
-    throw 'publishに失敗しました。'
+function New-ReleaseArtifact {
+    param(
+        [Parameter(Mandatory)]
+        [string]$ArtifactName,
+
+        [Parameter(Mandatory)]
+        [bool]$SelfContained
+    )
+
+    $publishDirectory = Join-Path $artifactRoot $ArtifactName
+    $zipPath = Join-Path $artifactRoot "$ArtifactName.zip"
+    $hashPath = "$zipPath.sha256"
+
+    if (Test-Path -LiteralPath $publishDirectory) {
+        Remove-Item -LiteralPath $publishDirectory -Recurse -Force
+    }
+    if (Test-Path -LiteralPath $zipPath) {
+        Remove-Item -LiteralPath $zipPath -Force
+    }
+    if (Test-Path -LiteralPath $hashPath) {
+        Remove-Item -LiteralPath $hashPath -Force
+    }
+
+    dotnet publish $projectPath `
+        -c Release `
+        -r win-x64 `
+        --self-contained $SelfContained.ToString().ToLowerInvariant() `
+        -p:PublishProfile=win-x64 `
+        -p:Version=$Version `
+        -p:ContinuousIntegrationBuild=true `
+        -o $publishDirectory
+    if ($LASTEXITCODE -ne 0) {
+        throw "publishに失敗しました: $ArtifactName"
+    }
+
+    Compress-Archive -Path (Join-Path $publishDirectory '*') -DestinationPath $zipPath
+    $hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
+    Set-Content -LiteralPath $hashPath -Value "$hash *$([IO.Path]::GetFileName($zipPath))" -Encoding ascii
+
+    Write-Host "リリースを作成しました: $zipPath"
+    Write-Host "SHA-256: $hash"
 }
 
-Compress-Archive -Path (Join-Path $publishDirectory '*') -DestinationPath $zipPath
-$hash = (Get-FileHash -LiteralPath $zipPath -Algorithm SHA256).Hash.ToLowerInvariant()
-Set-Content -LiteralPath $hashPath -Value "$hash *$([IO.Path]::GetFileName($zipPath))" -Encoding ascii
+New-ReleaseArtifact `
+    -ArtifactName "LogRep2-$Version-win-x64" `
+    -SelfContained $false
 
-Write-Host "リリースを作成しました: $zipPath"
-Write-Host "SHA-256: $hash"
+if ($IncludeSelfContained) {
+    New-ReleaseArtifact `
+        -ArtifactName "LogRep2-$Version-win-x64-self-contained" `
+        -SelfContained $true
+}

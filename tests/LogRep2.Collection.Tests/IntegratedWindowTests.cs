@@ -15,6 +15,7 @@ public sealed class IntegratedWindowTests
             {
                 try
                 {
+                    WpfTestApplication.Ensure();
                     var window = new FFXI_LogAnalyzer.App.MainWindow();
                     title = window.Title;
                     window.Close();
@@ -42,6 +43,7 @@ public sealed class IntegratedWindowTests
         {
             try
             {
+                WpfTestApplication.Ensure();
                 var window = new FfxiTempLogCollector.App.OverlayWindow();
                 allowsTransparency = window.AllowsTransparency;
                 windowStyle = window.WindowStyle;
@@ -65,15 +67,17 @@ public sealed class IntegratedWindowTests
     public void オーバーレイにPT設定ボタンを常時配置する()
     {
         Exception? capturedException = null;
-        string? content = null;
+        string? accessibleName = null;
         var thread = new Thread(() =>
         {
             try
             {
+                WpfTestApplication.Ensure();
                 var window = new FfxiTempLogCollector.App.OverlayWindow();
                 var button = (System.Windows.Controls.Button)window.FindName(
                     "PartyMemberSettingsButton");
-                content = button.Content?.ToString();
+                accessibleName = System.Windows.Automation.AutomationProperties
+                    .GetName(button);
                 window.CloseForShutdown();
             }
             catch (Exception exception)
@@ -86,7 +90,7 @@ public sealed class IntegratedWindowTests
         Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
 
         Assert.Null(capturedException);
-        Assert.Equal("PT設定", content);
+        Assert.Equal("PTメンバー設定を開く", accessibleName);
     }
 
     [Fact]
@@ -99,6 +103,7 @@ public sealed class IntegratedWindowTests
         {
             try
             {
+                WpfTestApplication.Ensure();
                 var window = new FfxiTempLogCollector.App.OverlayWindow();
                 var dragSurface = (FrameworkElement)window.FindName("DragSurface");
 

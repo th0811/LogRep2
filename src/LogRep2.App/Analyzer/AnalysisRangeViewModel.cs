@@ -7,6 +7,10 @@ namespace FFXI_LogAnalyzer.App;
 
 public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 {
+    // 「100件未満の区間を隠す」の閾値と、区間プレビューに出す行数。
+    private const int SmallSegmentThreshold = 100;
+    private const int PreviewLineCount = 5;
+
     private readonly AnalysisRangeBuilder _rangeBuilder = new();
     private readonly AnalysisRangeValidator _rangeValidator = new();
     private readonly AnalysisTimeResolver _timeResolver = new();
@@ -27,6 +31,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     private CancellationTokenSource? _analysisCancellation;
     private bool _isBusy;
     private string _lastCompletedRangeName = "指定範囲";
+    private bool _hideSmallSegments;
+    private IReadOnlyList<string> _selectedSegmentPreviewLines = [];
 
     public AnalysisRangeViewModel()
     {
@@ -36,11 +42,15 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         CancelAnalysisCommand = new RelayCommand(
             CancelAnalysis,
             () => IsBusy);
+        GoBackCommand = new RelayCommand(() => GoBackRequested?.Invoke());
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public event Action<AnalysisResult>? AnalysisCompleted;
+
+    /// <summary>フッターの「← セッション選択へ戻る」。遷移先はウィンドウ側が決める。</summary>
+    public event Action? GoBackRequested;
 
     public ObservableCollection<MarkerListViewModel> Markers { get; } = [];
 
@@ -53,6 +63,31 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     public FfxiTempLogCollector.App.AsyncRelayCommand RunAnalysisCommand { get; }
 
     public RelayCommand CancelAnalysisCommand { get; }
+
+    public RelayCommand GoBackCommand { get; }
+
+    /// <summary>小さすぎる区間（100件未満）を一覧から隠す。</summary>
+    public bool HideSmallSegments
+    {
+        get => _hideSmallSegments;
+        set
+        {
+            if (SetProperty(ref _hideSmallSegments, value))
+            {
+                RefreshAreaSegmentFilter();
+            }
+        }
+    }
+
+    /// <summary>一覧見出しに出す件数。例「7区間」。</summary>
+    public string FilteredSegmentCountText => $"{FilteredAreaSegments.Count:N0}区間";
+
+    /// <summary>選択中の区間の先頭ログ（5行）。</summary>
+    public IReadOnlyList<string> SelectedSegmentPreviewLines
+    {
+        get => _selectedSegmentPreviewLines;
+        private set => SetProperty(ref _selectedSegmentPreviewLines, value);
+    }
 
     public bool IsBusy
     {
@@ -89,6 +124,12 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     public bool HasRecords => _records.Count > 0;
 
     public string LastCompletedRangeName => _lastCompletedRangeName;
+
+    /// <summary>直近に分析した区間のログ順。結果画面の条件バーに表示する。</summary>
+    public string LastCompletedOrderRangeText { get; private set; } = "-";
+
+    /// <summary>直近に分析した対象ログ件数。結果画面の条件バーに表示する。</summary>
+    public int LastCompletedRecordCount { get; private set; }
 
     // 分析区間（開始・終了ポイント）が確定し、分析実行が可能かどうか。
     // ステッパーのSTEP2完了判定に利用する。
@@ -132,6 +173,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
                 }
 
                 OnPropertyChanged(nameof(SelectedAreaSummary));
+                RefreshSelectedSegmentPreview();
                 RefreshValidation();
             }
         }
@@ -264,7 +306,9 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
                     .Select(marker => new MarkerListViewModel(marker))
                     .ToArray(),
                 new AreaStaySegmentBuilder().Build(records)
-                    .Select(segment => new AreaStaySegmentListViewModel(segment))
+                    .Select(segment => new AreaStaySegmentListViewModel(
+                        segment,
+                        ResolveLastMessageTime(records, segment)))
                     .ToArray()),
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
@@ -282,7 +326,10 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         }
 
         _areaFilterText = string.Empty;
+        _hideSmallSegments = false;
+        OnPropertyChanged(nameof(HideSmallSegments));
         RefreshAreaSegmentFilter();
+        SelectedSegmentPreviewLines = [];
 
         _isStartLogStart = true;
         _isEndLogEnd = true;
@@ -316,6 +363,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         AreaSegments.Clear();
         FilteredAreaSegments.Clear();
         _areaFilterText = string.Empty;
+        SelectedSegmentPreviewLines = [];
+        OnPropertyChanged(nameof(FilteredSegmentCountText));
         SelectedStartMarker = null;
         SelectedEndMarker = null;
         SelectedAreaSegment = null;
@@ -424,6 +473,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             RangeSummary = $"対象ログ: {calculation.RecordCount:N0}件 / 時刻精度: {AnalysisDisplayText.ToText(calculation.Result.AnalysisTime.Confidence)} / 分析時間: {ToDurationText(calculation.Result.AnalysisTime.DurationSeconds)}秒";
             ValidationMessage = "分析が完了しました。";
             _lastCompletedRangeName = rangeName;
+            LastCompletedOrderRangeText = calculation.OrderRangeText;
+            LastCompletedRecordCount = calculation.RecordCount;
             AnalysisCompleted?.Invoke(calculation.Result);
         }
         catch (OperationCanceledException)
@@ -445,16 +496,59 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         var filter = AreaFilterText.Trim();
         FilteredAreaSegments.Clear();
         foreach (var segment in AreaSegments.Where(segment =>
-                     filter.Length == 0
-                     || segment.AreaName.Contains(filter, StringComparison.OrdinalIgnoreCase)))
+                     (filter.Length == 0
+                         || segment.AreaName.Contains(filter, StringComparison.OrdinalIgnoreCase))
+                     && (!HideSmallSegments || segment.RecordCount >= SmallSegmentThreshold)))
         {
             FilteredAreaSegments.Add(segment);
         }
+
+        OnPropertyChanged(nameof(FilteredSegmentCountText));
 
         if (SelectedAreaSegment is not null && !FilteredAreaSegments.Contains(SelectedAreaSegment))
         {
             SelectedAreaSegment = null;
         }
+    }
+
+    /// <summary>
+    /// 選択中の区間の先頭数行。移動直後のログが期待どおりかを目視確認するためのプレビュー。
+    /// </summary>
+    private void RefreshSelectedSegmentPreview()
+    {
+        SelectedSegmentPreviewLines = SelectedAreaSegment is null
+            ? []
+            : BuildPreviewLines(SelectedAreaSegment);
+    }
+
+    private IReadOnlyList<string> BuildPreviewLines(AreaStaySegmentListViewModel segment)
+    {
+        var startOrder = segment.Segment.Start.Order;
+        var endOrder = segment.Segment.End?.Order;
+        return _records
+            .Where(record => record.Order > startOrder)
+            .Where(record => endOrder is null || record.Order < endOrder)
+            .Where(record => !record.IsMarker)
+            .OrderBy(record => record.Order)
+            .Take(PreviewLineCount)
+            .Select(record => string.IsNullOrWhiteSpace(record.MessageTimeText)
+                ? record.VisibleText ?? string.Empty
+                : $"{record.MessageTimeText} {record.VisibleText}")
+            .ToArray();
+    }
+
+    private static string? ResolveLastMessageTime(
+        IReadOnlyList<CanonicalRecord> records,
+        AreaStaySegment segment)
+    {
+        var endOrder = segment.End?.Order;
+        return records
+            .Where(record => record.Order > segment.Start.Order)
+            .Where(record => endOrder is null || record.Order < endOrder)
+            .Where(record => !string.IsNullOrWhiteSpace(record.MessageTimeText))
+            .OrderBy(record => record.Order)
+            .LastOrDefault()
+            ?.MessageTimeText;
     }
 
     private AnalysisCalculation Analyze(
@@ -485,7 +579,25 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             LevelingPointSummaries =
                 _levelingPointAggregator.Aggregate(range, time),
         };
-        return new AnalysisCalculation(result, range.Count);
+        return new AnalysisCalculation(
+            result,
+            range.Count,
+            BuildOrderRangeText(range));
+    }
+
+    private static string BuildOrderRangeText(
+        IReadOnlyList<LogRep2.Contracts.ICanonicalRecord> range)
+    {
+        if (range.Count == 0)
+        {
+            return "-";
+        }
+
+        var first = range[0].Order;
+        var last = range[^1].Order;
+        return first is null || last is null
+            ? "-"
+            : $"{first.Value:N0} – {last.Value:N0}";
     }
 
     private void CancelAnalysis()
@@ -542,7 +654,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
     private sealed record AnalysisCalculation(
         AnalysisResult Result,
-        int RecordCount);
+        int RecordCount,
+        string OrderRangeText);
 
     private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
     {

@@ -12,7 +12,7 @@ public sealed class MarkerListViewModel
         MarkerKeyword = string.IsNullOrWhiteSpace(marker.MarkerKeyword) ? "-" : marker.MarkerKeyword;
         VisibleText = string.IsNullOrWhiteSpace(marker.VisibleText) ? "-" : marker.VisibleText;
         MessageTimeText = string.IsNullOrWhiteSpace(marker.MessageTimeText) ? "-" : marker.MessageTimeText;
-        FirstSeenAt = marker.FirstSeenAt?.ToString("yyyy-MM-dd HH:mm:ss zzz") ?? "-";
+        FirstSeenAt = AnalysisDisplayText.ToDateTimeText(marker.FirstSeenAt);
     }
 
     public MarkerRecord Marker { get; }

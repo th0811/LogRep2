@@ -4,6 +4,11 @@ namespace FFXI_LogAnalyzer.App;
 
 internal static class AnalysisDisplayText
 {
+    public static string ToDateTimeText(DateTimeOffset? value)
+    {
+        return value?.ToString("yyyy-MM-dd HH:mm:ss") ?? "-";
+    }
+
     public static string ToText(TimeConfidence confidence) => confidence switch
     {
         TimeConfidence.Exact => "秒単位",

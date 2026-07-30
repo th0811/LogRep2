@@ -30,6 +30,8 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     private bool _showOverlayOnRealtimeAnalysisStart;
     private string _closeButtonBehavior;
     private string _logLevel;
+    private readonly IReadOnlyList<Func<object?>> _dirtyProbes;
+    private readonly IReadOnlyList<object?> _initialValues;
 
     public SettingsViewModel(
         Window window,
@@ -86,6 +88,29 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
             SelectOutputDirectory);
         SaveCommand = new RelayCommand(Save);
         CancelCommand = new RelayCommand(() => _window.Close());
+
+        _dirtyProbes =
+        [
+            () => TempDirectory,
+            () => OutputDirectory,
+            () => PollingIntervalText,
+            () => WatchWindow1,
+            () => WatchWindow2,
+            () => MarkerPrefix,
+            () => RawOutput,
+            () => CanonicalOutput,
+            () => AutoStartCollectionOnLaunch,
+            () => MinimizeToTrayWhileCollecting,
+            () => MinimizeToTray,
+            () => ShowTrayNotifications,
+            () => CheckForUpdatesOnLaunch,
+            () => ShowOverlayOnRealtimeAnalysisStart,
+            () => CloseButtonBehavior,
+            () => LogLevel,
+        ];
+        _initialValues = _dirtyProbes
+            .Select(probe => probe())
+            .ToArray();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -207,6 +232,20 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
     {
         get => _logLevel;
         set => SetProperty(ref _logLevel, value);
+    }
+
+    /// <summary>
+    /// フッターに表示する未保存件数の要約。変更がなければ空文字。
+    /// </summary>
+    public string DirtySummaryText
+    {
+        get
+        {
+            var dirtyCount = CountDirty();
+            return dirtyCount == 0
+                ? string.Empty
+                : $"変更 {dirtyCount}件（未保存）";
+        }
     }
 
     public RelayCommand SelectTempDirectoryCommand { get; }
@@ -361,5 +400,23 @@ public sealed class SettingsViewModel : INotifyPropertyChanged
         PropertyChanged?.Invoke(
             this,
             new PropertyChangedEventArgs(propertyName));
+        PropertyChanged?.Invoke(
+            this,
+            new PropertyChangedEventArgs(nameof(DirtySummaryText)));
+    }
+
+    private int CountDirty()
+    {
+        var dirtyCount = 0;
+
+        for (var index = 0; index < _dirtyProbes.Count; index++)
+        {
+            if (!Equals(_dirtyProbes[index](), _initialValues[index]))
+            {
+                dirtyCount++;
+            }
+        }
+
+        return dirtyCount;
     }
 }

@@ -10,13 +10,15 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
     public const int MaximumPartyMembers = 6;
 
     private readonly Action<IReadOnlyList<string>> _save;
+    private readonly Dictionary<string, int> _occurrenceByName =
+        new(StringComparer.OrdinalIgnoreCase);
     private string _nameInput = string.Empty;
     private string? _selectedMember;
-    private string? _selectedCandidate;
+    private PartyMemberCandidate? _selectedCandidate;
 
     public PartyMemberManagerViewModel(
         IEnumerable<string> members,
-        IEnumerable<string> candidates,
+        IEnumerable<PartyMemberCandidate> candidates,
         Action<IReadOnlyList<string>> save)
     {
         _save = save ?? throw new ArgumentNullException(nameof(save));
@@ -26,10 +28,14 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
         }
 
         foreach (var candidate in candidates
-                     .Where(candidate => !Contains(Members, candidate))
-                     .OrderBy(candidate => candidate, StringComparer.OrdinalIgnoreCase))
+                     .OrderBy(candidate => candidate.Name, StringComparer.OrdinalIgnoreCase))
         {
-            Candidates.Add(candidate);
+            _occurrenceByName[candidate.Name] = candidate.OccurrenceCount;
+
+            if (!Contains(Members, candidate.Name))
+            {
+                Candidates.Add(candidate);
+            }
         }
 
         AddNameCommand = new RelayCommand(AddName);
@@ -48,7 +54,7 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public ObservableCollection<string> Members { get; } = [];
-    public ObservableCollection<string> Candidates { get; } = [];
+    public ObservableCollection<PartyMemberCandidate> Candidates { get; } = [];
     public RelayCommand AddNameCommand { get; }
     public RelayCommand AddCandidateCommand { get; }
     public RelayCommand RemoveCommand { get; }
@@ -74,7 +80,7 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
         }
     }
 
-    public string? SelectedCandidate
+    public PartyMemberCandidate? SelectedCandidate
     {
         get => _selectedCandidate;
         set
@@ -88,6 +94,12 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
 
     public string CountText => $"現在のPTメンバー（{Members.Count} / {MaximumPartyMembers}）";
 
+    /// <summary>人数上限の進捗バー用。</summary>
+    public int MemberCount => Members.Count;
+
+    /// <summary>人数上限の進捗バー用。</summary>
+    public int MemberCapacity => MaximumPartyMembers;
+
     private void AddName()
     {
         Add(ActorNameClassifier.NormalizePcName(NameInput));
@@ -98,7 +110,7 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
     {
         if (SelectedCandidate is not null)
         {
-            Add(SelectedCandidate);
+            Add(SelectedCandidate.Name);
         }
     }
 
@@ -113,7 +125,7 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
 
         Members.Add(name);
         var candidate = Candidates.FirstOrDefault(item =>
-            string.Equals(item, name, StringComparison.OrdinalIgnoreCase));
+            string.Equals(item.Name, name, StringComparison.OrdinalIgnoreCase));
         if (candidate is not null)
         {
             var candidateIndex = Candidates.IndexOf(candidate);
@@ -136,10 +148,7 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
         var removed = SelectedMember;
         var memberIndex = Members.IndexOf(removed);
         Members.RemoveAt(memberIndex);
-        if (!Contains(Candidates, removed))
-        {
-            Candidates.Add(removed);
-        }
+        RestoreCandidate(removed);
 
         SelectedMember = SelectAtSameIndex(Members, memberIndex);
         Save();
@@ -171,15 +180,29 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
     {
         foreach (var member in Members)
         {
-            if (!Contains(Candidates, member))
-            {
-                Candidates.Add(member);
-            }
+            RestoreCandidate(member);
         }
 
         Members.Clear();
         SelectedMember = null;
         Save();
+    }
+
+    /// <summary>
+    /// 登録メンバーから外れた名前を候補一覧へ戻す。出現数は初回に受け取った値を再利用する。
+    /// </summary>
+    private void RestoreCandidate(string name)
+    {
+        if (Candidates.Any(candidate =>
+                string.Equals(candidate.Name, name, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        var occurrence = _occurrenceByName.TryGetValue(name, out var count)
+            ? count
+            : 0;
+        Candidates.Add(new PartyMemberCandidate(name, occurrence));
     }
 
     private bool CanAddCandidate() =>
@@ -196,6 +219,7 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
     {
         _save([.. Members]);
         OnPropertyChanged(nameof(CountText));
+        OnPropertyChanged(nameof(MemberCount));
         RaiseCanExecuteChanged();
     }
 
@@ -211,7 +235,8 @@ public sealed class PartyMemberManagerViewModel : INotifyPropertyChanged
     private static bool Contains(IEnumerable<string> names, string name) =>
         names.Contains(name, StringComparer.OrdinalIgnoreCase);
 
-    private static string? SelectAtSameIndex(IReadOnlyList<string> items, int previousIndex) =>
+    private static T? SelectAtSameIndex<T>(IReadOnlyList<T> items, int previousIndex)
+        where T : class =>
         items.Count == 0 ? null : items[Math.Min(previousIndex, items.Count - 1)];
 
     private bool SetProperty<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
