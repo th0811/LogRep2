@@ -15,7 +15,7 @@
     <TargetFramework>net8.0-windows</TargetFramework>
     <AssemblyName>LogRep2</AssemblyName>
     <Product>LogRep2</Product>
-    <Version>0.2.0</Version>
+    <Version>0.2.1</Version>
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <StartupObject>FfxiTempLogCollector.App.Program</StartupObject>
