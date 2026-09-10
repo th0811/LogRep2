@@ -25,7 +25,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     private MarkerListViewModel? _selectedEndMarker;
     private AreaStaySegmentListViewModel? _selectedAreaSegment;
     private string _areaFilterText = string.Empty;
-    private bool _isAreaSegmentMode;
+    private bool _isAreaSegmentMode = true;
     private string _validationMessage = "セッションを読み込むと分析区間を選択できます。";
     private string _rangeSummary = "-";
     private CancellationTokenSource? _analysisCancellation;
@@ -336,7 +336,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         _selectedStartMarker = null;
         _selectedEndMarker = null;
         _selectedAreaSegment = null;
-        _isAreaSegmentMode = false;
+        _isAreaSegmentMode = true;
         OnPropertyChanged(nameof(IsStartLogStart));
         OnPropertyChanged(nameof(IsStartMarker));
         OnPropertyChanged(nameof(IsEndLogEnd));
