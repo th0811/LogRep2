@@ -107,6 +107,8 @@ public sealed class CollectionSettings
 
 public sealed class AnalysisSettings
 {
+    public List<SessionSelectionState> SessionSelections { get; set; } = [];
+
     public List<string> KnownPcNames { get; set; } = [];
 
     public List<string> KnownNpcNames { get; set; } = [];

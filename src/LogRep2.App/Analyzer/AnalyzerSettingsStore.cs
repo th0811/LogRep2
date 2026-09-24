@@ -1,3 +1,4 @@
+using System.IO;
 using FFXI_LogAnalyzer.Core;
 using LogRep2.Infrastructure;
 
@@ -26,6 +27,7 @@ public sealed class AnalyzerSettingsStore
                 SessionsRootFolderPath = collectorConfig.OutputDir,
                 KnownPcNames = settings.Analysis.KnownPcNames,
                 KnownNpcNames = settings.Analysis.KnownNpcNames,
+                SessionSelections = settings.Analysis.SessionSelections,
             });
     }
 
@@ -40,11 +42,34 @@ public sealed class AnalyzerSettingsStore
         _settingsStore.Save(unified);
     }
 
+    public void SaveSessionSelections(IEnumerable<SessionSelectionState> selections)
+    {
+        ArgumentNullException.ThrowIfNull(selections);
+        var unified = _settingsStore.LoadOrMigrate().Settings;
+        foreach (var selection in selections)
+        {
+            var normalizedPath = Path.TrimEndingDirectorySeparator(
+                Path.GetFullPath(selection.FolderPath));
+            unified.Analysis.SessionSelections.RemoveAll(
+                saved => saved.Matches(normalizedPath, selection.SessionId));
+            unified.Analysis.SessionSelections.Add(new SessionSelectionState
+            {
+                FolderPath = normalizedPath,
+                SessionId = selection.SessionId,
+                IsEnabled = selection.IsEnabled,
+            });
+        }
+
+        // 読み込めなかったセッションや別の出力先の選択状態は保持します。
+        _settingsStore.Save(unified);
+    }
+
     private static AnalyzerSettings Normalize(AnalyzerSettings settings)
     {
         return new AnalyzerSettings
         {
             SessionsRootFolderPath = NormalizeFolderPath(settings.SessionsRootFolderPath),
+            SessionSelections = settings.SessionSelections,
             KnownPcNames = NormalizePcNames(settings.KnownPcNames),
             KnownNpcNames = NormalizeNpcNames(settings.KnownNpcNames)
         };

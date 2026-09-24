@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using FFXI_LogAnalyzer.Core;
+using LogRep2.Infrastructure;
 using Microsoft.VisualBasic.FileIO;
 
 namespace FFXI_LogAnalyzer.App;
@@ -333,12 +334,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return;
         }
 
-        IReadOnlyDictionary<string, bool> enabledStates = preserveEnabledStates
-            ? Sessions.ToDictionary(
-                session => session.FolderPath,
-                session => session.IsEnabled,
-                StringComparer.OrdinalIgnoreCase)
-            : new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        var enabledStates = preserveEnabledStates
+            ? Sessions.Select(CreateSelectionState).ToArray()
+            : [];
         ClearSessionsInternal();
 
         var sessionFolders = GetSessionFolders(rootFolderPath);
@@ -373,11 +371,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
                     continue;
                 }
 
-                attempt.Session.IsEnabled = enabledStates.TryGetValue(
-                    sessionFolder,
-                    out var previousIsEnabled)
-                        ? previousIsEnabled
-                        : true;
+                attempt.Session.IsEnabled = enabledStates.LastOrDefault(state =>
+                    state.Matches(sessionFolder, attempt.Session.SessionId))?.IsEnabled
+                    ?? _settings.SessionSelections.LastOrDefault(state =>
+                        state.Matches(sessionFolder, attempt.Session.SessionId))?.IsEnabled
+                    ?? true;
                 attempt.Session.PropertyChanged += OnSessionSelectionChanged;
                 Sessions.Add(attempt.Session);
                 SelectedSession = attempt.Session;
@@ -473,10 +471,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 }
             }
 
+            var saveError = SaveSessionSelections(Sessions);
             await RefreshCombinedSessionAsync(CancellationToken.None);
-            StatusMessage = isEnabled
+            StatusMessage = saveError ?? (isEnabled
                 ? "すべてのセッションを分析対象にしました。"
-                : "すべてのセッションを分析対象から外しました。";
+                : "すべてのセッションを分析対象から外しました。");
         }
         catch (Exception exception)
         {
@@ -717,12 +716,50 @@ public sealed class MainViewModel : INotifyPropertyChanged
         {
             try
             {
+                var saveError = sender is SessionSelectionViewModel session
+                    ? SaveSessionSelections([session])
+                    : null;
                 await RefreshCombinedSessionAsync(CancellationToken.None);
+                if (saveError is not null)
+                {
+                    StatusMessage = saveError;
+                }
             }
             catch (Exception exception)
             {
                 StatusMessage = $"分析対象を更新できませんでした: {exception.Message}";
             }
+        }
+    }
+
+    private static SessionSelectionState CreateSelectionState(SessionSelectionViewModel session)
+    {
+        return new SessionSelectionState
+        {
+            FolderPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(session.FolderPath)),
+            SessionId = session.SessionId,
+            IsEnabled = session.IsEnabled,
+        };
+    }
+
+    private string? SaveSessionSelections(IEnumerable<SessionSelectionViewModel> sessions)
+    {
+        var selections = sessions.Select(CreateSelectionState).ToArray();
+        foreach (var selection in selections)
+        {
+            _settings.SessionSelections.RemoveAll(state =>
+                state.Matches(selection.FolderPath, selection.SessionId));
+            _settings.SessionSelections.Add(selection);
+        }
+
+        try
+        {
+            _settingsStore.SaveSessionSelections(selections);
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return $"セッションの選択状態を保存できませんでした。次回起動時に反映されません: {exception.Message}";
         }
     }
 
