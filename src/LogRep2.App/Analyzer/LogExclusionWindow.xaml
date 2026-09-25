@@ -1,0 +1,109 @@
+<Window x:Class="FFXI_LogAnalyzer.App.LogExclusionWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LogRep2 - ログ確認・除外" Width="1250" Height="950" MinWidth="940" MinHeight="650"
+        WindowStartupLocation="CenterOwner" FontFamily="{StaticResource UiFontFamily}"
+        Background="{StaticResource AppBackgroundBrush}" UseLayoutRounding="True">
+    <Window.Resources>
+        <Style x:Key="LogGrid" TargetType="DataGrid" BasedOn="{StaticResource AppDataGridStyle}">
+            <Setter Property="AutoGenerateColumns" Value="False" />
+            <Setter Property="IsReadOnly" Value="True" />
+            <Setter Property="CanUserAddRows" Value="False" />
+            <Setter Property="CanUserSortColumns" Value="False" />
+            <Setter Property="SelectionMode" Value="Extended" />
+            <Setter Property="SelectionUnit" Value="FullRow" />
+            <Setter Property="EnableRowVirtualization" Value="True" />
+            <Setter Property="EnableColumnVirtualization" Value="True" />
+            <Setter Property="RowStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource AppDataGridRowStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsExcluded}" Value="True">
+                                <Setter Property="Foreground" Value="#767676" />
+                                <Setter Property="Background" Value="#F1F2F4" />
+                            </DataTrigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{StaticResource PrimarySoftBrush}" />
+                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="EditButton" TargetType="Button" BasedOn="{StaticResource SmallButtonStyle}">
+            <Setter Property="Margin" Value="0,0,8,0" />
+            <Setter Property="IsEnabled" Value="{Binding CanEdit}" />
+        </Style>
+    </Window.Resources>
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="120" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel Grid.Row="0">
+            <TextBlock FontSize="19" FontWeight="SemiBold" Text="ログ確認・除外" />
+            <TextBlock Margin="0,6,0,12" TextWrapping="Wrap"
+                       Text="除外した行は元ログに残り、いつでも戻せます。行動全体を集計から外す場合は「グループを除外」を使用してください。" />
+            <DockPanel Margin="0,0,0,10">
+                <TextBlock VerticalAlignment="Center" Margin="0,0,10,0" Text="セッション" />
+                <ComboBox ItemsSource="{Binding Sessions}" SelectedItem="{Binding SelectedSession}" ToolTip="分析対象のチェック状態に関係なく閲覧できます">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock>
+                                <Run Text="{Binding DisplayName, Mode=OneWay}" />
+                                <Run Text="  " />
+                                <Run Text="{Binding FolderPath, Mode=OneWay}" />
+                            </TextBlock>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </DockPanel>
+        </StackPanel>
+        <DockPanel Grid.Row="1" Margin="0,0,0,10">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Margin="8,0,8,0" Style="{StaticResource SmallButtonStyle}" Command="{Binding SearchCommand}" Content="検索" />
+                <Button Margin="0,0,8,0" Style="{StaticResource SmallButtonStyle}" Command="{Binding PreviousMatchCommand}" Content="前へ" />
+                <Button Margin="0,0,12,0" Style="{StaticResource SmallButtonStyle}" Command="{Binding NextMatchCommand}" Content="次へ" />
+                <CheckBox VerticalAlignment="Center" IsChecked="{Binding ExcludedOnly}" Content="除外済みのみ" />
+            </StackPanel>
+            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"
+                     ToolTip="本文の部分一致検索。空欄で検索すると全行を表示します。">
+                <TextBox.InputBindings>
+                    <KeyBinding Key="Return" Command="{Binding SearchCommand}" />
+                </TextBox.InputBindings>
+            </TextBox>
+        </DockPanel>
+        <DockPanel Grid.Row="2" Margin="0,0,0,8">
+            <TextBlock DockPanel.Dock="Bottom" Margin="0,6,0,0"
+                       Style="{StaticResource CaptionTextStyle}" HorizontalAlignment="Left"
+                       Text="複数行選択が可能です（Ctrl または Shift）" />
+            <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Text="{Binding Summary}" />
+            <WrapPanel>
+                <Button Style="{StaticResource EditButton}" Tag="ExcludeRows" Click="OnEditClick" Content="選択行を除外" />
+                <Button Style="{StaticResource EditButton}" Tag="ExcludeGroups" Click="OnEditClick" Content="グループを除外" ToolTip="検索に表示されていない行も含め、同一セッション・同一グループの全行を除外します。" />
+                <Button Style="{StaticResource EditButton}" Tag="RestoreRows" Click="OnEditClick" Content="選択行を戻す" />
+                <Button Style="{StaticResource EditButton}" Tag="RestoreGroups" Click="OnEditClick" Content="グループを戻す" ToolTip="同一グループの行単位の除外もすべて解除します。" />
+            </WrapPanel>
+        </DockPanel>
+        <DataGrid x:Name="MainLogs" Grid.Row="3" Style="{StaticResource LogGrid}" ItemsSource="{Binding VisibleRows}"
+                  SelectedItem="{Binding SelectedRow, Mode=TwoWay}" SelectionChanged="OnMainSelectionChanged" ToolTip="複数選択: Ctrl / Shift">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="状態" Binding="{Binding State}" Width="110" />
+                <DataGridTextColumn Header="元のログ順" Binding="{Binding Order}" Width="105" />
+                <DataGridTextColumn Header="時刻" Binding="{Binding Time}" Width="95" />
+                <DataGridTextColumn Header="グループ" Binding="{Binding EventGroup}" Width="110" />
+                <DataGridTextColumn Header="ログ本文" Binding="{Binding Text}" Width="*" MinWidth="400" />
+            </DataGrid.Columns>
+        </DataGrid>
+        <DockPanel Grid.Row="4" Margin="0,12,0,0">
+            <Button DockPanel.Dock="Right" Margin="12,0,0,0" Padding="18,8" IsCancel="True" Content="閉じる" />
+            <StackPanel>
+                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>

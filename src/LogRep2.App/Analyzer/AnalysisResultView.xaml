@@ -61,7 +61,7 @@
                     </Button>
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <WrapPanel VerticalAlignment="Center">
                     <TextBlock Style="{StaticResource FieldLabelStyle}" Text="区間" />
                     <TextBlock Margin="6,0,18,0" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimaryBrush}" Text="{Binding RangeLabel}" />
@@ -74,7 +74,9 @@
                     <TextBlock Style="{StaticResource FieldLabelStyle}" Text="経過" />
                     <TextBlock Margin="6,0,0,0" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular"
                                Foreground="{StaticResource TextPrimaryBrush}" Text="{Binding ElapsedText}" />
-                </StackPanel>
+                    <TextBlock Margin="12,0,0,0" Style="{StaticResource FieldLabelStyle}"
+                               Text="{Binding ExclusionSummary}" />
+                </WrapPanel>
             </DockPanel>
         </Border>
 

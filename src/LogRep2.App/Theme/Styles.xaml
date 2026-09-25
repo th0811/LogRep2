@@ -651,4 +651,81 @@
         </Setter>
     </Style>
 
+    <!-- セッション一覧のエイリアス列で使用するセル内編集スタイル -->
+    <SolidColorBrush x:Key="AliasHoverBrush" Color="#FFF2F4F7" />
+    <SolidColorBrush x:Key="FocusRingBrush" Color="#FFDBEAFE" />
+
+    <Geometry x:Key="PencilIconGeometry">M11.2,2.3 L13.7,4.8 L5.3,13.2 L2.2,13.8 L2.8,10.7 Z M9.8,3.7 L12.3,6.2</Geometry>
+    <Geometry x:Key="LockIconGeometry">M4,7 L12,7 L12,13 L4,13 Z M5.5,7 L5.5,5 A2.5,2.5 0 0 1 10.5,5 L10.5,7</Geometry>
+
+    <!-- エイリアス列のセル: 編集中以外はセル全体をクリック可能にし、IBeam を出す -->
+    <Style x:Key="AliasCellStyle" BasedOn="{StaticResource AppDataGridCellStyle}" TargetType="{x:Type DataGridCell}">
+        <Setter Property="Padding" Value="6,5" />
+        <Setter Property="Cursor" Value="IBeam" />
+        <Setter Property="Focusable" Value="True" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding CanEditAlias}" Value="False">
+                <Setter Property="Cursor" Value="Arrow" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- 表示時のセル枠（ホバー・選択で面と鉛筆が出る） -->
+    <Style x:Key="AliasDisplayBorderStyle" TargetType="{x:Type Border}">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding HasAlias}" Value="False">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding CanEditAlias}" Value="False">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridCell}}" Value="True" />
+                    <Condition Binding="{Binding CanEditAlias}" Value="True" />
+                </MultiDataTrigger.Conditions>
+                <Setter Property="Background" Value="{StaticResource AliasHoverBrush}" />
+            </MultiDataTrigger>
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True" />
+                    <Condition Binding="{Binding CanEditAlias}" Value="True" />
+                </MultiDataTrigger.Conditions>
+                <Setter Property="Background" Value="{StaticResource AliasHoverBrush}" />
+            </MultiDataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ホバー・選択時だけ見える要素（鉛筆、未設定プレースホルダ） -->
+    <Style x:Key="AliasHoverOnlyStyle" TargetType="{x:Type FrameworkElement}">
+        <Setter Property="Visibility" Value="Collapsed" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridCell}}" Value="True">
+                <Setter Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                <Setter Property="Visibility" Value="Visible" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- 編集用 TextBox（外側の Border がフォーカスリングを担う） -->
+    <Style x:Key="AliasEditTextBoxStyle" TargetType="{x:Type TextBox}">
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="MaxLength" Value="100" />
+        <Setter Property="AcceptsReturn" Value="False" />
+        <Setter Property="AcceptsTab" Value="False" />
+    </Style>
+
 </ResourceDictionary>
