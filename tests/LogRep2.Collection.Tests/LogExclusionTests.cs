@@ -6,6 +6,104 @@ namespace FfxiTempLogCollector.Tests;
 public sealed class LogExclusionTests
 {
     [Fact]
+    public void 除外状態の変更と同数の選択切替で実行可能な操作が変わる()
+    {
+        using var directory = new TemporaryDirectory();
+        var vm = new LogExclusionViewModel([CreateSession(directory.Path)]);
+        var first = vm.VisibleRows[0];
+        var other = vm.VisibleRows[3];
+        AssertOperations(vm, false, false, false, false);
+        vm.UpdateSelection([first]);
+        AssertOperations(vm, true, false, true, false);
+        vm.Apply(LogExclusionOperation.ExcludeRows, [first]);
+        AssertOperations(vm, false, true, true, true);
+        vm.UpdateSelection([other]);
+        AssertOperations(vm, true, false, true, false);
+        vm.UpdateSelection([first]);
+        vm.Apply(LogExclusionOperation.ExcludeGroups, [first]);
+        AssertOperations(vm, false, false, false, true);
+        vm.UpdateSelection([first, other]);
+        AssertOperations(vm, false, false, true, true);
+        vm.Apply(LogExclusionOperation.RestoreGroups, [first, other]);
+        AssertOperations(vm, true, false, true, false);
+        vm.UpdateSelection([]);
+        AssertOperations(vm, false, false, false, false);
+    }
+
+    [Fact]
+    public void 検索で隠れた行除外をグループ単位で戻せる()
+    {
+        using var directory = new TemporaryDirectory();
+        var vm = new LogExclusionViewModel([CreateSession(directory.Path)]);
+        vm.Apply(LogExclusionOperation.ExcludeRows, [vm.VisibleRows[2]]);
+        vm.SearchText = "構え";
+        vm.SearchCommand.Execute(null);
+        vm.UpdateSelection(vm.VisibleRows);
+        AssertOperations(vm, true, false, true, true);
+        vm.Apply(LogExclusionOperation.RestoreGroups, vm.VisibleRows);
+        Assert.False(vm.CanRestoreGroups);
+        Assert.Equal(0, vm.ExcludedCount);
+        vm.SearchText = "存在しないログ";
+        vm.SearchCommand.Execute(null);
+        AssertOperations(vm, false, false, false, false);
+    }
+
+    [Fact]
+    public void 混在選択は変更可能な行がある場合に有効で不正なIDを含む操作は無効()
+    {
+        using var directory = new TemporaryDirectory();
+        var vm = new LogExclusionViewModel([CreateSession(directory.Path)]);
+        vm.Apply(LogExclusionOperation.ExcludeRows, [vm.VisibleRows[0]]);
+        vm.UpdateSelection(vm.VisibleRows.Take(2));
+        AssertOperations(vm, true, true, true, true);
+        var invalid = CreateSession(directory.Path, [new() { SessionId = "session", EventGroup = "g1" }]);
+        vm.SelectedSession = invalid;
+        AssertOperations(vm, false, false, false, false);
+        vm.UpdateSelection(vm.VisibleRows);
+        AssertOperations(vm, false, false, true, false);
+        vm.SelectedSession = CreateSession(directory.Path, [new() { SessionId = "session", CanonicalRecordId = "1" }]);
+        vm.UpdateSelection(vm.VisibleRows);
+        AssertOperations(vm, true, false, false, false);
+    }
+
+    private static void AssertOperations(LogExclusionViewModel vm, bool excludeRows, bool restoreRows, bool excludeGroups, bool restoreGroups)
+    {
+        Assert.Equal(excludeRows, vm.CanExcludeRows);
+        Assert.Equal(restoreRows, vm.CanRestoreRows);
+        Assert.Equal(excludeGroups, vm.CanExcludeGroups);
+        Assert.Equal(restoreGroups, vm.CanRestoreGroups);
+    }
+
+    [Fact]
+    public void 選択状態と除外件数が操作バーと絞り込みに反映される()
+    {
+        using var directory = new TemporaryDirectory();
+        var viewModel = new LogExclusionViewModel([CreateSession(directory.Path)]);
+        var notifications = new List<string?>();
+        viewModel.PropertyChanged += (_, e) => notifications.Add(e.PropertyName);
+        Assert.False(viewModel.CanApply);
+        Assert.True(viewModel.ShowAllRows);
+
+        viewModel.UpdateSelection(viewModel.VisibleRows.Take(2));
+        Assert.True(viewModel.CanApply);
+        Assert.Equal("2行を選択中", viewModel.SelectionSummaryText);
+        Assert.Contains(nameof(viewModel.CanApply), notifications);
+        viewModel.Apply(LogExclusionOperation.ExcludeGroups, [viewModel.VisibleRows[0]]);
+        Assert.Equal(3, viewModel.ExcludedCount);
+        Assert.Contains(nameof(viewModel.ExcludedCount), notifications);
+
+        viewModel.ExcludedOnly = true;
+        Assert.False(viewModel.ShowAllRows);
+        Assert.Equal(3, viewModel.VisibleRows.Count);
+        Assert.Contains(nameof(viewModel.ShowAllRows), notifications);
+        viewModel.ShowAllRows = true;
+        Assert.Equal(5, viewModel.VisibleRows.Count);
+        viewModel.UpdateSelection([]);
+        Assert.False(viewModel.CanApply);
+        Assert.Contains("Ctrl / Shift", viewModel.SelectionSummaryText);
+    }
+
+    [Fact]
     public void 構えの検索から非表示のダメージ行もグループ除外して復元できる()
     {
         using var directory = new TemporaryDirectory();
@@ -90,7 +188,10 @@ public sealed class LogExclusionTests
         var viewModel = new LogExclusionViewModel([session]);
         Assert.NotNull(session.ExclusionsLoadError);
         Assert.False(viewModel.CanEdit);
+        viewModel.UpdateSelection(viewModel.VisibleRows.Take(1));
+        Assert.False(viewModel.CanApply);
         viewModel.Apply(LogExclusionOperation.ExcludeRows, [viewModel.VisibleRows[0]]);
+        AssertOperations(viewModel, false, false, false, false);
         Assert.Equal(json, File.ReadAllText(path));
     }
 

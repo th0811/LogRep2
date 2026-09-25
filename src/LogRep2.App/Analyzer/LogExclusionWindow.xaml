@@ -3,8 +3,12 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         Title="LogRep2 - ログ確認・除外" Width="1250" Height="950" MinWidth="940" MinHeight="650"
         WindowStartupLocation="CenterOwner" FontFamily="{StaticResource UiFontFamily}"
-        Background="{StaticResource AppBackgroundBrush}" UseLayoutRounding="True">
+        Background="{StaticResource AppBackgroundBrush}"
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        TextOptions.TextFormattingMode="Display">
     <Window.Resources>
+
+
         <Style x:Key="LogGrid" TargetType="DataGrid" BasedOn="{StaticResource AppDataGridStyle}">
             <Setter Property="AutoGenerateColumns" Value="False" />
             <Setter Property="IsReadOnly" Value="True" />
@@ -14,96 +18,267 @@
             <Setter Property="SelectionUnit" Value="FullRow" />
             <Setter Property="EnableRowVirtualization" Value="True" />
             <Setter Property="EnableColumnVirtualization" Value="True" />
+            <Setter Property="RowHeight" Value="34" />
+            <Setter Property="CellStyle">
+                <Setter.Value>
+                    <Style TargetType="DataGridCell" BasedOn="{StaticResource AppDataGridCellStyle}">
+                        <Setter Property="Padding" Value="10,5" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsExcluded}" Value="True">
+                                <Setter Property="Foreground" Value="{StaticResource TextFaintBrush}" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Setter.Value>
+            </Setter>
             <Setter Property="RowStyle">
                 <Setter.Value>
                     <Style TargetType="DataGridRow" BasedOn="{StaticResource AppDataGridRowStyle}">
+                        <!-- 選択行の左端 3px 帯は DataGridRow 既定テンプレートの BorderThickness で描く -->
+                        <Setter Property="BorderBrush" Value="Transparent" />
+                        <Setter Property="BorderThickness" Value="3,0,0,0" />
                         <Style.Triggers>
                             <DataTrigger Binding="{Binding IsExcluded}" Value="True">
-                                <Setter Property="Foreground" Value="#767676" />
-                                <Setter Property="Background" Value="#F1F2F4" />
+                                <Setter Property="Foreground" Value="{StaticResource TextFaintBrush}" />
+                                <Setter Property="Background" Value="{StaticResource ExcludedRowBrush}" />
                             </DataTrigger>
                             <Trigger Property="IsSelected" Value="True">
                                 <Setter Property="Background" Value="{StaticResource PrimarySoftBrush}" />
-                                <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
                             </Trigger>
                         </Style.Triggers>
                     </Style>
                 </Setter.Value>
             </Setter>
         </Style>
-        <Style x:Key="EditButton" TargetType="Button" BasedOn="{StaticResource SmallButtonStyle}">
-            <Setter Property="Margin" Value="0,0,8,0" />
-            <Setter Property="IsEnabled" Value="{Binding CanEdit}" />
+
+        <!-- 行操作ボタン: 選択があり、かつ編集可能なときだけ有効 -->
+        <Style x:Key="ExcludeActionButton" TargetType="Button" BasedOn="{StaticResource DangerOutlineButtonStyle}">
+            <Setter Property="Margin" Value="0,0,6,0" />
+
+        </Style>
+        <Style x:Key="RestoreActionButton" TargetType="Button" BasedOn="{StaticResource SmallButtonStyle}">
+            <Setter Property="Height" Value="28" />
+            <Setter Property="Padding" Value="11,2" />
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Margin" Value="0,0,6,0" />
+
         </Style>
     </Window.Resources>
-    <Grid Margin="18">
+
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" MinHeight="120" />
+            <RowDefinition Height="*" MinHeight="160" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
-        <StackPanel Grid.Row="0">
-            <TextBlock FontSize="19" FontWeight="SemiBold" Text="ログ確認・除外" />
-            <TextBlock Margin="0,6,0,12" TextWrapping="Wrap"
-                       Text="除外した行は元ログに残り、いつでも戻せます。行動全体を集計から外す場合は「グループを除外」を使用してください。" />
-            <DockPanel Margin="0,0,0,10">
-                <TextBlock VerticalAlignment="Center" Margin="0,0,10,0" Text="セッション" />
-                <ComboBox ItemsSource="{Binding Sessions}" SelectedItem="{Binding SelectedSession}" ToolTip="分析対象のチェック状態に関係なく閲覧できます">
-                    <ComboBox.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock>
-                                <Run Text="{Binding DisplayName, Mode=OneWay}" />
-                                <Run Text="  " />
-                                <Run Text="{Binding FolderPath, Mode=OneWay}" />
-                            </TextBlock>
-                        </DataTemplate>
-                    </ComboBox.ItemTemplate>
-                </ComboBox>
-            </DockPanel>
-        </StackPanel>
-        <DockPanel Grid.Row="1" Margin="0,0,0,10">
-            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                <Button Margin="8,0,8,0" Style="{StaticResource SmallButtonStyle}" Command="{Binding SearchCommand}" Content="検索" />
-                <Button Margin="0,0,8,0" Style="{StaticResource SmallButtonStyle}" Command="{Binding PreviousMatchCommand}" Content="前へ" />
-                <Button Margin="0,0,12,0" Style="{StaticResource SmallButtonStyle}" Command="{Binding NextMatchCommand}" Content="次へ" />
-                <CheckBox VerticalAlignment="Center" IsChecked="{Binding ExcludedOnly}" Content="除外済みのみ" />
-            </StackPanel>
-            <TextBox Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" VerticalContentAlignment="Center"
-                     ToolTip="本文の部分一致検索。空欄で検索すると全行を表示します。">
-                <TextBox.InputBindings>
-                    <KeyBinding Key="Return" Command="{Binding SearchCommand}" />
-                </TextBox.InputBindings>
-            </TextBox>
-        </DockPanel>
-        <DockPanel Grid.Row="2" Margin="0,0,0,8">
-            <TextBlock DockPanel.Dock="Bottom" Margin="0,6,0,0"
-                       Style="{StaticResource CaptionTextStyle}" HorizontalAlignment="Left"
-                       Text="複数行選択が可能です（Ctrl または Shift）" />
-            <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" Text="{Binding Summary}" />
-            <WrapPanel>
-                <Button Style="{StaticResource EditButton}" Tag="ExcludeRows" Click="OnEditClick" Content="選択行を除外" />
-                <Button Style="{StaticResource EditButton}" Tag="ExcludeGroups" Click="OnEditClick" Content="グループを除外" ToolTip="検索に表示されていない行も含め、同一セッション・同一グループの全行を除外します。" />
-                <Button Style="{StaticResource EditButton}" Tag="RestoreRows" Click="OnEditClick" Content="選択行を戻す" />
-                <Button Style="{StaticResource EditButton}" Tag="RestoreGroups" Click="OnEditClick" Content="グループを戻す" ToolTip="同一グループの行単位の除外もすべて解除します。" />
-            </WrapPanel>
-        </DockPanel>
-        <DataGrid x:Name="MainLogs" Grid.Row="3" Style="{StaticResource LogGrid}" ItemsSource="{Binding VisibleRows}"
-                  SelectedItem="{Binding SelectedRow, Mode=TwoWay}" SelectionChanged="OnMainSelectionChanged" ToolTip="複数選択: Ctrl / Shift">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="状態" Binding="{Binding State}" Width="110" />
-                <DataGridTextColumn Header="元のログ順" Binding="{Binding Order}" Width="105" />
-                <DataGridTextColumn Header="時刻" Binding="{Binding Time}" Width="95" />
-                <DataGridTextColumn Header="グループ" Binding="{Binding EventGroup}" Width="110" />
-                <DataGridTextColumn Header="ログ本文" Binding="{Binding Text}" Width="*" MinWidth="400" />
-            </DataGrid.Columns>
-        </DataGrid>
-        <DockPanel Grid.Row="4" Margin="0,12,0,0">
-            <Button DockPanel.Dock="Right" Margin="12,0,0,0" Padding="18,8" IsCancel="True" Content="閉じる" />
+
+        <!-- ===== ヘッダー ＋ ツールバー ===== -->
+        <Border Grid.Row="0" Padding="20,14,20,12" Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrushDefault}" BorderThickness="0,0,0,1">
             <StackPanel>
-                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+                <StackPanel Margin="0,0,0,12" Orientation="Horizontal">
+                    <TextBlock FontSize="15" FontWeight="SemiBold" Foreground="{StaticResource TextPrimaryBrush}"
+                               Text="ログ確認・除外" />
+                    <TextBlock Margin="12,0,0,0" VerticalAlignment="Bottom" Style="{StaticResource FieldLabelStyle}"
+                               Text="除外した行は元ログに残り、いつでも戻せます。行動全体を外すときは「グループを除外」。" />
+                </StackPanel>
+
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="330*" MaxWidth="330" />
+                        <ColumnDefinition Width="21" />
+                        <ColumnDefinition Width="380*" MaxWidth="380" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <!-- 右端: すべて / 除外済みのみ（セグメント） -->
+                    <Border Grid.Column="4" Margin="12,0,0,0" Style="{StaticResource SegmentedGroupBorderStyle}">
+                        <StackPanel Orientation="Horizontal">
+                            <RadioButton GroupName="ExclusionFilter" Style="{StaticResource SegmentedRadioStyle}"
+                                         IsChecked="{Binding ShowAllRows}" Content="すべて" />
+                            <RadioButton GroupName="ExclusionFilter" Style="{StaticResource SegmentedRadioStyle}"
+                                         IsChecked="{Binding ExcludedOnly}">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Text="除外済みのみ" />
+                                    <TextBlock Margin="5,0,0,0" Foreground="{StaticResource TextFaintBrush}"
+                                               Typography.NumeralAlignment="Tabular"
+                                               Text="{Binding ExcludedCount, StringFormat={}{0:N0}}" />
+                                </StackPanel>
+                            </RadioButton>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- セッション（通常幅 330、狭いウィンドウでは縮小） -->
+                    <Border Grid.Column="0" Height="32" Padding="10,0,4,0"
+                            Background="{StaticResource SurfaceBrush}"
+                            BorderBrush="{StaticResource BorderBrushStrong}" BorderThickness="1" CornerRadius="6"
+                            ToolTip="分析対象のチェック状態に関係なく閲覧できます">
+                        <DockPanel>
+                            <TextBlock DockPanel.Dock="Left" Margin="0,0,8,0" VerticalAlignment="Center"
+                                       FontSize="11" Foreground="{StaticResource TextFaintBrush}" Text="セッション" />
+                            <ComboBox Style="{StaticResource BorderlessComboBoxStyle}"
+                                      ItemsSource="{Binding Sessions}" SelectedItem="{Binding SelectedSession}">
+                                <ComboBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <!-- ドロップダウン内はエイリアスとフォルダパスを表示 -->
+                                        <StackPanel>
+                                            <TextBlock FontSize="12.5" FontWeight="SemiBold"
+                                                       Foreground="{StaticResource TextPrimaryBrush}"
+                                                       Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis" />
+                                            <TextBlock FontFamily="{StaticResource MonoFontFamily}" FontSize="11"
+                                                       Foreground="{StaticResource TextMutedBrush}"
+                                                       Text="{Binding FolderPath}" TextTrimming="CharacterEllipsis" />
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ComboBox.ItemTemplate>
+                            </ComboBox>
+                        </DockPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Width="1" Height="22" Margin="10,0"
+                            Background="{StaticResource BorderBrushDefault}" />
+
+                    <!-- 検索（入力欄と連結ボタン、狭いウィンドウでは縮小） -->
+                    <DockPanel Grid.Column="2" LastChildFill="True">
+                        <Button DockPanel.Dock="Right" Style="{StaticResource SearchJoinedButtonStyle}" Command="{Binding SearchCommand}" Content="検索" />
+                        <Border x:Name="SearchFrame" Height="32"
+                                Style="{StaticResource SearchInputFrameStyle}">
+                            <DockPanel>
+                                <Path DockPanel.Dock="Left" Width="13" Height="13" Margin="0,0,8,0"
+                                      VerticalAlignment="Center" Stretch="Uniform"
+                                      Stroke="{StaticResource TextMutedBrush}" StrokeThickness="1.6"
+                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                      Data="{StaticResource SearchIconGeometry}" />
+                                <!-- クリア（入力があるときだけ） -->
+                                <Button DockPanel.Dock="Right" Style="{StaticResource ClearSearchButtonStyle}"
+                                        Click="OnClearSearchClick" ToolTip="検索語をクリア（Esc）" />
+                                <TextBox x:Name="SearchBox"
+                                         Style="{StaticResource BareTextBoxStyle}"
+                                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                         ToolTip="本文の部分一致検索。空欄で検索すると全行を表示します。">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Return" Command="{Binding SearchCommand}" />
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                            </DockPanel>
+                        </Border>
+                    </DockPanel>
+                </Grid>
             </StackPanel>
-        </DockPanel>
+        </Border>
+
+        <!-- ===== 一覧カード ===== -->
+        <Border Grid.Row="1" Margin="20,14" Style="{StaticResource CardBorderStyle}">
+            <DockPanel>
+                <!-- アクションバー（選択数に応じて有効化） -->
+                <Border DockPanel.Dock="Top" Padding="14,9"
+                        BorderBrush="{StaticResource BorderBrushSoft}" BorderThickness="0,0,0,1">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasSelection}" Value="True">
+                                    <Setter Property="Background" Value="{StaticResource SelectionBarBrush}" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" VerticalAlignment="Center" FontSize="12"
+                                   Foreground="{StaticResource TextMutedBrush}"
+                                   Typography.NumeralAlignment="Tabular"
+                                   Text="{Binding Summary}" />
+                        <WrapPanel>
+                            <TextBlock Margin="0,0,12,0" VerticalAlignment="Center" FontSize="12"
+                                       Text="{Binding SelectionSummaryText}">
+                                <TextBlock.Style>
+                                    <Style TargetType="TextBlock">
+                                        <Setter Property="Foreground" Value="{StaticResource TextFaintBrush}" />
+                                        <Style.Triggers>
+                                            <DataTrigger Binding="{Binding HasSelection}" Value="True">
+                                                <Setter Property="Foreground" Value="{StaticResource PrimaryHoverBrush}" />
+                                                <Setter Property="FontWeight" Value="SemiBold" />
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                            <Button Style="{StaticResource ExcludeActionButton}" FontWeight="SemiBold"
+                                    IsEnabled="{Binding CanExcludeRows}" CommandParameter="ExcludeRows" Click="OnEditClick" Content="選択行を除外" />
+                            <Button Style="{StaticResource ExcludeActionButton}"
+                                    IsEnabled="{Binding CanExcludeGroups}" CommandParameter="ExcludeGroups" Click="OnEditClick" Content="グループを除外"
+                                    ToolTip="検索に表示されていない行も含め、同一セッション・同一グループの全行を除外します。" />
+                            <Border Width="1" Height="18" Margin="4,0,10,0" Background="{StaticResource BorderBrushDefault}" />
+                            <Button Style="{StaticResource RestoreActionButton}"
+                                    IsEnabled="{Binding CanRestoreRows}" CommandParameter="RestoreRows" Click="OnEditClick" Content="選択行を戻す" />
+                            <Button Style="{StaticResource RestoreActionButton}"
+                                    IsEnabled="{Binding CanRestoreGroups}" CommandParameter="RestoreGroups" Click="OnEditClick" Content="グループを戻す"
+                                    ToolTip="同一グループの行単位の除外もすべて解除します。" />
+                        </WrapPanel>
+                    </DockPanel>
+                </Border>
+
+                <DataGrid x:Name="MainLogs" Style="{StaticResource LogGrid}" ItemsSource="{Binding VisibleRows}"
+                          SelectedItem="{Binding SelectedRow, Mode=TwoWay}" SelectionChanged="OnMainSelectionChanged">
+                    <DataGrid.Columns>
+                        <!-- 状態: 「対象」は非表示、それ以外はピル -->
+                        <DataGridTemplateColumn Header="状態" Width="112">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Border x:Name="Pill" HorizontalAlignment="Left" Padding="7,1" CornerRadius="9"
+                                            BorderThickness="1"
+                                            Background="{StaticResource StepInactiveBrush}"
+                                            BorderBrush="{StaticResource BorderBrushDefault}">
+                                        <TextBlock x:Name="PillText" FontSize="11"
+                                                   Foreground="{StaticResource TextSecondaryBrush}" Text="{Binding State}" />
+                                    </Border>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding State}" Value="対象">
+                                            <Setter TargetName="Pill" Property="Visibility" Value="Collapsed" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="グループ除外">
+                                            <Setter TargetName="Pill" Property="Background" Value="{StaticResource WarningSoftBrush}" />
+                                            <Setter TargetName="Pill" Property="BorderBrush" Value="{StaticResource WarningBorderBrush}" />
+                                            <Setter TargetName="PillText" Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                        </DataTrigger>
+                                        <DataTrigger Binding="{Binding State}" Value="設定読込エラー">
+                                            <Setter TargetName="Pill" Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                                            <Setter TargetName="Pill" Property="BorderBrush" Value="#FFFECDCA" />
+                                            <Setter TargetName="PillText" Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="ログ順" Binding="{Binding Order, StringFormat={}{0:N0}}" Width="88"
+                                            ElementStyle="{StaticResource NumericCellStyle}"
+                                            HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                        <DataGridTextColumn Header="時刻" Binding="{Binding Time}" Width="88" />
+                        <DataGridTextColumn Header="グループ" Binding="{Binding EventGroup}" Width="96"
+                                            ElementStyle="{StaticResource MonoCellStyle}" />
+                        <DataGridTextColumn Header="ログ本文" Binding="{Binding Text}" Width="*" MinWidth="400">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock">
+                                    <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                    <Setter Property="ToolTip" Value="{Binding Text}" />
+                                </Style>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </DockPanel>
+        </Border>
+
+        <!-- ===== フッター ===== -->
+        <Border Grid.Row="2" Padding="20,12" Background="{StaticResource SurfaceBrush}"
+                BorderBrush="{StaticResource BorderBrushFooter}" BorderThickness="0,1,0,0">
+            <DockPanel>
+                <Button DockPanel.Dock="Right" Margin="12,0,0,0" Width="96" Height="34"
+                        Style="{StaticResource PrimaryButtonStyle}" IsCancel="True" Content="閉じる" />
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource FieldLabelStyle}"
+                           Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+            </DockPanel>
+        </Border>
     </Grid>
 </Window>

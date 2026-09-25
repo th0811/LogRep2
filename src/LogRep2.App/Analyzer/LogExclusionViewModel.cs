@@ -33,6 +33,81 @@ public sealed class LogExclusionViewModel : INotifyPropertyChanged
         SelectedSession = selected ?? sessions.FirstOrDefault();
     }
 
+    private int _selectedRowCount;
+    private LogExclusionRow[] _selectedRows = [];
+
+    /// <summary>セグメント「すべて」用。ExcludedOnly の反転。</summary>
+    public bool ShowAllRows
+    {
+        get => !ExcludedOnly;
+        set { if (value) ExcludedOnly = false; }
+    }
+
+    /// <summary>セグメント「除外済みのみ」の横に出す件数。</summary>
+    public int ExcludedCount => _allRows.Count(row => row.IsExcluded);
+
+    /// <summary>DataGrid の SelectedItems.Count。分離コードから設定する。</summary>
+    public int SelectedRowCount
+    {
+        get => _selectedRowCount;
+        private set
+        {
+            if (!Set(ref _selectedRowCount, value)) return;
+            OnPropertyChanged(nameof(HasSelection));
+            OnPropertyChanged(nameof(CanApply));
+            OnPropertyChanged(nameof(SelectionSummaryText));
+        }
+    }
+
+    public bool HasSelection => _selectedRowCount > 0;
+
+    /// <summary>行操作ボタンの IsEnabled。既存の CanEdit に選択有無を加えたもの。</summary>
+    public bool CanApply => CanEdit && HasSelection;
+
+    public bool CanExcludeRows => CanApplyRows && _selectedRows.Any(row => !row.IsExcluded);
+    public bool CanRestoreRows => CanApplyRows && _selectedRows.Any(row => row.IsExcluded);
+    public bool CanExcludeGroups => CanApplyGroups
+        && _selectedRows.Any(row => !row.Session.Exclusions.IsGroupExcluded(row.Record));
+    public bool CanRestoreGroups
+    {
+        get
+        {
+            if (!CanApplyGroups) return false;
+            var groups = _selectedRows.Select(row => AnalysisExclusions.TryGetGroupKey(row.Record)!).ToHashSet();
+            // 検索結果にない行単位の除外も、グループを戻す操作で解除されます。
+            return _selectedRows.Any(row => row.Session.Exclusions.IsGroupExcluded(row.Record))
+                || _allRows.Any(row => row.IsExcluded
+                    && AnalysisExclusions.TryGetGroupKey(row.Record) is { } key && groups.Contains(key));
+        }
+    }
+
+    private bool CanApplySelection => CanApply && _selectedRows.Length > 0
+        && _selectedRows.All(row => ReferenceEquals(row.Session, SelectedSession));
+    private bool CanApplyRows => CanApplySelection && _selectedRows.All(row =>
+        AnalysisExclusions.TryGetRecordKey(row.Record) is not null
+        && !row.Session.Exclusions.IsGroupExcluded(row.Record));
+    private bool CanApplyGroups => CanApplySelection && _selectedRows.All(row =>
+        AnalysisExclusions.TryGetGroupKey(row.Record) is not null);
+
+    public void UpdateSelection(IEnumerable<LogExclusionRow> rows)
+    {
+        _selectedRows = rows.ToArray();
+        SelectedRowCount = _selectedRows.Length;
+        RefreshOperationAvailability();
+    }
+
+    private void RefreshOperationAvailability()
+    {
+        OnPropertyChanged(nameof(CanExcludeRows));
+        OnPropertyChanged(nameof(CanRestoreRows));
+        OnPropertyChanged(nameof(CanExcludeGroups));
+        OnPropertyChanged(nameof(CanRestoreGroups));
+    }
+
+    public string SelectionSummaryText => HasSelection
+        ? $"{_selectedRowCount:N0}行を選択中"
+        : "行を選択すると操作できます（Ctrl / Shift で複数）";
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public IReadOnlyList<SessionSelectionViewModel> Sessions { get; }
@@ -49,10 +124,12 @@ public sealed class LogExclusionViewModel : INotifyPropertyChanged
         set
         {
             if (!Set(ref _selectedSession, value)) return;
+            UpdateSelection([]);
             _allRows = value?.Records.Select((record, index) => new LogExclusionRow(value, record, index)).ToArray() ?? [];
             SelectedRow = null;
             StatusMessage = value?.ExclusionsLoadError ?? "除外・解除は操作ごとに保存されます。元ログは変更しません。";
             OnPropertyChanged(nameof(CanEdit));
+            OnPropertyChanged(nameof(CanApply));
             RefreshRows();
         }
     }
@@ -65,7 +142,7 @@ public sealed class LogExclusionViewModel : INotifyPropertyChanged
     public bool ExcludedOnly
     {
         get => _excludedOnly;
-        set { if (Set(ref _excludedOnly, value)) RefreshRows(); }
+        set { if (Set(ref _excludedOnly, value)) { OnPropertyChanged(nameof(ShowAllRows)); RefreshRows(); } }
     }
 
     public bool ShowGroupOnly
@@ -93,6 +170,8 @@ public sealed class LogExclusionViewModel : INotifyPropertyChanged
 
         RefreshContext();
         OnPropertyChanged(nameof(Summary));
+        OnPropertyChanged(nameof(ExcludedCount));
+        UpdateSelection(_selectedRows.Where(VisibleRows.Contains));
     }
 
     private void RefreshContext()
