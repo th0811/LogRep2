@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Runtime.CompilerServices;
 using FFXI_LogAnalyzer.Core;
+using LogRep2.Infrastructure;
 using Microsoft.VisualBasic.FileIO;
 
 namespace FFXI_LogAnalyzer.App;
@@ -24,6 +25,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private CancellationTokenSource? _loadCancellation;
     private bool _isBusy;
     private string _busyText = string.Empty;
+    private CombinedRecord[] _combinedRecords = [];
+    private string _sessionSearchText = string.Empty;
+    private IReadOnlyList<SessionSelectionViewModel> _filteredSessions = [];
+    private bool _aliasRefreshPending;
 
     public MainViewModel(SessionOpenService sessionOpenService, DialogService dialogService)
         : this(
@@ -73,6 +78,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OpenGameLogCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
             OpenGameLogAsync,
             () => SelectedSession is not null && !IsBusy);
+        OpenLogExclusionsCommand = new RelayCommand(
+            OpenLogExclusions,
+            () => Sessions.Count > 0 && !IsBusy && !AnalysisRange.IsBusy);
         DeleteSelectedSessionCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
             DeleteSelectedSessionAsync,
             () => SelectedSession is not null && !IsBusy);
@@ -82,11 +90,41 @@ public sealed class MainViewModel : INotifyPropertyChanged
         DisableAllSessionsCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
             () => SetAllSessionsEnabledAsync(false),
             () => Sessions.Count > 0 && !IsBusy);
+        Sessions.CollectionChanged += (_, _) => RefreshSessionFilter();
         _ = LoadConfiguredSessionRootAsync();
         RefreshNavigationState();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
+
+    public IReadOnlyList<SessionSelectionViewModel> FilteredSessions => _filteredSessions;
+    public string SessionSearchSummary => $"表示 {_filteredSessions.Count:N0} / 全 {Sessions.Count:N0}件・対象 {Sessions.Count(session => session.IsEnabled):N0}件（非表示分を含む）";
+    public string SessionSearchText
+    {
+        get => _sessionSearchText;
+        set { if (SetProperty(ref _sessionSearchText, value)) RefreshSessionFilter(); }
+    }
+
+    private void RefreshSessionFilter()
+    {
+        if (Sessions.Any(session => session.IsAliasEditing))
+        {
+            _aliasRefreshPending = true;
+            return;
+        }
+        var selected = SelectedSession;
+        var search = SessionSearchText.Trim();
+        _filteredSessions = Sessions.Where(session =>
+            session.Alias.Contains(search, StringComparison.OrdinalIgnoreCase)
+            || session.SessionId.Contains(search, StringComparison.OrdinalIgnoreCase)).ToArray();
+        OnPropertyChanged(nameof(FilteredSessions));
+        OnPropertyChanged(nameof(SessionSearchSummary));
+        SelectedSession = selected is not null && _filteredSessions.Contains(selected) ? selected : null;
+    }
+
+    public RelayCommand OpenLogExclusionsCommand { get; }
+
+    public event Action<LogExclusionViewModel>? LogExclusionsRequested;
 
     public RelayCommand OpenSessionRootFolderCommand { get; }
 
@@ -333,12 +371,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return;
         }
 
-        IReadOnlyDictionary<string, bool> enabledStates = preserveEnabledStates
-            ? Sessions.ToDictionary(
-                session => session.FolderPath,
-                session => session.IsEnabled,
-                StringComparer.OrdinalIgnoreCase)
-            : new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+        var enabledStates = preserveEnabledStates
+            ? Sessions.Select(CreateSelectionState).ToArray()
+            : [];
         ClearSessionsInternal();
 
         var sessionFolders = GetSessionFolders(rootFolderPath);
@@ -373,14 +408,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
                     continue;
                 }
 
-                attempt.Session.IsEnabled = enabledStates.TryGetValue(
-                    sessionFolder,
-                    out var previousIsEnabled)
-                        ? previousIsEnabled
-                        : true;
+                attempt.Session.IsEnabled = enabledStates.LastOrDefault(state =>
+                    state.Matches(sessionFolder, attempt.Session.SessionId))?.IsEnabled
+                    ?? _settings.SessionSelections.LastOrDefault(state =>
+                        state.Matches(sessionFolder, attempt.Session.SessionId))?.IsEnabled
+                    ?? true;
                 attempt.Session.PropertyChanged += OnSessionSelectionChanged;
                 Sessions.Add(attempt.Session);
-                SelectedSession = attempt.Session;
+                if (FilteredSessions.Contains(attempt.Session)) SelectedSession = attempt.Session;
                 added++;
             }
 
@@ -439,12 +474,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
             .Concat(canonicalRecords.LineErrors.Select(
                 error => $"canonical_records.jsonl {error.LineNumber}行目: {error.Message}"))
             .ToArray();
-        return new SessionLoadAttempt(
-            new SessionSelectionViewModel(
+        var session = new SessionSelectionViewModel(
                 result.Session,
                 canonicalRecords.Records,
-                warnings),
-            []);
+                warnings);
+        session.LoadExclusions();
+        session.LoadAlias();
+        return new SessionLoadAttempt(session, []);
     }
 
     private async Task SetAllSessionsEnabledAsync(bool isEnabled)
@@ -473,10 +509,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 }
             }
 
+            var saveError = SaveSessionSelections(Sessions);
             await RefreshCombinedSessionAsync(CancellationToken.None);
-            StatusMessage = isEnabled
+            StatusMessage = saveError ?? (isEnabled
                 ? "すべてのセッションを分析対象にしました。"
-                : "すべてのセッションを分析対象から外しました。";
+                : "すべてのセッションを分析対象から外しました。");
         }
         catch (Exception exception)
         {
@@ -570,7 +607,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             return;
         }
 
-        if (!_dialogService.ConfirmSessionDeletion(session.SessionId))
+        if (!_dialogService.ConfirmSessionDeletion(session.DisplayName))
         {
             StatusMessage = "セッションの削除をキャンセルしました。";
             return;
@@ -584,9 +621,9 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 RecycleOption.SendToRecycleBin));
             session.PropertyChanged -= OnSessionSelectionChanged;
             Sessions.Remove(session);
-            SelectedSession = Sessions.LastOrDefault();
+            SelectedSession = FilteredSessions.LastOrDefault();
             await RefreshCombinedSessionAsync(CancellationToken.None);
-            StatusMessage = $"セッション「{session.SessionId}」をごみ箱へ移動しました。";
+            StatusMessage = $"セッション「{session.DisplayName}」をごみ箱へ移動しました。";
         }
         catch (Exception exception)
         {
@@ -632,6 +669,14 @@ public sealed class MainViewModel : INotifyPropertyChanged
             Warnings.Add(warning);
         }
 
+        foreach (var session in enabledSessions.Where(session => session.ExclusionsLoadError is not null))
+        {
+            Warnings.Add(session.ExclusionsLoadError!);
+        }
+
+        foreach (var session in Sessions.Where(session => session.AliasLoadError is not null))
+            Warnings.Add(session.AliasLoadError!);
+
         if (enabledSessions.Length == 0)
         {
             ClearCombinedSession();
@@ -647,18 +692,22 @@ public sealed class MainViewModel : INotifyPropertyChanged
             ? enabledSessions[0].FolderPath
             : $"{enabledSessions.Length:N0} 件のセッションを結合";
 
-        var records = await Task.Run(
+        _combinedRecords = await Task.Run(
             () => BuildCombinedRecords(enabledSessions),
             cancellationToken);
-        await AnalysisRange.LoadRecordsAsync(records, cancellationToken);
+        await AnalysisRange.LoadRecordsAsync(_combinedRecords.Select(item => item.Record).ToArray(), cancellationToken);
+        ApplyExclusions();
         AnalysisResult.Clear();
         RefreshCommandStates();
     }
 
     private void ClearCombinedSession()
     {
+        _combinedRecords = [];
         SessionInfoRows.Clear();
         Warnings.Clear();
+        foreach (var session in Sessions.Where(session => session.AliasLoadError is not null))
+            Warnings.Add(session.AliasLoadError!);
         AnalysisRange.Clear();
         AnalysisResult.Clear();
         SelectedFolderPath = "未選択";
@@ -670,16 +719,45 @@ public sealed class MainViewModel : INotifyPropertyChanged
         _loadCancellation?.Cancel();
     }
 
-    private static IReadOnlyList<CanonicalRecord> BuildCombinedRecords(
+    private static CombinedRecord[] BuildCombinedRecords(
         IReadOnlyList<SessionSelectionViewModel> enabledSessions)
     {
         return enabledSessions
-            .SelectMany(session => session.Records)
-            .OrderBy(record => record.FirstSeenAt ?? DateTimeOffset.MaxValue)
-            .ThenBy(record => record.SessionId, StringComparer.Ordinal)
-            .ThenBy(record => record.Order ?? long.MaxValue)
-            .Select((record, index) => CloneWithCombinedOrder(record, index + 1))
+            .SelectMany(session => session.Records.Select(record => (Session: session, Record: record)))
+            .OrderBy(item => item.Record.FirstSeenAt ?? DateTimeOffset.MaxValue)
+            .ThenBy(item => item.Record.SessionId, StringComparer.Ordinal)
+            .ThenBy(item => item.Record.Order ?? long.MaxValue)
+            .Select((item, index) => new CombinedRecord(
+                CloneWithCombinedOrder(item.Record, index + 1), item.Session))
             .ToArray();
+    }
+
+    private sealed record CombinedRecord(CanonicalRecord Record, SessionSelectionViewModel Session);
+
+    private void ApplyExclusions()
+    {
+        var errors = Sessions.Where(session => session.IsEnabled && session.ExclusionsLoadError is not null)
+            .Select(session => session.ExclusionsLoadError).ToArray();
+        AnalysisRange.SetExcludedRecords(
+            _combinedRecords.Where(item => item.Session.Exclusions.IsExcluded(item.Record)).Select(item => item.Record),
+            errors.Length == 0 ? null : "除外設定を確認できないため分析できません。" + Environment.NewLine + string.Join(Environment.NewLine, errors));
+    }
+
+    private void OpenLogExclusions()
+    {
+        var editor = new LogExclusionViewModel(Sessions.ToArray(), SelectedSession);
+        LogExclusionsRequested?.Invoke(editor);
+        if (editor.HasChanges)
+        {
+            ApplyExclusions();
+            AnalysisResult.Clear();
+            if (SelectedTabIndex == 2)
+            {
+                SelectedTabIndex = 1;
+            }
+
+            StatusMessage = "除外設定を保存しました。同じ分析区間で再分析してください。";
+        }
     }
 
     private static CanonicalRecord CloneWithCombinedOrder(
@@ -709,20 +787,92 @@ public sealed class MainViewModel : INotifyPropertyChanged
         };
     }
 
+    private void RefreshAliasDisplay()
+    {
+        if (Sessions.Any(session => session.IsAliasEditing))
+        {
+            _aliasRefreshPending = true;
+            return;
+        }
+        _aliasRefreshPending = false;
+        RefreshSessionFilter();
+        SessionInfoRows.Clear();
+        var enabled = Sessions.Where(session => session.IsEnabled).ToArray();
+        if (enabled.Length > 0)
+            foreach (var row in BuildSessionRows(enabled)) SessionInfoRows.Add(row);
+    }
+
     private async void OnSessionSelectionChanged(
         object? sender,
         PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(SessionSelectionViewModel.IsAliasEditing)
+            && sender is SessionSelectionViewModel { IsAliasEditing: false } && _aliasRefreshPending)
+        {
+            _ = System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
+                new Action(RefreshAliasDisplay), System.Windows.Threading.DispatcherPriority.Background);
+        }
+        if (e.PropertyName == nameof(SessionSelectionViewModel.Alias))
+        {
+            if (sender is SessionSelectionViewModel { IsAliasEditing: true })
+            {
+                _aliasRefreshPending = true;
+                // DataGridの確定処理中にItemsSourceを差し替えないよう、編集終了後に更新します。
+                _ = System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
+                    new Action(RefreshAliasDisplay), System.Windows.Threading.DispatcherPriority.Background);
+            }
+            else RefreshAliasDisplay();
+        }
+
         if (e.PropertyName == nameof(SessionSelectionViewModel.IsEnabled))
         {
+            OnPropertyChanged(nameof(SessionSearchSummary));
             try
             {
+                var saveError = sender is SessionSelectionViewModel session
+                    ? SaveSessionSelections([session])
+                    : null;
                 await RefreshCombinedSessionAsync(CancellationToken.None);
+                if (saveError is not null)
+                {
+                    StatusMessage = saveError;
+                }
             }
             catch (Exception exception)
             {
                 StatusMessage = $"分析対象を更新できませんでした: {exception.Message}";
             }
+        }
+    }
+
+    private static SessionSelectionState CreateSelectionState(SessionSelectionViewModel session)
+    {
+        return new SessionSelectionState
+        {
+            FolderPath = Path.TrimEndingDirectorySeparator(Path.GetFullPath(session.FolderPath)),
+            SessionId = session.SessionId,
+            IsEnabled = session.IsEnabled,
+        };
+    }
+
+    private string? SaveSessionSelections(IEnumerable<SessionSelectionViewModel> sessions)
+    {
+        var selections = sessions.Select(CreateSelectionState).ToArray();
+        foreach (var selection in selections)
+        {
+            _settings.SessionSelections.RemoveAll(state =>
+                state.Matches(selection.FolderPath, selection.SessionId));
+            _settings.SessionSelections.Add(selection);
+        }
+
+        try
+        {
+            _settingsStore.SaveSessionSelections(selections);
+            return null;
+        }
+        catch (Exception exception)
+        {
+            return $"セッションの選択状態を保存できませんでした。次回起動時に反映されません: {exception.Message}";
         }
     }
 
@@ -749,12 +899,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
     {
         if (sessions.Count == 1)
         {
-            return BuildSingleSessionRows(sessions[0].Session);
+            return [new SessionInfoRow("エイリアス", ToDisplay(sessions[0].Alias)), .. BuildSingleSessionRows(sessions[0].Session)];
         }
 
         return
         [
             new SessionInfoRow("選択セッション数", sessions.Count.ToString("N0")),
+            new SessionInfoRow("セッション", string.Join(", ", sessions.Select(session => session.DisplayName))),
             new SessionInfoRow("セッションID", string.Join(", ", sessions.Select(session => session.SessionId))),
             new SessionInfoRow("最も早い開始時刻", AnalysisDisplayText.ToDateTimeText(sessions.Min(session => session.Session.SessionInfo.StartedAt))),
             new SessionInfoRow("最も遅い終了時刻", AnalysisDisplayText.ToDateTimeText(sessions.Max(session => session.Session.SessionInfo.EndedAt))),
@@ -802,6 +953,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     private void RefreshCommandStates()
     {
+        OnPropertyChanged(nameof(SessionSearchSummary));
+        OpenLogExclusionsCommand.RaiseCanExecuteChanged();
         OnPropertyChanged(nameof(HasSession));
         OnPropertyChanged(nameof(HasSessionRootFolder));
         OnPropertyChanged(nameof(AnalysisTargetSummary));
@@ -845,6 +998,11 @@ public sealed class MainViewModel : INotifyPropertyChanged
         object? sender,
         PropertyChangedEventArgs e)
     {
+        if (e.PropertyName == nameof(AnalysisRangeViewModel.IsBusy))
+        {
+            OpenLogExclusionsCommand.RaiseCanExecuteChanged();
+        }
+
         if (e.PropertyName == nameof(AnalysisRangeViewModel.SelectedAreaSegment))
         {
             OnPropertyChanged(nameof(RangeStepSummary));

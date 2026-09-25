@@ -25,6 +25,8 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     private string _rangeName = "指定範囲";
     private string _orderRangeText = "-";
     private int _recordCount;
+    private int _excludedRecordCount;
+    private int _excludedGroupCount;
     private string _statusMessage = "分析結果はまだありません。";
 
     public AnalysisResultViewModel()
@@ -215,6 +217,8 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     /// <summary>分析対象のログ件数。</summary>
     public string RecordCountText => $"{_recordCount:N0}件";
 
+    public string ExclusionSummary => $"除外 {_excludedRecordCount:N0}行（関連 {_excludedGroupCount:N0}グループ）";
+
     /// <summary>分析区間の経過時間。例「47分33秒」。</summary>
     public string ElapsedText => FormatElapsed(_analysisTime.DurationSeconds);
 
@@ -246,6 +250,7 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(RangeLabel));
         OnPropertyChanged(nameof(OrderRangeText));
         OnPropertyChanged(nameof(RecordCountText));
+        OnPropertyChanged(nameof(ExclusionSummary));
         OnPropertyChanged(nameof(ElapsedText));
         OnPropertyChanged(nameof(UnparsedCountText));
         OnPropertyChanged(nameof(HasUnparsedLogs));
@@ -266,6 +271,8 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         _rangeName = rangeName;
         _orderRangeText = orderRangeText;
         _recordCount = recordCount;
+        _excludedRecordCount = result.ExcludedRecordCount;
+        _excludedGroupCount = result.ExcludedGroupCount;
 
         _allActorSummaries.Clear();
         _allActorSummaries.AddRange(
@@ -319,6 +326,7 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         SessionRows.Add(new SessionInfoRow("分析時間（秒）", AnalysisNumberFormatter.FormatDecimal(result.AnalysisTime.DurationSeconds)));
         SessionRows.Add(new SessionInfoRow("DPS状態", ToDpsStatus(result.AnalysisTime)));
         SessionRows.Add(new SessionInfoRow("未解析ログ件数", UnparsedLogs.Count.ToString("N0")));
+        SessionRows.Add(new SessionInfoRow("手動除外", ExclusionSummary));
 
         RefreshActorVisibilityFilter();
         RefreshFilteredResults();
@@ -347,6 +355,8 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         _rangeName = "指定範囲";
         _orderRangeText = "-";
         _recordCount = 0;
+        _excludedRecordCount = 0;
+        _excludedGroupCount = 0;
         HasResult = false;
         StatusMessage = "分析結果はまだありません。";
         OnPropertyChanged(nameof(ActorSelectionSummary));

@@ -61,7 +61,7 @@
                     </Button>
                 </StackPanel>
 
-                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <WrapPanel VerticalAlignment="Center">
                     <TextBlock Style="{StaticResource FieldLabelStyle}" Text="区間" />
                     <TextBlock Margin="6,0,18,0" FontWeight="SemiBold"
                                Foreground="{StaticResource TextPrimaryBrush}" Text="{Binding RangeLabel}" />
@@ -74,7 +74,9 @@
                     <TextBlock Style="{StaticResource FieldLabelStyle}" Text="経過" />
                     <TextBlock Margin="6,0,0,0" FontWeight="SemiBold" Typography.NumeralAlignment="Tabular"
                                Foreground="{StaticResource TextPrimaryBrush}" Text="{Binding ElapsedText}" />
-                </StackPanel>
+                    <TextBlock Margin="12,0,0,0" Style="{StaticResource FieldLabelStyle}"
+                               Text="{Binding ExclusionSummary}" />
+                </WrapPanel>
             </DockPanel>
         </Border>
 
@@ -208,7 +210,7 @@
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                                 <DataGridTextColumn Header="通常攻撃クリティカル率" Width="150" Binding="{Binding NormalAttackCriticalRate}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                                <DataGridTextColumn Header="未分類件数" Width="*" Binding="{Binding UnknownCount}"
+                                <DataGridTextColumn Header="未分類件数" Width="100" Binding="{Binding UnknownCount}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                             </DataGrid.Columns>
                         </DataGrid>
@@ -231,7 +233,7 @@
                             <DataGridTextColumn Header="総ダメージ" Width="100" Binding="{Binding TotalDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                             <DataGridTextColumn Header="最大ダメージ" Width="100" Binding="{Binding MaxDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                             <DataGridTextColumn Header="最小ダメージ" Width="100" Binding="{Binding MinDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                            <DataGridTextColumn Header="平均ダメージ" Width="*" Binding="{Binding AverageDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="平均ダメージ" Width="110" Binding="{Binding AverageDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Border>
@@ -244,7 +246,7 @@
                             <DataGridTextColumn Header="ポイント種別" Width="220" Binding="{Binding PointName}" />
                             <DataGridTextColumn Header="総合計" Width="140" Binding="{Binding TotalPoints}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                             <DataGridTextColumn Header="最大チェーン" Width="140" Binding="{Binding MaxChainCount}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                            <DataGridTextColumn Header="時給" Width="*" Binding="{Binding PointsPerHour}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="時給" Width="140" Binding="{Binding PointsPerHour}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Border>

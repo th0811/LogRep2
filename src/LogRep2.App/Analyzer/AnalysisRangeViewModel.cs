@@ -19,13 +19,15 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     private readonly AnalysisAggregator _analysisAggregator = new();
     private readonly LevelingPointAggregator _levelingPointAggregator = new();
     private IReadOnlyList<CanonicalRecord> _records = [];
+    private HashSet<LogRep2.Contracts.ICanonicalRecord> _excludedRecords = [];
+    private string? _exclusionsError;
     private bool _isStartLogStart = true;
     private bool _isEndLogEnd = true;
     private MarkerListViewModel? _selectedStartMarker;
     private MarkerListViewModel? _selectedEndMarker;
     private AreaStaySegmentListViewModel? _selectedAreaSegment;
     private string _areaFilterText = string.Empty;
-    private bool _isAreaSegmentMode;
+    private bool _isAreaSegmentMode = true;
     private string _validationMessage = "セッションを読み込むと分析区間を選択できます。";
     private string _rangeSummary = "-";
     private CancellationTokenSource? _analysisCancellation;
@@ -336,7 +338,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         _selectedStartMarker = null;
         _selectedEndMarker = null;
         _selectedAreaSegment = null;
-        _isAreaSegmentMode = false;
+        _isAreaSegmentMode = true;
         OnPropertyChanged(nameof(IsStartLogStart));
         OnPropertyChanged(nameof(IsStartMarker));
         OnPropertyChanged(nameof(IsEndLogEnd));
@@ -358,6 +360,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     public void Clear()
     {
         _records = [];
+        _excludedRecords = [];
+        _exclusionsError = null;
         Markers.Clear();
         EndMarkerCandidates.Clear();
         AreaSegments.Clear();
@@ -408,6 +412,13 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
     private void RefreshValidation()
     {
+        if (_exclusionsError is not null)
+        {
+            ValidationMessage = _exclusionsError;
+            RaiseRunAnalysisState();
+            return;
+        }
+
         if (!HasRecords)
         {
             ValidationMessage = "セッションを読み込むと分析区間を選択できます。";
@@ -438,6 +449,8 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     {
         var selection = CreateSelection();
         return !IsBusy
+            && _exclusionsError is null
+            && HasRecords
             && selection is not null
             && _rangeValidator.IsValid(selection);
     }
@@ -470,7 +483,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             var calculation = await Task.Run(
                 () => Analyze(selection, cancellationToken),
                 cancellationToken);
-            RangeSummary = $"対象ログ: {calculation.RecordCount:N0}件 / 時刻精度: {AnalysisDisplayText.ToText(calculation.Result.AnalysisTime.Confidence)} / 分析時間: {ToDurationText(calculation.Result.AnalysisTime.DurationSeconds)}秒";
+            RangeSummary = $"対象ログ: {calculation.RecordCount:N0}件 / 除外: {calculation.Result.ExcludedRecordCount:N0}行 / 時刻精度: {AnalysisDisplayText.ToText(calculation.Result.AnalysisTime.Confidence)} / 分析時間: {ToDurationText(calculation.Result.AnalysisTime.DurationSeconds)}秒";
             ValidationMessage = "分析が完了しました。";
             _lastCompletedRangeName = rangeName;
             LastCompletedOrderRangeText = calculation.OrderRangeText;
@@ -558,8 +571,12 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         var range = _rangeBuilder.Build(_records, selection);
         cancellationToken.ThrowIfCancellationRequested();
         var time = _timeResolver.Resolve(selection, range);
+        // 時刻と区間を元ログから確定した後、集計対象だけを除外します。
+        var exclusions = _excludedRecords;
+        var excluded = range.Where(exclusions.Contains).ToArray();
+        var included = range.Where(record => !exclusions.Contains(record)).ToArray();
         var parseResults = _actionGroupBuilder
-            .Build(range)
+            .Build(included)
             .Select(group =>
             {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -577,12 +594,23 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         var result = _analysisAggregator.Aggregate(parsed, time, unparsed) with
         {
             LevelingPointSummaries =
-                _levelingPointAggregator.Aggregate(range, time),
+                _levelingPointAggregator.Aggregate(included, time),
+            ExcludedRecordCount = excluded.Length,
+            ExcludedGroupCount = excluded.Select(AnalysisExclusions.TryGetGroupKey)
+                .Where(key => key is not null).Distinct().Count(),
         };
         return new AnalysisCalculation(
             result,
-            range.Count,
+            included.Length,
             BuildOrderRangeText(range));
+    }
+
+    public void SetExcludedRecords(IEnumerable<CanonicalRecord> records, string? error = null)
+    {
+        _excludedRecords = records.ToHashSet<LogRep2.Contracts.ICanonicalRecord>();
+        _exclusionsError = error;
+        RangeSummary = "除外設定を反映しました。分析を実行してください。";
+        RefreshValidation();
     }
 
     private static string BuildOrderRangeText(

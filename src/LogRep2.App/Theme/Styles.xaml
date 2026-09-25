@@ -651,4 +651,261 @@
         </Setter>
     </Style>
 
+    <!-- セッション一覧のエイリアス列で使用するセル内編集スタイル -->
+    <SolidColorBrush x:Key="AliasHoverBrush" Color="#FFF2F4F7" />
+    <SolidColorBrush x:Key="FocusRingBrush" Color="#FFDBEAFE" />
+
+    <Geometry x:Key="PencilIconGeometry">M11.2,2.3 L13.7,4.8 L5.3,13.2 L2.2,13.8 L2.8,10.7 Z M9.8,3.7 L12.3,6.2</Geometry>
+    <Geometry x:Key="LockIconGeometry">M4,7 L12,7 L12,13 L4,13 Z M5.5,7 L5.5,5 A2.5,2.5 0 0 1 10.5,5 L10.5,7</Geometry>
+
+    <!-- エイリアス列のセル: 編集中以外はセル全体をクリック可能にし、IBeam を出す -->
+    <Style x:Key="AliasCellStyle" BasedOn="{StaticResource AppDataGridCellStyle}" TargetType="{x:Type DataGridCell}">
+        <Setter Property="Padding" Value="6,5" />
+        <Setter Property="Cursor" Value="IBeam" />
+        <Setter Property="Focusable" Value="True" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding CanEditAlias}" Value="False">
+                <Setter Property="Cursor" Value="Arrow" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- 表示時のセル枠（ホバー・選択で面と鉛筆が出る） -->
+    <Style x:Key="AliasDisplayBorderStyle" TargetType="{x:Type Border}">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Padding" Value="8,0" />
+        <Setter Property="CornerRadius" Value="5" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding HasAlias}" Value="False">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding CanEditAlias}" Value="False">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridCell}}" Value="True" />
+                    <Condition Binding="{Binding CanEditAlias}" Value="True" />
+                </MultiDataTrigger.Conditions>
+                <Setter Property="Background" Value="{StaticResource AliasHoverBrush}" />
+            </MultiDataTrigger>
+            <MultiDataTrigger>
+                <MultiDataTrigger.Conditions>
+                    <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True" />
+                    <Condition Binding="{Binding CanEditAlias}" Value="True" />
+                </MultiDataTrigger.Conditions>
+                <Setter Property="Background" Value="{StaticResource AliasHoverBrush}" />
+            </MultiDataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- ホバー・選択時だけ見える要素（鉛筆、未設定プレースホルダ） -->
+    <Style x:Key="AliasHoverOnlyStyle" TargetType="{x:Type FrameworkElement}">
+        <Setter Property="Visibility" Value="Collapsed" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridCell}}" Value="True">
+                <Setter Property="Visibility" Value="Visible" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True">
+                <Setter Property="Visibility" Value="Visible" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- 編集用 TextBox（外側の Border がフォーカスリングを担う） -->
+    <Style x:Key="AliasEditTextBoxStyle" TargetType="{x:Type TextBox}">
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="MaxLength" Value="100" />
+        <Setter Property="AcceptsReturn" Value="False" />
+        <Setter Property="AcceptsTab" Value="False" />
+    </Style>
+
+    <SolidColorBrush x:Key="ExcludedRowBrush" Color="#FFF8F9FB" />
+    <SolidColorBrush x:Key="SelectionBarBrush" Color="#FFF5F9FF" />
+    <SolidColorBrush x:Key="DangerBorderSoftBrush" Color="#FFFECDCA" />
+    <SolidColorBrush x:Key="SegmentTrackBrush" Color="#FFF2F4F7" />
+
+    <Geometry x:Key="SearchIconGeometry">M7,2.5 A4.5,4.5 0 1 1 6.99,2.5 Z M10.5,10.5 L13.7,13.7</Geometry>
+
+    <!-- 除外ボタン: 赤文字 ＋ 淡い赤枠（破壊的操作の区別） -->
+    <Style x:Key="DangerOutlineButtonStyle" BasedOn="{StaticResource AppButtonBaseStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Height" Value="28" />
+        <Setter Property="Padding" Value="11,2" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource DangerBorderSoftBrush}" />
+        <Setter Property="Tag" Value="#FEF3F2" />
+    </Style>
+
+    <!-- 検索入力の外枠（左だけ角丸、フォーカスで青 2px） -->
+    <Style x:Key="SearchInputFrameStyle" TargetType="{x:Type Border}">
+        <Setter Property="Padding" Value="10,0,6,0" />
+        <Setter Property="Background" Value="{StaticResource SurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushStrong}" />
+        <Setter Property="BorderThickness" Value="1,1,0,1" />
+        <Setter Property="CornerRadius" Value="6,0,0,6" />
+        <Style.Triggers>
+            <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                <Setter Property="BorderThickness" Value="2,2,0,2" />
+                <Setter Property="Padding" Value="9,0,6,0" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- 枠なし TextBox（外枠は SearchInputFrameStyle が担う） -->
+    <Style x:Key="BareTextBoxStyle" TargetType="{x:Type TextBox}">
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+    </Style>
+
+    <!-- 検索ボタン（入力欄に連結。右だけ角丸） -->
+    <Style x:Key="SearchJoinedButtonStyle" BasedOn="{StaticResource PrimaryButtonStyle}" TargetType="{x:Type Button}">
+        <Setter Property="Height" Value="32" />
+        <Setter Property="Padding" Value="14,0" />
+        <Setter Property="FontSize" Value="12.5" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="Bd" Background="{TemplateBinding Background}" CornerRadius="0,6,6,0"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource PrimaryHoverBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="Bd" Property="Opacity" Value="0.85" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- クリアボタン（丸 16px、SearchText が空なら非表示） -->
+    <Style x:Key="ClearSearchButtonStyle" TargetType="{x:Type Button}">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+        <Setter Property="Margin" Value="6,0,0,0" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Focusable" Value="False" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Border x:Name="Bd" CornerRadius="8" Background="{StaticResource StepInactiveBrush}">
+                        <Path Width="6" Height="6" Stretch="Uniform" Stroke="{StaticResource TextMutedBrush}"
+                              StrokeThickness="1.4" StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                              Data="M0,0 L6,6 M6,0 L0,6" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource BorderBrushStrong}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding SearchText}" Value="">
+                <Setter Property="Visibility" Value="Collapsed" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+
+    <!-- セグメント切替（トラック + 2 つの RadioButton） -->
+    <Style x:Key="SegmentedGroupBorderStyle" TargetType="{x:Type Border}">
+        <Setter Property="Background" Value="{StaticResource SegmentTrackBrush}" />
+        <Setter Property="CornerRadius" Value="6" />
+        <Setter Property="Padding" Value="2" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="SegmentedRadioStyle" TargetType="{x:Type RadioButton}">
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type RadioButton}">
+                    <Border x:Name="Bd" Height="28" Padding="12,0" CornerRadius="5" Background="Transparent">
+                        <ContentPresenter VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Bd" Property="Background" Value="{StaticResource SurfaceBrush}" />
+                            <Setter TargetName="Bd" Property="Effect">
+                                <Setter.Value>
+                                    <DropShadowEffect BlurRadius="2" ShadowDepth="1" Direction="270" Opacity="0.08" Color="#FF101828" />
+                                </Setter.Value>
+                            </Setter>
+                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                            <Setter Property="FontWeight" Value="SemiBold" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- 外枠を持たない ComboBox（セッション選択の外枠は親 Border） -->
+    <Style x:Key="BorderlessComboBoxStyle" BasedOn="{StaticResource AppComboBoxStyle}" TargetType="{x:Type ComboBox}">
+        <Setter Property="Height" Value="30" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Padding" Value="0" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ComboBox}">
+                    <Grid>
+                        <ToggleButton Focusable="False" ClickMode="Press"
+                                      IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border Background="Transparent">
+                                        <Path HorizontalAlignment="Right" Margin="0,0,7,0" Width="9" Height="5"
+                                              Stretch="Fill" Fill="{StaticResource TextMutedBrush}" Data="M0,0 L9,0 L4.5,5 Z" />
+                                    </Border>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <TextBlock Margin="0,0,22,0" VerticalAlignment="Center" IsHitTestVisible="False"
+                                   FontSize="12.5" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"
+                                   Foreground="{StaticResource TextPrimaryBrush}"
+                                   Text="{Binding SelectedItem.DisplayName, RelativeSource={RelativeSource TemplatedParent}}" />
+                        <Popup x:Name="PART_Popup" Placement="Bottom" AllowsTransparency="True" Focusable="False"
+                               IsOpen="{TemplateBinding IsDropDownOpen}" PopupAnimation="Fade">
+                            <Border MinWidth="{TemplateBinding ActualWidth}" MaxWidth="700" Padding="4"
+                                    Background="{StaticResource SurfaceBrush}" CornerRadius="6"
+                                    BorderBrush="{StaticResource BorderBrushStrong}" BorderThickness="1">
+                                <ScrollViewer MaxHeight="{TemplateBinding MaxDropDownHeight}" CanContentScroll="True">
+                                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                                </ScrollViewer>
+                            </Border>
+                        </Popup>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
 </ResourceDictionary>

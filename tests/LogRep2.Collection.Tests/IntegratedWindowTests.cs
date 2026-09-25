@@ -6,6 +6,37 @@ namespace FfxiTempLogCollector.Tests;
 public sealed class IntegratedWindowTests
 {
     [Fact]
+    public void ログ除外ウィンドウを初期化してログを表示できる()
+    {
+        Exception? captured = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                WpfTestApplication.Ensure();
+                using var directory = new TemporaryDirectory();
+                var viewModel = new FFXI_LogAnalyzer.App.LogExclusionViewModel([LogExclusionTests.CreateSession(directory.Path)]);
+                var window = new FFXI_LogAnalyzer.App.LogExclusionWindow(viewModel);
+                window.Dispatcher.Invoke(() => { }, System.Windows.Threading.DispatcherPriority.ApplicationIdle);
+                window.Measure(new Size(1250, 850));
+                window.Arrange(new Rect(0, 0, 1250, 850));
+                window.UpdateLayout();
+                var grid = (System.Windows.Controls.DataGrid)window.FindName("MainLogs");
+                Assert.Equal(5, grid.Items.Count);
+                window.Close();
+            }
+            catch (Exception exception)
+            {
+                captured = exception;
+            }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
+        Assert.Null(captured);
+    }
+
+    [Fact]
     public void 過去ログ分析ウィンドウを初期化できる()
     {
         Exception? capturedException = null;

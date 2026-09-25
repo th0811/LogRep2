@@ -100,6 +100,8 @@
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                     <Button Style="{StaticResource ToolbarButtonStyle}"
+                            Command="{Binding OpenLogExclusionsCommand}" Content="ログ確認・除外" />
+                    <Button Style="{StaticResource ToolbarButtonStyle}"
                             Command="{Binding RefreshSessionsCommand}" Content="更新" />
                     <Button Style="{StaticResource ToolbarButtonStyle}"
                             Command="{Binding OpenSessionRootFolderCommand}" Content="出力先を開く" />
@@ -167,20 +169,203 @@
                                     <StackPanel x:Name="SessionBulkActionsPanel" Orientation="Horizontal">
                                         <Button Margin="0,0,6,0" Style="{StaticResource SmallButtonStyle}"
                                                 Command="{Binding EnableAllSessionsCommand}"
+                                                ToolTip="検索で非表示のセッションも含め、すべて分析対象にします。"
                                                 Content="すべて対象にする" />
                                         <Button Style="{StaticResource SmallButtonStyle}"
                                                 Command="{Binding DisableAllSessionsCommand}"
+                                                ToolTip="検索で非表示のセッションも含め、すべて分析対象から外します。"
                                                 Content="すべて外す" />
                                     </StackPanel>
                                 </StackPanel>
                             </Border>
+                            <StackPanel DockPanel.Dock="Top" Margin="12,8">
+                                <DockPanel>
+                                    <TextBlock Text="エイリアス・ID検索" VerticalAlignment="Center" Margin="0,0,8,0" />
+                                    <TextBox Text="{Binding SessionSearchText, UpdateSourceTrigger=PropertyChanged}" />
+                                </DockPanel>
+                                <TextBlock Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" Text="{Binding SessionSearchSummary}" />
+                            </StackPanel>
                             <DataGrid Style="{StaticResource AppDataGridStyle}"
                                       IsReadOnly="False"
-                                      ItemsSource="{Binding Sessions}"
+                                      x:Name="SessionGrid" RowHeight="40"
+                                      BeginningEdit="OnSessionGridBeginningEdit" CellEditEnding="OnSessionGridCellEditEnding"
+                                      ItemsSource="{Binding FilteredSessions}"
                                       SelectedItem="{Binding SelectedSession, Mode=TwoWay}">
+                                <DataGrid.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="エイリアスを編集" InputGestureText="F2" Click="OnEditAliasMenuClick"
+                                                  IsEnabled="{Binding SelectedSession.CanEditAlias}" />
+                                    </ContextMenu>
+                                </DataGrid.ContextMenu>
                                 <DataGrid.Columns>
                                     <DataGridCheckBoxColumn Header="対象" Width="72"
                                                             Binding="{Binding IsEnabled, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                                    <DataGridTemplateColumn Width="280"
+                                                            SortMemberPath="Alias"
+                                                            CellStyle="{StaticResource AliasCellStyle}">
+                                        <DataGridTemplateColumn.Header>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="エイリアス" />
+                                                <Path Width="13" Height="13" Margin="6,0,0,0" VerticalAlignment="Center"
+                                                      Stretch="Uniform" StrokeThickness="1.4" StrokeLineJoin="Round"
+                                                      Stroke="{StaticResource TextFaintBrush}"
+                                                      Data="{StaticResource PencilIconGeometry}"
+                                                      ToolTip="この列はクリックまたは F2 で編集できます" />
+                                            </StackPanel>
+                                        </DataGridTemplateColumn.Header>
+
+                                        <!-- 表示 -->
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="*" />
+                                                        <ColumnDefinition Width="Auto" />
+                                                    </Grid.ColumnDefinitions>
+                                                    <Border Style="{StaticResource AliasDisplayBorderStyle}">
+                                                        <DockPanel>
+                                                            <Path DockPanel.Dock="Right" Width="13" Height="13" Margin="8,0,0,0"
+                                                                  VerticalAlignment="Center" Stretch="Uniform" StrokeThickness="1.4" StrokeLineJoin="Round"
+                                                                  Stroke="{StaticResource TextSecondaryBrush}" Data="{StaticResource PencilIconGeometry}"
+                                                                  Style="{StaticResource AliasHoverOnlyStyle}" />
+                                                            <TextBlock VerticalAlignment="Center" FontSize="12.5" Foreground="{StaticResource TextPrimaryBrush}"
+                                                                       Text="{Binding Alias}" TextTrimming="CharacterEllipsis" ToolTip="{Binding Alias}" />
+                                                        </DockPanel>
+                                                    </Border>
+                                                    <Border Grid.Column="1" Margin="8,0,0,0" Padding="7,3" CornerRadius="9" VerticalAlignment="Center"
+                                                            Background="{StaticResource SuccessSoftBrush}">
+                                                        <Border.Style>
+                                                            <Style TargetType="Border">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsAliasJustSaved}" Value="True">
+                                                                        <DataTrigger.EnterActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                                                        <DiscreteObjectKeyFrame KeyTime="0" Value="{x:Static Visibility.Visible}" />
+                                                                                    </ObjectAnimationUsingKeyFrames>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0" />
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </DataTrigger.EnterActions>
+                                                                        <DataTrigger.ExitActions>
+                                                                            <BeginStoryboard>
+                                                                                <Storyboard>
+                                                                                    <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0" Duration="0:0:0.2" />
+                                                                                    <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="Visibility">
+                                                                                        <DiscreteObjectKeyFrame KeyTime="0:0:0.2" Value="{x:Static Visibility.Collapsed}" />
+                                                                                    </ObjectAnimationUsingKeyFrames>
+                                                                                </Storyboard>
+                                                                            </BeginStoryboard>
+                                                                        </DataTrigger.ExitActions>
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <TextBlock FontSize="10.5" FontWeight="SemiBold" Foreground="{StaticResource SuccessBrush}" Text="✓ 保存しました" />
+                                                    </Border>
+                                                    <!-- ④ 未設定（ホバー・選択時のみ） -->
+                                                    <Border Height="30" CornerRadius="5">
+
+                                                        <Border.Style>
+                                                            <Style TargetType="{x:Type Border}">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                <Style.Triggers>
+                                                                    <MultiDataTrigger>
+                                                                        <MultiDataTrigger.Conditions>
+                                                                            <Condition Binding="{Binding HasAlias}" Value="False" />
+                                                                            <Condition Binding="{Binding CanEditAlias}" Value="True" />
+                                                                            <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=DataGridCell}}" Value="True" />
+                                                                        </MultiDataTrigger.Conditions>
+                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                    </MultiDataTrigger>
+                                                                    <MultiDataTrigger>
+                                                                        <MultiDataTrigger.Conditions>
+                                                                            <Condition Binding="{Binding HasAlias}" Value="False" />
+                                                                            <Condition Binding="{Binding CanEditAlias}" Value="True" />
+                                                                            <Condition Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=DataGridRow}}" Value="True" />
+                                                                        </MultiDataTrigger.Conditions>
+                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                    </MultiDataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </Border.Style>
+                                                        <Grid>
+                                                            <Rectangle Stroke="{StaticResource BorderBrushStrong}" StrokeThickness="1"
+                                                                       StrokeDashArray="3 2" RadiusX="5" RadiusY="5" />
+                                                            <TextBlock Margin="8,0" VerticalAlignment="Center" FontSize="12"
+                                                                       Foreground="{StaticResource TextFaintBrush}"
+                                                                       Text="＋ エイリアスを追加" />
+                                                        </Grid>
+                                                    </Border>
+
+                                                    <!-- ⑥ 読み込み失敗（編集不可） -->
+                                                    <StackPanel Margin="4,0" Orientation="Horizontal" VerticalAlignment="Center"
+                                                                ToolTip="{Binding AliasLoadError}">
+                                                        <StackPanel.Style>
+                                                            <Style TargetType="{x:Type StackPanel}">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding CanEditAlias}" Value="False">
+                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </StackPanel.Style>
+                                                        <Path Width="12" Height="12" Margin="0,0,6,0" Stretch="Uniform"
+                                                              StrokeThickness="1.4" Stroke="{StaticResource WarningBrush}"
+                                                              Data="{StaticResource LockIconGeometry}" />
+                                                        <TextBlock FontSize="12" Foreground="{StaticResource WarningBrush}" Text="読み込めません" />
+                                                    </StackPanel>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
+
+                                        <!-- ③ 編集中 -->
+                                        <DataGridTemplateColumn.CellEditingTemplate>
+                                            <DataTemplate>
+                                                <StackPanel>
+                                                    <Popup PlacementTarget="{Binding ElementName=AliasEditFrame}" Placement="Bottom" VerticalOffset="5"
+                                                           IsOpen="{Binding HasAliasEditError, Mode=OneWay}" StaysOpen="True" AllowsTransparency="True" Focusable="False">
+                                                        <Border Padding="10,7" CornerRadius="5" Background="{StaticResource SurfaceBrush}"
+                                                                BorderBrush="{StaticResource DangerBrush}" BorderThickness="1" MaxWidth="420">
+                                                            <TextBlock Text="{Binding AliasEditError}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" />
+                                                        </Border>
+                                                    </Popup>
+                                                    <!-- 外側 = フォーカスリング（3px）、内側 = 2px の枠 -->
+                                                    <Border CornerRadius="8" Padding="3" Margin="-3"
+                                                            Background="{StaticResource FocusRingBrush}">
+                                                        <Border x:Name="AliasEditFrame" Height="30" Padding="8,0" CornerRadius="5"
+                                                                Background="{StaticResource SurfaceBrush}"
+                                                                BorderBrush="{StaticResource PrimaryBrush}" BorderThickness="2">
+                                                            <DockPanel>
+                                                                <TextBlock DockPanel.Dock="Right" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                                           FontSize="10.5" Typography.NumeralAlignment="Tabular"
+                                                                           Foreground="{StaticResource TextFaintBrush}">
+                                                                    <Run Text="{Binding Text.Length, ElementName=AliasEditor, Mode=OneWay}" /><Run Text="/100" />
+                                                                </TextBlock>
+                                                                <TextBox x:Name="AliasEditor"
+                                                                         Style="{StaticResource AliasEditTextBoxStyle}"
+                                                                         Text="{Binding EditingAlias, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                                         Loaded="OnAliasEditorLoaded" LostKeyboardFocus="OnAliasEditorLostKeyboardFocus"
+                                                                         PreviewKeyDown="OnAliasEditorPreviewKeyDown" />
+                                                            </DockPanel>
+                                                        </Border>
+                                                    </Border>
+                                                </StackPanel>
+                                                <DataTemplate.Triggers>
+                                                    <!-- 保存失敗時: 赤枠 ＋ エラーをツールチップで常時表示 -->
+                                                    <DataTrigger Binding="{Binding HasAliasEditError}" Value="True">
+                                                        <Setter TargetName="AliasEditFrame" Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+                                                        <Setter TargetName="AliasEditor" Property="ToolTip" Value="{Binding AliasEditError}" />
+                                                        <Setter TargetName="AliasEditor" Property="ToolTipService.IsEnabled" Value="True" />
+                                                        <Setter TargetName="AliasEditor" Property="ToolTipService.Placement" Value="Bottom" />
+                                                    </DataTrigger>
+                                                </DataTemplate.Triggers>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellEditingTemplate>
+                                    </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="セッションID" Width="152" IsReadOnly="True" Binding="{Binding SessionId}" />
                                     <DataGridTextColumn Header="開始" Width="170" IsReadOnly="True" Binding="{Binding StartedAt}" />
                                     <DataGridTextColumn Header="終了" Width="170" IsReadOnly="True" Binding="{Binding EndedAt}" />

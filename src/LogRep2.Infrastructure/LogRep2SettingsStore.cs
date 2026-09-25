@@ -228,6 +228,7 @@ public sealed class LogRep2SettingsStore
     {
         settings.Collection ??= new CollectionSettings();
         settings.Analysis ??= new AnalysisSettings();
+        settings.Analysis.SessionSelections ??= [];
         settings.Overlay ??= new OverlaySettings();
         settings.Application ??= new ApplicationSettings();
         settings.Analysis.KnownPcNames = NormalizeNames(
