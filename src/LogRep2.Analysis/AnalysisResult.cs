@@ -6,6 +6,8 @@ public sealed record AnalysisResult(
     IReadOnlyList<UnparsedActionGroup> UnparsedActionGroups,
     AnalysisTimeResult AnalysisTime)
 {
+    public PartyTimeline Timeline { get; init; } = PartyTimeline.Empty;
+
     public int ExcludedRecordCount { get; init; }
 
     public int ExcludedGroupCount { get; init; }

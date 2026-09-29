@@ -6,6 +6,43 @@ namespace FfxiTempLogCollector.Tests;
 public sealed class IntegratedWindowTests
 {
     [Fact]
+    public void PT出力メンバー選択が共通スタイルで初期化でき選択状態を維持する()
+    {
+        Exception? captured = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                WpfTestApplication.Ensure();
+                var window = new FFXI_LogAnalyzer.App.TimelineMemberSelectionWindow([("Alice", "PC登録"), ("Boro", "PC候補")]);
+                try
+                {
+                    window.Measure(new Size(480, 360));
+                    window.Arrange(new Rect(0, 0, 480, 360));
+                    window.UpdateLayout();
+                    var button = (System.Windows.Controls.Button)window.FindName("AcceptButton");
+                    var list = (System.Windows.Controls.StackPanel)window.FindName("MemberList");
+                    Assert.Same(window.FindResource("PrimaryButtonStyle"), button.Style);
+                    Assert.False(button.IsEnabled);
+                    var check = (System.Windows.Controls.CheckBox)list.Children[0];
+                    Assert.Same(window.FindResource("AppCheckBoxStyle"), check.Style);
+                    check.IsChecked = true;
+                    Assert.True(button.IsEnabled);
+                    Assert.Equal("Alice", Assert.Single(window.SelectedMembers));
+                    check.IsChecked = false;
+                    Assert.False(button.IsEnabled);
+                }
+                finally { window.Close(); }
+            }
+            catch (Exception exception) { captured = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
+        Assert.Null(captured);
+    }
+
+    [Fact]
     public void ログ除外ウィンドウを初期化してログを表示できる()
     {
         Exception? captured = null;

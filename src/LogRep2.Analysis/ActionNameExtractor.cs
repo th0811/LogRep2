@@ -58,9 +58,16 @@ public sealed partial class ActionNameExtractor : IActionNameExtractor
 
         foreach (var text in group.VisibleTexts)
         {
-            if (SkillRegex().IsMatch(text))
+            var execution = SkillRegex().Match(text);
+            if (execution.Success)
             {
-                return ActionType.Skill;
+                return WeaponSkillCatalog.Contains(execution.Groups["action"].Value)
+                    ? ActionType.WeaponSkill
+                    : ActionType.Ability;
+            }
+            if (AbilityLogClassifier.TryParse(text, out _, out _))
+            {
+                return ActionType.Ability;
             }
         }
 
@@ -69,6 +76,11 @@ public sealed partial class ActionNameExtractor : IActionNameExtractor
 
     private static string? ExtractActionName(string text)
     {
+        if (AbilityLogClassifier.TryParse(text, out _, out var abilityName))
+        {
+            return abilityName;
+        }
+
         if (NormalAttackRegex().IsMatch(text))
         {
             return "通常攻撃";

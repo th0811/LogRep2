@@ -75,7 +75,7 @@ public sealed class DiagnosticLogServiceTests
     [Theory]
     [InlineData(ActionType.NormalAttack, "通常攻撃")]
     [InlineData(ActionType.NormalAttackCritical, "通常攻撃（クリティカル）")]
-    [InlineData(ActionType.Skill, "技")]
+    [InlineData(ActionType.WeaponSkill, "WS")]
     [InlineData(ActionType.Magic, "魔法")]
     [InlineData(ActionType.Unknown, "未分類")]
     public void アクション種別を日本語表示に変換する(

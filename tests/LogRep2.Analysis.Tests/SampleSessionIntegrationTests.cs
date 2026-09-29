@@ -102,7 +102,7 @@ public sealed class SampleSessionIntegrationTests
 
         var multiTargetSkill = Assert.Single(
             result.ActionSummaries,
-            summary => summary.Actor == "Xitra" && summary.ActionType == ActionType.Skill);
+            summary => summary.Actor == "Xitra" && summary.ActionType == ActionType.WeaponSkill);
         Assert.Equal(1, multiTargetSkill.UseCount);
         Assert.Equal(421, multiTargetSkill.Damage.TotalDamage);
         Assert.Equal(321, multiTargetSkill.Damage.MaxDamage);

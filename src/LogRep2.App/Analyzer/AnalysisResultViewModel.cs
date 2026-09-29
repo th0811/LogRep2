@@ -28,6 +28,8 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     private int _excludedRecordCount;
     private int _excludedGroupCount;
     private string _statusMessage = "分析結果はまだありません。";
+    private PartyTimeline _timeline = PartyTimeline.Empty;
+    private IReadOnlyList<ActorSummary> _reportActorSummaries = [];
 
     public AnalysisResultViewModel()
         : this(new AnalyzerSettingsStore())
@@ -73,6 +75,8 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         ExportLevelingPointsCommand = new RelayCommand(
             ExportLevelingPoints,
             () => HasResult);
+        ExportTimelineCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
+            ExportTimelineAsync, () => HasResult);
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -97,6 +101,8 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     public RelayCommand ExportActionSummariesCommand { get; }
 
     public RelayCommand ExportLevelingPointsCommand { get; }
+
+    public FfxiTempLogCollector.App.AsyncRelayCommand ExportTimelineCommand { get; }
 
     public ObservableCollection<ActorSummaryViewModel> ActorSummaries { get; } = [];
 
@@ -127,6 +133,7 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
                 ExportActorSummariesCommand.RaiseCanExecuteChanged();
                 ExportActionSummariesCommand.RaiseCanExecuteChanged();
                 ExportLevelingPointsCommand.RaiseCanExecuteChanged();
+                ExportTimelineCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -273,6 +280,8 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         _recordCount = recordCount;
         _excludedRecordCount = result.ExcludedRecordCount;
         _excludedGroupCount = result.ExcludedGroupCount;
+        _timeline = result.Timeline;
+        _reportActorSummaries = result.ActorSummaries;
 
         _allActorSummaries.Clear();
         _allActorSummaries.AddRange(
@@ -340,6 +349,8 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
 
     public void Clear()
     {
+        _timeline = PartyTimeline.Empty;
+        _reportActorSummaries = [];
         ClearVisibilitySubscriptions();
         _allActorSummaries.Clear();
         _allActionSummaries.Clear();
@@ -450,6 +461,60 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
             Owner = System.Windows.Application.Current.MainWindow
         };
         window.ShowDialog();
+    }
+
+    internal IReadOnlyList<(string Name, string Classification)> GetTimelineMemberCandidates()
+    {
+        return ActorVisibilities.Select(actor => actor.Actor)
+            .Concat(_timeline.Events.Select(item => item.Actor))
+            .Distinct(StringComparer.Ordinal)
+            .Select(name => (Name: name, Kind: Classify(name)))
+            .Where(item => IsPcCandidateSelectionTarget(item.Kind))
+            .OrderBy(item => item.Name, StringComparer.Ordinal)
+            .Select(item => (item.Name, item.Kind == ActorNameKind.RegisteredPc ? "PC登録" : "PC候補"))
+            .ToArray();
+    }
+
+    private async Task ExportTimelineAsync()
+    {
+        try
+        {
+            var candidates = GetTimelineMemberCandidates();
+            if (candidates.Count == 0)
+            {
+                StatusMessage = "PTメンバーの候補がありません。分析区間を確認してください。";
+                return;
+            }
+            var selection = new TimelineMemberSelectionWindow(candidates)
+            {
+                Owner = System.Windows.Application.Current?.Windows.OfType<System.Windows.Window>().FirstOrDefault(window => window.IsActive),
+            };
+            if (selection.ShowDialog() != true) return;
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "PT行動レポートを保存",
+                Filter = "HTMLファイル (*.html)|*.html",
+                DefaultExt = ".html",
+                FileName = System.IO.Path.ChangeExtension(BuildExportFileName("PT行動レポート"), ".html"),
+            };
+            if (dialog.ShowDialog() != true) return;
+            // 分析画面が更新されても、出力開始時の条件で一貫したレポートを作成します。
+            var timeline = _timeline;
+            var actorSummaries = _reportActorSummaries;
+            var members = selection.SelectedMembers;
+            var rangeName = _rangeName;
+            var orderRange = _orderRangeText;
+            var excludedCount = _excludedRecordCount;
+            StatusMessage = "PT行動レポートを作成中...";
+            await Task.Run(() => System.IO.File.WriteAllText(dialog.FileName,
+                PartyTimelineHtmlExporter.Build(timeline, members, rangeName, orderRange, excludedCount, actorSummaries),
+                new System.Text.UTF8Encoding(false)));
+            StatusMessage = $"PT行動レポートを保存しました: {dialog.FileName}";
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"PT行動レポートを保存できませんでした: {exception.Message}";
+        }
     }
 
     private void ExportActorSummaries()

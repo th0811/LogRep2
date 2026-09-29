@@ -22,7 +22,8 @@ internal static class AnalysisDisplayText
     {
         ActionType.NormalAttack => "通常攻撃",
         ActionType.NormalAttackCritical => "通常攻撃（クリティカル）",
-        ActionType.Skill => "技",
+        ActionType.WeaponSkill => "WS",
+        ActionType.Ability => "アビリティ",
         ActionType.Magic => "魔法",
         ActionType.Unknown => "未分類",
         _ => actionType.ToString(),
