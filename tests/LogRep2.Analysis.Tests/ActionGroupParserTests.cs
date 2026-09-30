@@ -106,7 +106,7 @@ public class ActionGroupParserTests
         Assert.True(result.IsParsed);
         Assert.Equal("Xitra", result.Parsed!.Actor);
         Assert.Equal("レッドロータス", result.Parsed.ActionName);
-        Assert.Equal(ActionType.Skill, result.Parsed.ActionType);
+        Assert.Equal(ActionType.WeaponSkill, result.Parsed.ActionType);
         Assert.Equal(321, result.Parsed.Damage.Damage);
     }
 

@@ -203,6 +203,10 @@
                                 <DataGridTextColumn Header="キャラクター名" Width="150" Binding="{Binding Actor}" />
                                 <DataGridTextColumn Header="総与ダメージ" Width="118" Binding="{Binding TotalDamage}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                                <DataGridTextColumn Header="総被ダメージ" Width="118" Binding="{Binding IncomingDamage}"
+                                                    ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                                <DataGridTextColumn Header="回避率" Width="128" Binding="{Binding EvasionRate}"
+                                                    ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                                 <DataGridTextColumn Header="DPS" Width="96" Binding="{Binding Dps}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                                 <DataGridTextColumn Header="DPS時間精度" Width="110" Binding="{Binding DpsTimeConfidence}" />
@@ -277,8 +281,13 @@
             <DockPanel>
                 <Button DockPanel.Dock="Left" Margin="0,0,12,0" Style="{StaticResource SecondaryButtonStyle}" Height="36"
                         Command="{Binding GoBackCommand}" Content="← 分析区間へ戻る" />
-                <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButtonStyle}" Width="128"
-                        Command="{Binding ExportActorSummariesCommand}" Content="CSV出力" />
+                <StackPanel DockPanel.Dock="Right" Margin="12,0,0,0">
+                    <TextBlock Text="PTメンバーを選択してHTMLに保存" HorizontalAlignment="Right"
+                               Style="{StaticResource CaptionTextStyle}" Margin="0,0,0,6" />
+                    <Button Style="{StaticResource PrimaryButtonStyle}" MinWidth="210" Height="36"
+                            Command="{Binding ExportTimelineCommand}" Content="PT行動HTMLを出力…"
+                            ToolTip="PTメンバーを選択し、数値データと行動タイムラインをHTMLで保存します" />
+                </StackPanel>
                 <TextBlock VerticalAlignment="Center" Style="{StaticResource FieldLabelStyle}"
                            TextTrimming="CharacterEllipsis"
                            Text="{Binding StatusMessage}" ToolTip="{Binding StatusMessage}" />

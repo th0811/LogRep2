@@ -46,6 +46,11 @@ public sealed partial class ActorExtractor : IActorExtractor
 
     private static string? ExtractActor(string text)
     {
+        if (AbilityLogClassifier.TryParse(text, out var abilityActor, out _))
+        {
+            return abilityActor;
+        }
+
         var normalAttack = NormalAttackActorRegex().Match(text);
         if (normalAttack.Success)
         {

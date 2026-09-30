@@ -12,4 +12,10 @@ public sealed record ActorSummary(
     int TotalMissCount,
     int UnknownCount,
     NormalAttackSummary NormalAttackSummary,
-    IReadOnlyList<ActionSummary> ActionSummaries);
+    IReadOnlyList<ActionSummary> ActionSummaries)
+{
+    public DamageStatistics IncomingDamage { get; init; } = DamageStatistics.Empty;
+    public int IncomingHitCount { get; init; }
+    public int EvadeCount { get; init; }
+    public double? EvasionRate => RateCalculator.CalculateHitRate(EvadeCount, IncomingHitCount);
+}

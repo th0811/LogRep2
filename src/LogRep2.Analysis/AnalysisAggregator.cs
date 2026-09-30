@@ -22,9 +22,17 @@ public sealed class AnalysisAggregator
             .ThenBy(summary => summary.ActionName, StringComparer.Ordinal)
             .ThenBy(summary => summary.ActionType)
             .ToArray();
-        var actorSummaries = parsedActions
-            .GroupBy(action => action.Actor)
-            .Select(group => BuildActorSummary(group.Key, group, actionSummaries, analysisTime))
+        var incoming = parsedActions.SelectMany(action => IncomingResultParser.Parse(action.Group, action.ActionType))
+            .Concat(unparsed.SelectMany(action => IncomingResultParser.Parse(action.Group, action.ParsedAction.ActionType)))
+            .ToLookup(result => result.Target, StringComparer.Ordinal);
+        var outgoing = parsedActions.ToLookup(action => action.Actor, StringComparer.Ordinal);
+        var actorSummaries = outgoing.Select(group => group.Key).Union(incoming.Select(group => group.Key), StringComparer.Ordinal)
+            .Select(actor => BuildActorSummary(actor, outgoing[actor], actionSummaries, analysisTime) with
+            {
+                IncomingDamage = new DamageStatistics(incoming[actor].Where(result => result.Damage.HasValue).Select(result => result.Damage!.Value).ToArray()),
+                IncomingHitCount = incoming[actor].Count(result => result.Status == HitStatus.Hit),
+                EvadeCount = incoming[actor].Count(result => result.Status == HitStatus.Miss),
+            })
             .OrderBy(summary => summary.Actor, StringComparer.Ordinal)
             .ToArray();
 

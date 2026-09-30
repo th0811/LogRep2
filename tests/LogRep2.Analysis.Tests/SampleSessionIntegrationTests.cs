@@ -65,7 +65,8 @@ public sealed class SampleSessionIntegrationTests
 
         var result = new AnalysisAggregator().Aggregate(parsed, analysisTime, unparsed);
 
-        Assert.Equal(2, result.ActorSummaries.Count);
+        Assert.Equal(3, result.ActorSummaries.Count);
+        Assert.Contains(result.ActorSummaries, summary => summary.TotalUseCount == 0 && summary.IncomingDamage.TotalDamage > 0);
         Assert.Single(result.UnparsedActionGroups);
         Assert.Single(result.UnknownActionGroups);
 
@@ -102,7 +103,7 @@ public sealed class SampleSessionIntegrationTests
 
         var multiTargetSkill = Assert.Single(
             result.ActionSummaries,
-            summary => summary.Actor == "Xitra" && summary.ActionType == ActionType.Skill);
+            summary => summary.Actor == "Xitra" && summary.ActionType == ActionType.WeaponSkill);
         Assert.Equal(1, multiTargetSkill.UseCount);
         Assert.Equal(421, multiTargetSkill.Damage.TotalDamage);
         Assert.Equal(321, multiTargetSkill.Damage.MaxDamage);

@@ -50,7 +50,7 @@ public sealed class AnalysisExclusionIntegrationTests
         while (!main.AnalysisRange.IsAreaSegmentMode) await Task.Delay(10, timeout.Token);
         main.AnalysisRange.IsManualRangeMode = true;
         var result = await Analyze(main.AnalysisRange);
-        Assert.Equal(110, Assert.Single(result.ActorSummaries).TotalDamage);
+        Assert.Equal(110, Assert.Single(result.ActorSummaries, summary => summary.Actor == "Xitra").TotalDamage);
     }
 
     [Fact]
@@ -70,13 +70,13 @@ public sealed class AnalysisExclusionIntegrationTests
         Assert.True(main.AnalysisRange.IsManualRangeMode);
         Assert.Equal(1, main.SelectedTabIndex);
         var result = await Analyze(main.AnalysisRange);
-        Assert.Equal(100, Assert.Single(result.ActorSummaries).TotalDamage);
+        Assert.Equal(100, Assert.Single(result.ActorSummaries, summary => summary.Actor == "Xitra").TotalDamage);
         Assert.Contains("3行", main.AnalysisResult.ExclusionSummary);
 
         var reopened = await OpenMain(directory.Path);
         reopened.AnalysisRange.IsManualRangeMode = true;
         var restored = await Analyze(reopened.AnalysisRange);
-        Assert.Equal(100, Assert.Single(restored.ActorSummaries).TotalDamage);
+        Assert.Equal(100, Assert.Single(restored.ActorSummaries, summary => summary.Actor == "Xitra").TotalDamage);
         Assert.Equal(source, File.ReadAllText(logPath));
     }
 
@@ -93,7 +93,7 @@ public sealed class AnalysisExclusionIntegrationTests
         var main = await OpenMain(directory.Path);
         main.AnalysisRange.IsManualRangeMode = true;
         var result = await Analyze(main.AnalysisRange);
-        Assert.Equal(110, Assert.Single(result.ActorSummaries).TotalDamage);
+        Assert.Equal(110, Assert.Single(result.ActorSummaries, summary => summary.Actor == "Xitra").TotalDamage);
         Assert.Equal(5, result.ExcludedRecordCount);
     }
 
@@ -128,13 +128,14 @@ public sealed class AnalysisExclusionIntegrationTests
         await viewModel.LoadRecordsAsync(records, CancellationToken.None);
         viewModel.IsManualRangeMode = true;
         var baseline = await Analyze(viewModel);
-        Assert.Equal(110, Assert.Single(baseline.ActorSummaries).TotalDamage);
+        Assert.Equal(110, Assert.Single(baseline.ActorSummaries, summary => summary.Actor == "Xitra").TotalDamage);
         Assert.Equal(2, Assert.Single(baseline.ActionSummaries).UseCount);
 
         viewModel.SetExcludedRecords(records.Take(3));
         Assert.True(viewModel.IsManualRangeMode);
         var excluded = await Analyze(viewModel);
-        var actor = Assert.Single(excluded.ActorSummaries);
+        var actor = Assert.Single(excluded.ActorSummaries, summary => summary.Actor == "Xitra");
+        Assert.Equal(actor.TotalDamage, Assert.Single(excluded.ActorSummaries, summary => summary.Actor == "Goblin").IncomingDamage.TotalDamage);
         Assert.Equal(100, actor.TotalDamage);
         Assert.Equal(1, actor.TotalUseCount);
         Assert.Equal(5, actor.Dps);
@@ -145,7 +146,7 @@ public sealed class AnalysisExclusionIntegrationTests
 
         viewModel.SetExcludedRecords([]);
         var restored = await Analyze(viewModel);
-        Assert.Equal(110, Assert.Single(restored.ActorSummaries).TotalDamage);
+        Assert.Equal(110, Assert.Single(restored.ActorSummaries, summary => summary.Actor == "Xitra").TotalDamage);
         Assert.Equal(0, restored.ExcludedRecordCount);
     }
 
@@ -158,7 +159,8 @@ public sealed class AnalysisExclusionIntegrationTests
         viewModel.IsManualRangeMode = true;
         viewModel.SetExcludedRecords([records[2]]);
         var result = await Analyze(viewModel);
-        var actor = Assert.Single(result.ActorSummaries);
+        var actor = Assert.Single(result.ActorSummaries, summary => summary.Actor == "Xitra");
+        Assert.Equal(actor.TotalDamage, Assert.Single(result.ActorSummaries, summary => summary.Actor == "Goblin").IncomingDamage.TotalDamage);
         Assert.Equal(100, actor.TotalDamage);
         Assert.Equal(2, actor.TotalUseCount);
         Assert.Equal(1, actor.UnknownCount);

@@ -13,6 +13,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
 {
     private readonly SessionOpenService _sessionOpenService;
     private readonly DialogService _dialogService;
+    private readonly FfxiTempLogCollector.Core.CollectorService? _collectorService;
     private readonly AnalyzerSettingsStore _settingsStore;
     private readonly AssistantToolLauncher _assistantToolLauncher;
     private readonly CanonicalRecordReader _canonicalRecordReader = new();
@@ -43,7 +44,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
         SessionOpenService sessionOpenService,
         DialogService dialogService,
         AnalyzerSettingsStore settingsStore,
-        AssistantToolLauncher? assistantToolLauncher = null)
+        AssistantToolLauncher? assistantToolLauncher = null,
+        FfxiTempLogCollector.Core.CollectorService? collectorService = null)
     {
         _sessionOpenService = sessionOpenService
             ?? throw new ArgumentNullException(nameof(sessionOpenService));
@@ -53,6 +55,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             ?? throw new ArgumentNullException(nameof(settingsStore));
         _assistantToolLauncher = assistantToolLauncher
             ?? new AssistantToolLauncher();
+        _collectorService = collectorService;
         _settings = _settingsStore.Load();
         AnalysisResult = new AnalysisResultViewModel(_settingsStore);
         AnalysisRange.AnalysisCompleted += OnAnalysisCompleted;
@@ -81,6 +84,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OpenLogExclusionsCommand = new RelayCommand(
             OpenLogExclusions,
             () => Sessions.Count > 0 && !IsBusy && !AnalysisRange.IsBusy);
+        CompleteSelectedSessionCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
+            CompleteSelectedSessionAsync,
+            () => !IsBusy && SelectedSession?.Session.SessionInfo.Status == SessionStatus.Active
+                && _collectorService?.CanCompleteSessionManually(SelectedSession.FolderPath) == true);
         DeleteSelectedSessionCommand = new FfxiTempLogCollector.App.AsyncRelayCommand(
             DeleteSelectedSessionAsync,
             () => SelectedSession is not null && !IsBusy);
@@ -136,6 +143,8 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public FfxiTempLogCollector.App.AsyncRelayCommand OpenGameLogCommand { get; }
 
+    public FfxiTempLogCollector.App.AsyncRelayCommand CompleteSelectedSessionCommand { get; }
+
     public FfxiTempLogCollector.App.AsyncRelayCommand DeleteSelectedSessionCommand { get; }
 
     public FfxiTempLogCollector.App.AsyncRelayCommand EnableAllSessionsCommand { get; }
@@ -164,6 +173,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
                 OpenSelectedSessionFolderCommand.RaiseCanExecuteChanged();
                 OpenGameLogCommand.RaiseCanExecuteChanged();
                 DeleteSelectedSessionCommand.RaiseCanExecuteChanged();
+                CompleteSelectedSessionCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -583,6 +593,32 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private async Task CompleteSelectedSessionAsync()
+    {
+        var session = SelectedSession;
+        if (session is null || _collectorService is null) return;
+        if (!_collectorService.CanCompleteSessionManually(session.FolderPath))
+        {
+            _dialogService.ShowInformation("現在の収集セッションは修正できません。メイン画面の収集停止を使用してください。");
+            return;
+        }
+        if (!_dialogService.ConfirmSessionCompletion(session.DisplayName)) return;
+        IsBusy = true;
+        try
+        {
+            await _collectorService.CompleteSessionManuallyAsync(session.FolderPath);
+            await RefreshSessionsAsync();
+            SelectedSession = Sessions.FirstOrDefault(item => string.Equals(item.FolderPath, session.FolderPath, StringComparison.OrdinalIgnoreCase));
+            StatusMessage = "セッションを完了として扱うよう修正しました。";
+        }
+        catch (Exception exception)
+        {
+            StatusMessage = $"セッションを修正できませんでした: {exception.Message}";
+            _dialogService.ShowError(StatusMessage);
+        }
+        finally { IsBusy = false; }
+    }
+
     private async Task DeleteSelectedSessionAsync()
     {
         var session = SelectedSession;
@@ -966,6 +1002,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OpenSelectedSessionFolderCommand.RaiseCanExecuteChanged();
         OpenGameLogCommand.RaiseCanExecuteChanged();
         DeleteSelectedSessionCommand.RaiseCanExecuteChanged();
+        CompleteSelectedSessionCommand.RaiseCanExecuteChanged();
         EnableAllSessionsCommand.RaiseCanExecuteChanged();
         DisableAllSessionsCommand.RaiseCanExecuteChanged();
         RefreshNavigationState();

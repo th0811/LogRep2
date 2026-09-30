@@ -225,6 +225,41 @@ public sealed class CollectorService : IAsyncDisposable
         }
     }
 
+    public bool CanCompleteSessionManually(string sessionDirectory)
+    {
+        lock (_stateLock) return CanCompleteSessionManuallyCore(sessionDirectory);
+    }
+
+    private bool CanCompleteSessionManuallyCore(string sessionDirectory)
+    {
+        if (_status == CollectorStatus.Starting) return false;
+        if (_status is CollectorStatus.Running or CollectorStatus.Stopping || _collectionTask is { IsCompleted: false })
+        {
+            if (string.IsNullOrWhiteSpace(_sessionDirectory)) return false;
+            return !string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(sessionDirectory)),
+                Path.TrimEndingDirectorySeparator(Path.GetFullPath(_sessionDirectory)), StringComparison.OrdinalIgnoreCase);
+        }
+        return true;
+    }
+
+    public async Task CompleteSessionManuallyAsync(string sessionDirectory)
+    {
+        ThrowIfDisposed();
+        if (!CanCompleteSessionManually(sessionDirectory))
+            throw new InvalidOperationException("現在の収集セッションは修正できません。メイン画面の収集停止を使用してください。");
+        await _operationLock.WaitAsync().ConfigureAwait(false);
+        try
+        {
+            lock (_stateLock)
+            {
+                if (!CanCompleteSessionManuallyCore(sessionDirectory))
+                    throw new InvalidOperationException("現在の収集セッションは修正できません。メイン画面の収集停止を使用してください。");
+                new SessionManager().CompleteManually(sessionDirectory);
+            }
+        }
+        finally { _operationLock.Release(); }
+    }
+
     public void UpdatePollingInterval(int intervalMs)
     {
         ThrowIfDisposed();

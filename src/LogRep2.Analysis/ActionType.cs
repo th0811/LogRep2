@@ -4,7 +4,8 @@ public enum ActionType
 {
     NormalAttack,
     NormalAttackCritical,
-    Skill,
+    WeaponSkill,
     Magic,
-    Unknown
+    Unknown,
+    Ability
 }

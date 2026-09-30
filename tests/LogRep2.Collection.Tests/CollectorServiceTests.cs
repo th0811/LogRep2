@@ -5,6 +5,60 @@ namespace FfxiTempLogCollector.Tests;
 public sealed class CollectorServiceTests
 {
     [Fact]
+    public async Task 手動完了は過去のみ変更し現在の収集と開始停止処理を保護する()
+    {
+        using var directory = new TemporaryDirectory();
+        var config = CreateConfig(directory);
+        Directory.CreateDirectory(config.TempDir);
+        var past = directory.GetPath("past");
+        Directory.CreateDirectory(past);
+        var path = Path.Combine(past, "session.json");
+        File.WriteAllText(path, "{\"status\":\"active\",\"ended_at\":null,\"custom\":42}");
+        await using var service = new CollectorService();
+        var protectedStarting = false;
+        var protectedStopping = false;
+        service.Events.StatusChanged += (_, state) =>
+        {
+            if (state.Status == CollectorStatus.Starting)
+                protectedStarting = !service.CanCompleteSessionManually(past);
+            if (state.Status == CollectorStatus.Stopping)
+                protectedStopping = !service.CanCompleteSessionManually(state.SessionDirectory!);
+        };
+        Assert.True(await service.StartAsync(new CollectorStartRequest { Config = config }));
+        var current = service.GetStatus().SessionDirectory!;
+        var original = File.ReadAllText(Path.Combine(current, "session.json"));
+        Assert.False(service.CanCompleteSessionManually(Path.Combine(current, ".")));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CompleteSessionManuallyAsync(current));
+        Assert.Equal(original, File.ReadAllText(Path.Combine(current, "session.json")));
+        Assert.True(service.CanCompleteSessionManually(past));
+        await service.CompleteSessionManuallyAsync(past);
+        var json = System.Text.Json.Nodes.JsonNode.Parse(File.ReadAllText(path))!;
+        Assert.Equal("completed", json["status"]!.GetValue<string>());
+        Assert.Null(json["ended_at"]);
+        Assert.Equal(42, json["custom"]!.GetValue<int>());
+        Assert.NotNull(json["manually_completed_at"]);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.CompleteSessionManuallyAsync(past));
+        Assert.Equal(CollectorStatus.Running, service.GetStatus().Status);
+        await service.StopAsync();
+        Assert.True(protectedStarting);
+        Assert.True(protectedStopping);
+    }
+
+    [Fact]
+    public async Task 手動完了は終了時刻を保持し不正ファイルを変更しない()
+    {
+        using var directory = new TemporaryDirectory();
+        var path = directory.GetPath("session.json");
+        await using var service = new CollectorService();
+        File.WriteAllText(path, "{\"status\":\"active\",\"ended_at\":\"2026-01-01T00:00:00+09:00\"}");
+        await service.CompleteSessionManuallyAsync(directory.Path);
+        Assert.Contains("2026-01-01T00:00:00", File.ReadAllText(path));
+        File.WriteAllText(path, "不正なJSON");
+        await Assert.ThrowsAsync<InvalidDataException>(() => service.CompleteSessionManuallyAsync(directory.Path));
+        Assert.Equal("不正なJSON", File.ReadAllText(path));
+    }
+
+    [Fact]
     public async Task StartでRunningになりStopでStoppedになる()
     {
         using var temporaryDirectory = new TemporaryDirectory();

@@ -593,6 +593,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             .ToArray();
         var result = _analysisAggregator.Aggregate(parsed, time, unparsed) with
         {
+            Timeline = new PartyTimelineBuilder().Build(included, range, cancellationToken),
             LevelingPointSummaries =
                 _levelingPointAggregator.Aggregate(included, time),
             ExcludedRecordCount = excluded.Length,

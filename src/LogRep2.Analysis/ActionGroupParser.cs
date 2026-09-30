@@ -37,7 +37,7 @@ public sealed class ActionGroupParser : IActionParser
 
     public ActionGroupParseResult ParseGroup(ActionGroup group)
     {
-        if (_magicLogClassifier.TryParseCastStart(
+        if (!_magicLogClassifier.HasActivation(group) && _magicLogClassifier.TryParseCastStart(
                 group,
                 out var castActor,
                 out var castActionName))

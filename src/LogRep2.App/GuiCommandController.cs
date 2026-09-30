@@ -278,7 +278,7 @@ public sealed class GuiCommandController : IAsyncDisposable
             return;
         }
 
-        var analysisWindow = new FFXI_LogAnalyzer.App.MainWindow
+        var analysisWindow = new FFXI_LogAnalyzer.App.MainWindow(_collectorService)
         {
             Owner = GetWindow(),
         };

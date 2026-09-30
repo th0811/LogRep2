@@ -193,6 +193,10 @@
                                       SelectedItem="{Binding SelectedSession, Mode=TwoWay}">
                                 <DataGrid.ContextMenu>
                                     <ContextMenu>
+                                        <MenuItem Header="完了として扱う…"
+                                                  Command="{Binding PlacementTarget.DataContext.CompleteSelectedSessionCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                  ToolTip="過去の収集中セッションの状態を修正します。現在の収集はメイン画面の収集停止を使用してください。"
+                                                  ToolTipService.ShowOnDisabled="True" />
                                         <MenuItem Header="エイリアスを編集" InputGestureText="F2" Click="OnEditAliasMenuClick"
                                                   IsEnabled="{Binding SelectedSession.CanEditAlias}" />
                                     </ContextMenu>

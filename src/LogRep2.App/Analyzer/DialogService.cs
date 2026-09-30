@@ -62,4 +62,12 @@ public sealed class DialogService
             MessageBoxButton.YesNo,
             MessageBoxImage.Warning) == MessageBoxResult.Yes;
     }
+
+    public bool ConfirmSessionCompletion(string sessionName)
+    {
+        return System.Windows.MessageBox.Show(
+            $"セッション「{sessionName}」を完了として扱いますか？\n保存された状態のみ修正します。収集を停止する操作ではありません。終了時刻は変更せず、手動修正日時を記録します。",
+            "セッション状態の修正", MessageBoxButton.YesNo, MessageBoxImage.Question,
+            MessageBoxResult.No) == MessageBoxResult.Yes;
+    }
 }

@@ -8,6 +8,8 @@ public sealed class ActorSummaryViewModel
     {
         Actor = summary.Actor;
         TotalDamage = summary.TotalDamage.ToString("N0");
+        IncomingDamage = summary.IncomingDamage.TotalDamage.ToString("N0");
+        EvasionRate = summary.EvasionRate is null ? "—" : FormatRateWithCount(summary.EvasionRate, summary.EvadeCount, summary.IncomingHitCount + summary.EvadeCount);
         Dps = FormatNullable(summary.Dps);
         DpsTimeConfidence = AnalysisDisplayText.ToText(
             summary.DpsTimeConfidence);
@@ -22,6 +24,8 @@ public sealed class ActorSummaryViewModel
     public string Actor { get; }
 
     public string TotalDamage { get; }
+    public string IncomingDamage { get; }
+    public string EvasionRate { get; }
 
     public string Dps { get; }
 
