@@ -88,7 +88,7 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="330*" MaxWidth="330" />
                         <ColumnDefinition Width="21" />
-                        <ColumnDefinition Width="380*" MaxWidth="380" />
+                        <ColumnDefinition Width="620*" />
                         <ColumnDefinition Width="*" />
                         <ColumnDefinition Width="Auto" />
                     </Grid.ColumnDefinitions>
@@ -140,30 +140,46 @@
                             Background="{StaticResource BorderBrushDefault}" />
 
                     <!-- 検索（入力欄と連結ボタン、狭いウィンドウでは縮小） -->
-                    <DockPanel Grid.Column="2" LastChildFill="True">
-                        <Button DockPanel.Dock="Right" Style="{StaticResource SearchJoinedButtonStyle}" Command="{Binding SearchCommand}" Content="検索" />
-                        <Border x:Name="SearchFrame" Height="32"
-                                Style="{StaticResource SearchInputFrameStyle}">
-                            <DockPanel>
-                                <Path DockPanel.Dock="Left" Width="13" Height="13" Margin="0,0,8,0"
-                                      VerticalAlignment="Center" Stretch="Uniform"
-                                      Stroke="{StaticResource TextMutedBrush}" StrokeThickness="1.6"
-                                      StrokeStartLineCap="Round" StrokeEndLineCap="Round"
-                                      Data="{StaticResource SearchIconGeometry}" />
-                                <!-- クリア（入力があるときだけ） -->
-                                <Button DockPanel.Dock="Right" Style="{StaticResource ClearSearchButtonStyle}"
-                                        Click="OnClearSearchClick" ToolTip="検索語をクリア（Esc）" />
-                                <TextBox x:Name="SearchBox"
-                                         Style="{StaticResource BareTextBoxStyle}"
-                                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                                         ToolTip="本文の部分一致検索。空欄で検索すると全行を表示します。">
-                                    <TextBox.InputBindings>
-                                        <KeyBinding Key="Return" Command="{Binding SearchCommand}" />
-                                    </TextBox.InputBindings>
-                                </TextBox>
-                            </DockPanel>
-                        </Border>
-                    </DockPanel>
+                    <Grid x:Name="SearchOptionsPanel" Grid.Column="2" Grid.ColumnSpan="2"
+                          SizeChanged="OnSearchOptionsSizeChanged">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" MaxWidth="380" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <DockPanel LastChildFill="True">
+                            <Button DockPanel.Dock="Right" Style="{StaticResource SearchJoinedButtonStyle}" Command="{Binding SearchCommand}" Content="検索" />
+                            <Border x:Name="SearchFrame" Height="32"
+                                    Style="{StaticResource SearchInputFrameStyle}">
+                                <DockPanel>
+                                    <Path DockPanel.Dock="Left" Width="13" Height="13" Margin="0,0,8,0"
+                                          VerticalAlignment="Center" Stretch="Uniform"
+                                          Stroke="{StaticResource TextMutedBrush}" StrokeThickness="1.6"
+                                          StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                          Data="{StaticResource SearchIconGeometry}" />
+                                    <!-- クリア（入力があるときだけ） -->
+                                    <Button DockPanel.Dock="Right" Style="{StaticResource ClearSearchButtonStyle}"
+                                            Click="OnClearSearchClick" ToolTip="検索語をクリア（Esc）" />
+                                    <TextBox x:Name="SearchBox"
+                                             Style="{StaticResource BareTextBoxStyle}"
+                                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                                             ToolTip="本文の部分一致検索。空欄で検索すると全行を表示します。">
+                                        <TextBox.InputBindings>
+                                            <KeyBinding Key="Return" Command="{Binding SearchCommand}" />
+                                        </TextBox.InputBindings>
+                                    </TextBox>
+                                </DockPanel>
+                            </Border>
+                        </DockPanel>
+                            <CheckBox x:Name="MatchingGroupsOption" Grid.Column="1" Margin="12,0,0,0"
+                                  HorizontalAlignment="Left" VerticalAlignment="Center"
+                                  IsChecked="{Binding IncludeMatchingGroups}"
+                                  Content="同じイベントグループも表示"
+                                  ToolTip="検索に一致した行と同一セッション・同一イベントグループの行を表示します。「除外済みのみ」が有効な場合は、除外済みの行だけを表示します。" />
+                    </Grid>
                 </Grid>
             </StackPanel>
         </Border>

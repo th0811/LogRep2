@@ -6,6 +6,56 @@ namespace FfxiTempLogCollector.Tests;
 public sealed class LogExclusionTests
 {
     [Fact]
+    public void 検索一致グループの追加表示を切り替えてダメージ行を除外できる()
+    {
+        using var directory = new TemporaryDirectory();
+        var vm = new LogExclusionViewModel([CreateSession(directory.Path)]) { SearchText = "構え" };
+        vm.SearchCommand.Execute(null);
+        Assert.False(vm.IncludeMatchingGroups);
+        Assert.Single(vm.VisibleRows);
+        vm.IncludeMatchingGroups = true;
+        Assert.Equal(new long?[] { 1, 2, 3 }, vm.VisibleRows.Select(row => row.Order));
+        var damage = vm.VisibleRows[2];
+        vm.UpdateSelection([damage]);
+        Assert.True(vm.CanExcludeRows);
+        vm.Apply(LogExclusionOperation.ExcludeRows, [damage]);
+        vm.ExcludedOnly = true;
+        Assert.Same(damage, Assert.Single(vm.VisibleRows));
+        vm.IncludeMatchingGroups = false;
+        Assert.Empty(vm.VisibleRows);
+        vm.ExcludedOnly = false;
+        Assert.Single(vm.VisibleRows);
+        vm.IncludeMatchingGroups = true;
+        vm.SearchText = "トアクリーバ";
+        vm.SearchCommand.Execute(null);
+        Assert.Equal(5, vm.VisibleRows.Count);
+        vm.SearchText = "該当なし";
+        vm.SearchCommand.Execute(null);
+        Assert.Empty(vm.VisibleRows);
+        vm.SearchText = " ";
+        vm.SearchCommand.Execute(null);
+        Assert.Equal(5, vm.VisibleRows.Count);
+    }
+
+    [Fact]
+    public void 同じグループIDでも別セッションやグループ未設定の行は追加しない()
+    {
+        using var directory = new TemporaryDirectory();
+        var vm = new LogExclusionViewModel([CreateSession(directory.Path,
+        [
+            Record("session", "1", "g1", "構え", 1),
+            Record("session", "2", "g1", "ダメージ", 2),
+            Record("other", "3", "g1", "別セッション", 3),
+            Record("session", "4", "", "構え", 4),
+            Record("session", "5", "", "グループなし", 5),
+        ])])
+        { SearchText = "構え", IncludeMatchingGroups = true };
+        Assert.Equal(new long?[] { 1, 2, 4 }, vm.VisibleRows.Select(row => row.Order));
+        vm.SelectedSession = CreateSession(directory.Path, [Record("other", "6", "g1", "別のログ", 6)]);
+        Assert.Empty(vm.VisibleRows);
+    }
+
+    [Fact]
     public void 除外状態の変更と同数の選択切替で実行可能な操作が変わる()
     {
         using var directory = new TemporaryDirectory();
