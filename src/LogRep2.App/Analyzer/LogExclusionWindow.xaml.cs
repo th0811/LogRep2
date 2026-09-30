@@ -37,6 +37,18 @@ public partial class LogExclusionWindow : Window
 
     private void OnClearSearchClick(object sender, RoutedEventArgs e) => ClearSearch();
 
+    private void OnSearchOptionsSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        // 検索欄の操作に必要な幅を確保できないときは、オプションをその直下へ移します。
+        MatchingGroupsOption.Measure(new System.Windows.Size(double.PositiveInfinity, double.PositiveInfinity));
+        var optionWidth = MatchingGroupsOption.DesiredSize.Width - MatchingGroupsOption.Margin.Left;
+        var wrap = e.NewSize.Width < 240 + 12 + optionWidth;
+        Grid.SetRow(MatchingGroupsOption, wrap ? 1 : 0);
+        Grid.SetColumn(MatchingGroupsOption, wrap ? 0 : 1);
+        Grid.SetColumnSpan(MatchingGroupsOption, wrap ? 2 : 1);
+        MatchingGroupsOption.Margin = wrap ? new Thickness(0, 10, 0, 0) : new Thickness(12, 0, 0, 0);
+    }
+
     private void OnSearchBoxPreviewKeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key != Key.Escape || string.IsNullOrEmpty(SearchBox.Text)) return;

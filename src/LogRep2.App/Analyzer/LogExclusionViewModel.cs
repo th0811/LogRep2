@@ -18,6 +18,7 @@ public sealed class LogExclusionViewModel : INotifyPropertyChanged
     private LogExclusionRow? _selectedRow;
     private string _searchText = string.Empty;
     private bool _excludedOnly;
+    private bool _includeMatchingGroups;
     private bool _showGroupOnly;
     private string _statusMessage = "本文を検索し、前後ログまたは同一グループを確認して除外してください。";
     private LogExclusionRow[] _allRows = [];
@@ -151,6 +152,12 @@ public sealed class LogExclusionViewModel : INotifyPropertyChanged
         set { if (Set(ref _showGroupOnly, value)) RefreshContext(); }
     }
 
+    public bool IncludeMatchingGroups
+    {
+        get => _includeMatchingGroups;
+        set { if (Set(ref _includeMatchingGroups, value)) RefreshRows(); }
+    }
+
     public LogExclusionRow? SelectedRow
     {
         get => _selectedRow;
@@ -160,9 +167,18 @@ public sealed class LogExclusionViewModel : INotifyPropertyChanged
     private void RefreshRows()
     {
         var searchText = SearchText.Trim();
+        // 除外状態にかかわらず本文一致からグループを特定し、最後に除外済みフィルターを適用します。
+        var matchingGroups = IncludeMatchingGroups && searchText.Length > 0
+            ? _allRows.Where(row => row.Text.Contains(searchText, StringComparison.OrdinalIgnoreCase))
+                .Select(row => AnalysisExclusions.TryGetGroupKey(row.Record))
+                .Where(key => key is not null).ToHashSet()
+            : null;
         VisibleRows = _allRows.Where(row =>
             (!ExcludedOnly || row.IsExcluded)
-            && row.Text.Contains(searchText, StringComparison.OrdinalIgnoreCase)).ToArray();
+            && (row.Text.Contains(searchText, StringComparison.OrdinalIgnoreCase)
+                || (matchingGroups is not null
+                    && AnalysisExclusions.TryGetGroupKey(row.Record) is { } key
+                    && matchingGroups.Contains(key)))).ToArray();
         if (SelectedRow is null || !VisibleRows.Contains(SelectedRow))
         {
             SelectedRow = VisibleRows.FirstOrDefault();
