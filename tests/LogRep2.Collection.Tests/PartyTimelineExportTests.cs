@@ -7,6 +7,24 @@ namespace FfxiTempLogCollector.Tests;
 public sealed class PartyTimelineExportTests
 {
     [Fact]
+    public void 被攻撃のみのPCにも被ダメージ統計と回避率を表示する()
+    {
+        var records = new[]
+        {
+            Record(1, "hit", "Bossの攻撃。"), Record(2, "hit", "→Aliceに、100ダメージ。"),
+            Record(3, "magic", "Bossのファイアが発動。"), Record(4, "magic", "→Aliceに、300ダメージ。"),
+            Record(5, "miss", "Bossの攻撃。"), Record(6, "miss", "Aliceは攻撃をかわした。"),
+        };
+        var result = new RealtimeAnalysisEngine().Analyze(records, 0, records.Length).Result;
+        var html = PartyTimelineHtmlExporter.Build(new PartyTimelineBuilder().Build(records), ["Alice"], "戦闘", "全区間", 0, result.ActorSummaries);
+        Assert.Contains("<th>被ダメージ合計</th><th>被ダメージ最大</th><th>被ダメージ最小</th><th>被ダメージ平均</th><th>回避率</th>", html);
+        Assert.Contains("<td>400</td><td>300</td><td>100</td><td>200.00</td><td>50.00%</td>", html);
+        var viewModel = new ActorSummaryViewModel(result.ActorSummaries.Single(item => item.Actor == "Alice"));
+        Assert.Equal("400", viewModel.IncomingDamage);
+        Assert.Equal("50％(1/2)", viewModel.EvasionRate);
+    }
+
+    [Fact]
     public void PCサマリは通常攻撃とWSの命中率を合算しWS専用統計を表示する()
     {
         var records = new List<CanonicalRecord>();

@@ -6,6 +6,54 @@ namespace FfxiTempLogCollector.Tests;
 public sealed class IntegratedWindowTests
 {
     [Fact]
+    public void HTML候補ゼロから登録管理で復帰しNPC登録で選択を解除する()
+    {
+        Exception? captured = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                WpfTestApplication.Ensure();
+                (string Name, string Classification)[] candidates = [];
+                System.Windows.Window? managerOwner = null;
+                var model = new FFXI_LogAnalyzer.App.TimelineMemberSelectionViewModel(() => candidates);
+                var window = new FFXI_LogAnalyzer.App.TimelineMemberSelectionWindow(model,
+                    owner => { managerOwner = owner; candidates = [("Alice", "PC登録")]; },
+                    _ => { }, _ => candidates = [], _ => { });
+                try
+                {
+                    var accept = (System.Windows.Controls.Button)window.FindName("AcceptButton");
+                    var manage = (System.Windows.Controls.Button)window.FindName("ManageButton");
+                    var empty = (System.Windows.Controls.TextBlock)window.FindName("EmptyMessage");
+                    Assert.False(accept.IsEnabled);
+                    Assert.True(manage.IsEnabled);
+                    Assert.Equal(Visibility.Visible, empty.Visibility);
+                    manage.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.Button.ClickEvent));
+                    Assert.Same(window, managerOwner);
+                    Assert.Equal(Visibility.Collapsed, empty.Visibility);
+                    var list = (System.Windows.Controls.StackPanel)window.FindName("MemberList");
+                    var check = (System.Windows.Controls.CheckBox)list.Children[0];
+                    check.IsChecked = true;
+                    Assert.True(accept.IsEnabled);
+                    var label = (System.Windows.Controls.DockPanel)check.Content;
+                    var registration = label.Children.OfType<System.Windows.Controls.Button>().Single();
+                    var npc = (System.Windows.Controls.MenuItem)registration.ContextMenu.Items[1];
+                    npc.RaiseEvent(new RoutedEventArgs(System.Windows.Controls.MenuItem.ClickEvent));
+                    Assert.Empty(window.SelectedMembers);
+                    Assert.False(accept.IsEnabled);
+                    Assert.Equal(Visibility.Visible, empty.Visibility);
+                }
+                finally { window.Close(); }
+            }
+            catch (Exception exception) { captured = exception; }
+        });
+        thread.SetApartmentState(ApartmentState.STA);
+        thread.Start();
+        Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
+        Assert.Null(captured);
+    }
+
+    [Fact]
     public void PT出力メンバー選択が共通スタイルで初期化でき選択状態を維持する()
     {
         Exception? captured = null;

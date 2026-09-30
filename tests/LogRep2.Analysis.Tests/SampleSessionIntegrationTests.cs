@@ -65,7 +65,8 @@ public sealed class SampleSessionIntegrationTests
 
         var result = new AnalysisAggregator().Aggregate(parsed, analysisTime, unparsed);
 
-        Assert.Equal(2, result.ActorSummaries.Count);
+        Assert.Equal(3, result.ActorSummaries.Count);
+        Assert.Contains(result.ActorSummaries, summary => summary.TotalUseCount == 0 && summary.IncomingDamage.TotalDamage > 0);
         Assert.Single(result.UnparsedActionGroups);
         Assert.Single(result.UnknownActionGroups);
 

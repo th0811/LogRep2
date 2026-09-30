@@ -26,7 +26,7 @@ public static class PartyTimelineHtmlExporter
             .Append("</p><p>作成日時: ").Append(E(DateTimeOffset.Now.ToString("yyyy-MM-dd HH:mm:ss zzz", CultureInfo.InvariantCulture)))
             .Append(" · バージョン: ").Append(E(typeof(PartyTimelineHtmlExporter).Assembly.GetName().Version?.ToString() ?? "不明"))
             .Append("</p><nav><a href=\"#numbers\">数値データ</a><a href=\"#timeline\">行動タイムライン</a></nav></header><main>")
-            .Append("<details class=\"warnings\"><summary>表示・集計について</summary><p>選択区間を1回のボス戦として表示します。ダメージ合計と図表はWS・アビリティ・魔法を対象とし、通常攻撃・連携ダメージ・実行者不明は含めません。攻撃命中率のみ通常攻撃とWSを合算し、命中数÷（命中数＋非命中数）で算出します。判定不明は分母に含めません。WSダメージ統計はダメージを確認できた1回のWSの対象合計から算出し、ミス・結果不明を0で補完しません。縦の間隔は経過時間を表しません。時刻はログに記録された参考情報です。</p></details>");
+            .Append("<details class=\"warnings\"><summary>表示・集計について</summary><p>選択区間を1回のボス戦として表示します。ダメージ合計と図表はWS・アビリティ・魔法を対象とし、通常攻撃・連携ダメージ・実行者不明は含めません。被ダメージは通常攻撃・魔法・連携を含む対象別のダメージ結果1件を単位に集計し、回避や結果不明を0で補完しません。回避率は魔法・連携・成否不明・分身による無効化・効果なしを除外し、回避数÷（被命中数＋回避数）で算出します。攻撃命中率は通常攻撃とWSを合算し、命中数÷（命中数＋非命中数）で算出します。判定不明は分母に含めません。WSダメージ統計はダメージを確認できた1回のWSの対象合計から算出し、ミス・結果不明を0で補完しません。縦の間隔は経過時間を表しません。時刻はログに記録された参考情報です。</p></details>");
         if (timeline.Warnings.Count > 0)
         {
             html.Append("<details class=\"warnings\"><summary>解析上の注意（区間全体）</summary><ul>");
@@ -34,7 +34,7 @@ public static class PartyTimelineHtmlExporter
             html.Append("</ul></details>");
         }
         html.Append("<section id=\"numbers\"><h2>PC別サマリ</h2>");
-        html.Append("<div class=\"scroll\"><table><thead><tr><th>PC</th><th>ダメージ合計</th><th>攻撃命中率</th><th>WS回数</th><th>WSダメージ平均</th><th>WSダメージ最大</th><th>WSダメージ最小</th></tr></thead><tbody>");
+        html.Append("<div class=\"scroll\"><table><thead><tr><th>PC</th><th>ダメージ合計</th><th>攻撃命中率</th><th>WS回数</th><th>WSダメージ平均</th><th>WSダメージ最大</th><th>WSダメージ最小</th><th>被ダメージ合計</th><th>被ダメージ最大</th><th>被ダメージ最小</th><th>被ダメージ平均</th><th>回避率</th></tr></thead><tbody>");
         foreach (var player in players)
             PcSummaryRow(html, player, events.Where(item => item.Actor == player).ToArray(),
                 actorSummaries?.FirstOrDefault(summary => summary.Actor == player));
@@ -116,7 +116,13 @@ public static class PartyTimelineHtmlExporter
             .Append("</td><td>").Append(hitRate).Append("</td><td>").Append(N(weaponSkills.Length))
             .Append("</td><td>").Append(wsDamages.Length == 0 ? "—" : wsDamages.Average().ToString("N2", CultureInfo.InvariantCulture))
             .Append("</td><td>").Append(wsDamages.Length == 0 ? "—" : N(wsDamages.Max()))
-            .Append("</td><td>").Append(wsDamages.Length == 0 ? "—" : N(wsDamages.Min())).Append("</td></tr>");
+            .Append("</td><td>").Append(wsDamages.Length == 0 ? "—" : N(wsDamages.Min()))
+            .Append("</td><td>").Append(summary is null ? "—" : N(summary.IncomingDamage.TotalDamage))
+            .Append("</td><td>").Append(summary?.IncomingDamage.MaxDamage is int maximum ? N(maximum) : "—")
+            .Append("</td><td>").Append(summary?.IncomingDamage.MinDamage is int minimum ? N(minimum) : "—")
+            .Append("</td><td>").Append(summary?.IncomingDamage.AverageDamage?.ToString("N2", CultureInfo.InvariantCulture) ?? "—")
+            .Append("</td><td>").Append(summary?.EvasionRate is double rate ? (rate * 100).ToString("N2", CultureInfo.InvariantCulture) + "%" : "—")
+            .Append("</td></tr>");
     }
 
     private static void StartSummary(StringBuilder html, bool sortable = false)

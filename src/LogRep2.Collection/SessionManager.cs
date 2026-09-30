@@ -77,6 +77,18 @@ public sealed class SessionManager
         return session;
     }
 
+    internal void CompleteManually(string sessionDirectory)
+    {
+        var path = GetSessionPath(sessionDirectory);
+        var document = JsonFileSerializer.Load<System.Text.Json.Nodes.JsonObject>(path);
+        if (document["status"]?.GetValue<string>() != "active")
+            throw new InvalidOperationException("収集中の状態が残っているセッションのみ修正できます。");
+        document["status"] = "completed";
+        document["manually_completed_at"] = DateTimeOffset.Now;
+        // 終了時刻や未知の拡張項目を保持し、ログ本体には触れません。
+        JsonFileSerializer.Save(path, document);
+    }
+
     private static string GetSessionPath(string sessionDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(sessionDirectory);

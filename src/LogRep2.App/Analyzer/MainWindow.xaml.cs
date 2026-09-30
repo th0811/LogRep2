@@ -11,12 +11,15 @@ namespace FFXI_LogAnalyzer.App;
 public partial class MainWindow : Window
 {
     private bool _endingAliasEdit;
-    public MainWindow()
+    public MainWindow() : this(null) { }
+
+    public MainWindow(FfxiTempLogCollector.Core.CollectorService? collectorService)
     {
         InitializeComponent();
         DataContext = new MainViewModel(
             new SessionOpenService(),
-            new DialogService());
+            new DialogService(), new AnalyzerSettingsStore(), collectorService: collectorService);
+        SessionGrid.ContextMenuOpening += (_, _) => ((MainViewModel)DataContext).CompleteSelectedSessionCommand.RaiseCanExecuteChanged();
         ((MainViewModel)DataContext).LogExclusionsRequested += editor =>
             new LogExclusionWindow(editor) { Owner = this }.ShowDialog();
 

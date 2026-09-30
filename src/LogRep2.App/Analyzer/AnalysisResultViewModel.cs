@@ -445,7 +445,9 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         SaveSettingsAndRefreshClassifications();
     }
 
-    private void OpenActorRegistrationManager()
+    private void OpenActorRegistrationManager() => OpenActorRegistrationManager(System.Windows.Application.Current.MainWindow);
+
+    private void OpenActorRegistrationManager(System.Windows.Window owner)
     {
         var viewModel = new ActorRegistrationManagerViewModel(
             _settings,
@@ -458,7 +460,7 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
         var window = new ActorRegistrationManagerWindow
         {
             DataContext = viewModel,
-            Owner = System.Windows.Application.Current.MainWindow
+            Owner = owner
         };
         window.ShowDialog();
     }
@@ -479,13 +481,9 @@ public sealed class AnalysisResultViewModel : INotifyPropertyChanged
     {
         try
         {
-            var candidates = GetTimelineMemberCandidates();
-            if (candidates.Count == 0)
-            {
-                StatusMessage = "PTメンバーの候補がありません。分析区間を確認してください。";
-                return;
-            }
-            var selection = new TimelineMemberSelectionWindow(candidates)
+            var selection = new TimelineMemberSelectionWindow(
+                new TimelineMemberSelectionViewModel(GetTimelineMemberCandidates),
+                OpenActorRegistrationManager, RegisterAsPc, RegisterAsNpc, ClearRegistration)
             {
                 Owner = System.Windows.Application.Current?.Windows.OfType<System.Windows.Window>().FirstOrDefault(window => window.IsActive),
             };
