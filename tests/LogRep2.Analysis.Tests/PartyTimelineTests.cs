@@ -5,6 +5,31 @@ namespace FFXI_LogAnalyzer.Tests;
 public sealed class PartyTimelineTests
 {
     [Theory]
+    [InlineData("サムライロール", 8)]
+    [InlineData("ウィザーズロール", 11)]
+    public void 感嘆符なしのダブルアップをアビリティとして集計し結果を元ログに保持する(string roll, int total)
+    {
+        const string declaration = "Xitraのダブルアップ";
+        var effect = $"→{roll}の合計値が{total}になった！";
+        var parsed = new ActionGroupParser(new DefaultAnalysisRuleSet())
+            .ParseGroup(TestActionGroupFactory.Create(declaration, effect)).Parsed!;
+        Assert.Equal("Xitra", parsed.Actor);
+        Assert.Equal("ダブルアップ", parsed.ActionName);
+        Assert.Equal(ActionType.Ability, parsed.ActionType);
+        var summary = Assert.Single(new AnalysisAggregator().Aggregate([parsed], AnalysisTimeResult.Unknown([])).ActionSummaries);
+        Assert.Equal(1, summary.UseCount);
+        Assert.Equal(0, summary.Damage.TotalDamage);
+        var item = Assert.Single(Build(R(1, "double", declaration), R(2, "double", effect)).Events);
+        Assert.Equal("ダブルアップ", item.ActionName);
+        Assert.Equal(ActionType.Ability, item.ActionType);
+        Assert.True(item.IsExecuted);
+        Assert.Null(item.Damage);
+        Assert.Equal(effect, item.SourceRecords[1].VisibleText);
+        Assert.False(AbilityLogClassifier.TryParse(effect, out _, out _));
+        Assert.False(AbilityLogClassifier.TryParse("Xitraのバーサク", out _, out _));
+    }
+
+    [Theory]
     [InlineData("サムライロール", 5)]
     [InlineData("ウィザーズロール", 11)]
     public void ロールの合計値を行動名に含めず同じ名前で集計する(string name, int total)

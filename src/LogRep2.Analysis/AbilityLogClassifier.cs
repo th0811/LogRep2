@@ -10,6 +10,10 @@ public static partial class AbilityLogClassifier
         var match = RollDeclarationRegex().Match(text);
         if (!match.Success)
         {
+            match = DoubleUpDeclarationRegex().Match(text);
+        }
+        if (!match.Success)
+        {
             match = DeclarationRegex().Match(text);
         }
         actor = match.Groups["actor"].Value;
@@ -23,4 +27,8 @@ public static partial class AbilityLogClassifier
 
     [GeneratedRegex(@"^(?<actor>[A-Za-z][A-Za-z0-9 '._-]*)の(?<action>[^→、。！!\r\n]+ロール)→合計値が[0-9]+になった[！!]$")]
     private static partial Regex RollDeclarationRegex();
+
+    // ダブルアップだけは、宣言行の末尾に感嘆符がありません。
+    [GeneratedRegex(@"^(?<actor>[A-Za-z][A-Za-z0-9 '._-]*)の(?<action>ダブルアップ)$")]
+    private static partial Regex DoubleUpDeclarationRegex();
 }
