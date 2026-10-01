@@ -91,6 +91,7 @@ public sealed class SampleSessionIntegrationTests
         Assert.Equal(2, normalAttack.HitCount);
         Assert.Equal(1, normalAttack.MissCount);
         Assert.Equal(1, normalAttack.UnknownCount);
+        Assert.Equal(2d / 3d, normalAttack.HitRate);
         Assert.Equal(123, normalAttack.Damage.TotalDamage);
         Assert.Equal(123, normalAttack.Damage.MaxDamage);
         Assert.Equal(0, normalAttack.Damage.MinDamage);

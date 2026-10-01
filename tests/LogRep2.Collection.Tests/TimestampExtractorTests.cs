@@ -6,37 +6,18 @@ public sealed class TimestampExtractorTests
 {
     private readonly TimestampExtractor _extractor = new();
 
-    [Fact]
-    public void 分精度の時刻を抽出できる()
+    [Theory]
+    [InlineData("21:35", "minute", 21, 35, 0)]
+    [InlineData("21:35:12", "second", 21, 35, 12)]
+    [InlineData("9:05", "minute", 9, 5, 0)]
+    public void 時刻と精度を抽出できる(string text, string precision, int hour, int minute, int second)
     {
-        var actual = _extractor.Extract("[21:35] text");
+        var actual = _extractor.Extract($"[{text}] 本文");
 
         Assert.NotNull(actual);
-        Assert.Equal("21:35", actual.TimeText);
-        Assert.Equal("minute", actual.Precision);
-        Assert.Equal(new TimeOnly(21, 35), actual.Time);
-    }
-
-    [Fact]
-    public void 秒精度の時刻を抽出できる()
-    {
-        var actual = _extractor.Extract("[21:35:12] text");
-
-        Assert.NotNull(actual);
-        Assert.Equal("21:35:12", actual.TimeText);
-        Assert.Equal("second", actual.Precision);
-        Assert.Equal(new TimeOnly(21, 35, 12), actual.Time);
-    }
-
-    [Fact]
-    public void 一桁の時を抽出できる()
-    {
-        var actual = _extractor.Extract("[9:05] text");
-
-        Assert.NotNull(actual);
-        Assert.Equal("9:05", actual.TimeText);
-        Assert.Equal("minute", actual.Precision);
-        Assert.Equal(new TimeOnly(9, 5), actual.Time);
+        Assert.Equal(text, actual.TimeText);
+        Assert.Equal(precision, actual.Precision);
+        Assert.Equal(new TimeOnly(hour, minute, second), actual.Time);
     }
 
     [Fact]

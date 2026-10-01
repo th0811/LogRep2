@@ -31,24 +31,23 @@ public class ActionGroupParserTests
         Assert.Equal(HitStatus.Hit, result.Parsed.HitStatus);
     }
 
-    [Fact]
-    public void ParseGroup_MissIsMiss()
+    [Theory]
+    [InlineData("ミス。", HitStatus.Miss)]
+    [InlineData("敵は攻撃を回避した。", HitStatus.Miss)]
+    [InlineData("敵は攻撃をかわした。", HitStatus.Miss)]
+    [InlineData("効果なし。", HitStatus.Miss)]
+    [InlineData("効果がなかった。", HitStatus.Miss)]
+    [InlineData("レジストされた！", HitStatus.Miss)]
+    [InlineData("発動失敗。", HitStatus.Excluded)]
+    [InlineData("使用失敗。", HitStatus.Excluded)]
+    public void ダメージのない攻撃の失敗を解析する(string effect, HitStatus expected)
     {
-        var result = Parse("Xitraの攻撃。ミス。");
+        var result = Parse("Xitraの攻撃。", effect);
 
         Assert.True(result.IsParsed);
-        Assert.Equal(HitStatus.Miss, result.Parsed!.HitStatus);
-    }
-
-    [Fact]
-    public void ParseGroup_NoEffectIsMiss()
-    {
-        var result = Parse(
-            "Xitraの攻撃。",
-            "効果なし。");
-
-        Assert.True(result.IsParsed);
-        Assert.Equal(HitStatus.Miss, result.Parsed!.HitStatus);
+        Assert.Equal(ActionType.NormalAttack, result.Parsed!.ActionType);
+        Assert.False(result.Parsed.Damage.HasDamage);
+        Assert.Equal(expected, result.Parsed.HitStatus);
     }
 
     [Fact]
@@ -192,44 +191,20 @@ public class ActionGroupParserTests
     }
 
     [Theory]
-    [InlineData("MP")]
-    [InlineData("TP")]
-    public void ParseGroup_MpOrTpAbsorbIsHitWithoutDamage(string resource)
+    [InlineData("アブゾタック", "→敵から、30MP吸収。")]
+    [InlineData("アブゾタック", "→敵から、30TP吸収。")]
+    [InlineData("ケアルIV", "→味方のHPが、100回復。")]
+    [InlineData("イレース", "→味方のバイオの効果を消し去った！")]
+    [InlineData("プロテス", "→Xitraは、プロテスの効果。")]
+    [InlineData("スリプル", "→敵は、睡眠の状態になった！")]
+    public void 支援魔法の成功をダメージなしの命中として解析する(string name, string effect)
     {
-        var result = Parse(
-            "Alegreのアブゾタックが発動。",
-            $"→Skomoraから、30{resource}吸収。");
+        var result = Parse($"Xitraの{name}が発動。", effect);
 
         Assert.True(result.IsParsed);
-        Assert.Equal("Alegre", result.Parsed!.Actor);
-        Assert.Equal("アブゾタック", result.Parsed.ActionName);
+        Assert.Equal("Xitra", result.Parsed!.Actor);
+        Assert.Equal(name, result.Parsed.ActionName);
         Assert.Equal(ActionType.Magic, result.Parsed.ActionType);
-        Assert.False(result.Parsed.Damage.HasDamage);
-        Assert.Equal(HitStatus.Hit, result.Parsed.HitStatus);
-    }
-
-    [Fact]
-    public void ParseGroup_MagicRecoveryIsHitWithoutDamage()
-    {
-        var result = Parse(
-            "TaechinzのケアルIVが発動。",
-            "→AlegreのHPが、100回復。");
-
-        Assert.True(result.IsParsed);
-        Assert.Equal(ActionType.Magic, result.Parsed!.ActionType);
-        Assert.False(result.Parsed.Damage.HasDamage);
-        Assert.Equal(HitStatus.Hit, result.Parsed.HitStatus);
-    }
-
-    [Fact]
-    public void ParseGroup_MagicStatusRemovalIsHitWithoutDamage()
-    {
-        var result = Parse(
-            "Taechinzのイレースが発動。",
-            "→Alegreのバイオの効果を消し去った！");
-
-        Assert.True(result.IsParsed);
-        Assert.Equal(ActionType.Magic, result.Parsed!.ActionType);
         Assert.False(result.Parsed.Damage.HasDamage);
         Assert.Equal(HitStatus.Hit, result.Parsed.HitStatus);
     }
@@ -255,36 +230,6 @@ public class ActionGroupParserTests
         Assert.True(result.IsParsed);
         Assert.Equal("Leshonn", result.Parsed!.Actor);
         Assert.Equal(ActionType.NormalAttack, result.Parsed.ActionType);
-        Assert.False(result.Parsed.Damage.HasDamage);
-        Assert.Equal(HitStatus.Hit, result.Parsed.HitStatus);
-    }
-
-    [Fact]
-    public void ParseGroup_MagicEffectActivationCanBeParsed()
-    {
-        var result = Parse(
-            "Xitraのプロテスが発動。",
-            "→Xitraは、プロテスの効果。");
-
-        Assert.True(result.IsParsed);
-        Assert.Equal("Xitra", result.Parsed!.Actor);
-        Assert.Equal("プロテス", result.Parsed.ActionName);
-        Assert.Equal(ActionType.Magic, result.Parsed.ActionType);
-        Assert.False(result.Parsed.Damage.HasDamage);
-        Assert.Equal(HitStatus.Hit, result.Parsed.HitStatus);
-    }
-
-    [Fact]
-    public void ParseGroup_MagicStatusActivationCanBeParsed()
-    {
-        var result = Parse(
-            "Xitraのスリプルが発動。",
-            "→Gurfurlur the Menacingは、睡眠の状態になった！");
-
-        Assert.True(result.IsParsed);
-        Assert.Equal("Xitra", result.Parsed!.Actor);
-        Assert.Equal("スリプル", result.Parsed.ActionName);
-        Assert.Equal(ActionType.Magic, result.Parsed.ActionType);
         Assert.False(result.Parsed.Damage.HasDamage);
         Assert.Equal(HitStatus.Hit, result.Parsed.HitStatus);
     }

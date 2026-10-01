@@ -35,62 +35,26 @@ public class ActionGroupBuilderTests
         Assert.Equal(["session-1:event-1", "session-2:event-1"], groups.Select(group => group.ActionGroupKey));
     }
 
-    [Fact]
-    public void Build_SortsRecordsBySequenceHint()
+    [Theory]
+    [InlineData(200L, 100L, "first", "second")]
+    [InlineData(null, null, "first", "second")]
+    [InlineData(-1L, -5L, "first", "second")]
+    [InlineData(1L, 1L, "second", "first")]
+    public void 行動内の並び順と元ログとOrder範囲を保持する(
+        long? secondHint, long? firstHint, string expectedFirst, string expectedLast)
     {
         var records = new[]
         {
-            CreateRecord("second", "session-1", "event-1", order: 1, sequenceHintMin: 200),
-            CreateRecord("first", "session-1", "event-1", order: 2, sequenceHintMin: 100)
+            CreateRecord("second", "session-1", "event-1", order: 20, sequenceHintMin: secondHint),
+            CreateRecord("first", "session-1", "event-1", order: 10, sequenceHintMin: firstHint),
         };
 
         var group = Assert.Single(new ActionGroupBuilder().Build(records));
 
-        Assert.Equal(["first", "second"], group.Records.Select(record => record.Record.CanonicalRecordId));
-    }
-
-    [Fact]
-    public void Build_SortsRecordsByOrderWhenSequenceHintIsMissing()
-    {
-        var records = new[]
-        {
-            CreateRecord("second", "session-1", "event-1", order: 20),
-            CreateRecord("first", "session-1", "event-1", order: 10)
-        };
-
-        var group = Assert.Single(new ActionGroupBuilder().Build(records));
-
-        Assert.Equal(["first", "second"], group.Records.Select(record => record.Record.CanonicalRecordId));
-    }
-
-    [Fact]
-    public void Build_GetsOrderMinAndOrderMax()
-    {
-        var records = new[]
-        {
-            CreateRecord("middle", "session-1", "event-1", order: 20),
-            CreateRecord("min", "session-1", "event-1", order: 10),
-            CreateRecord("max", "session-1", "event-1", order: 30)
-        };
-
-        var group = Assert.Single(new ActionGroupBuilder().Build(records));
-
+        Assert.Equal([expectedFirst, expectedLast], group.Records.Select(record => record.Record.CanonicalRecordId));
+        Assert.Equal([expectedFirst, expectedLast], group.VisibleTexts);
         Assert.Equal(10, group.OrderMin);
-        Assert.Equal(30, group.OrderMax);
-    }
-
-    [Fact]
-    public void Build_ReturnsVisibleTextsInRecordOrder()
-    {
-        var records = new[]
-        {
-            CreateRecord("record-2", "session-1", "event-1", order: 2, visibleText: "結果ログ"),
-            CreateRecord("record-1", "session-1", "event-1", order: 1, visibleText: "開始ログ")
-        };
-
-        var group = Assert.Single(new ActionGroupBuilder().Build(records));
-
-        Assert.Equal(["開始ログ", "結果ログ"], group.VisibleTexts);
+        Assert.Equal(20, group.OrderMax);
     }
 
     private static CanonicalRecord CreateRecord(
@@ -98,8 +62,7 @@ public class ActionGroupBuilderTests
         string sessionId,
         string eventGroup,
         long order,
-        long? sequenceHintMin = null,
-        string? visibleText = null)
+        long? sequenceHintMin = null)
     {
         return new CanonicalRecord
         {
@@ -108,7 +71,7 @@ public class ActionGroupBuilderTests
             EventGroup = eventGroup,
             Order = order,
             SequenceHintMin = sequenceHintMin,
-            VisibleText = visibleText ?? id
+            VisibleText = id
         };
     }
 }

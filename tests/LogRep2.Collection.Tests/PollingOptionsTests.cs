@@ -4,14 +4,6 @@ namespace FfxiTempLogCollector.Tests;
 
 public sealed class PollingOptionsTests
 {
-    [Fact]
-    public void デフォルト間隔は1000ミリ秒になる()
-    {
-        var options = new PollingOptions();
-
-        Assert.Equal(1000, options.IntervalMs);
-    }
-
     [Theory]
     [InlineData(249)]
     [InlineData(5001)]

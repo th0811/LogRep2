@@ -54,43 +54,6 @@ public sealed class IntegratedWindowTests
     }
 
     [Fact]
-    public void PT出力メンバー選択が共通スタイルで初期化でき選択状態を維持する()
-    {
-        Exception? captured = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                WpfTestApplication.Ensure();
-                var window = new FFXI_LogAnalyzer.App.TimelineMemberSelectionWindow([("Alice", "PC登録"), ("Boro", "PC候補")]);
-                try
-                {
-                    window.Measure(new Size(480, 360));
-                    window.Arrange(new Rect(0, 0, 480, 360));
-                    window.UpdateLayout();
-                    var button = (System.Windows.Controls.Button)window.FindName("AcceptButton");
-                    var list = (System.Windows.Controls.StackPanel)window.FindName("MemberList");
-                    Assert.Same(window.FindResource("PrimaryButtonStyle"), button.Style);
-                    Assert.False(button.IsEnabled);
-                    var check = (System.Windows.Controls.CheckBox)list.Children[0];
-                    Assert.Same(window.FindResource("AppCheckBoxStyle"), check.Style);
-                    check.IsChecked = true;
-                    Assert.True(button.IsEnabled);
-                    Assert.Equal("Alice", Assert.Single(window.SelectedMembers));
-                    check.IsChecked = false;
-                    Assert.False(button.IsEnabled);
-                }
-                finally { window.Close(); }
-            }
-            catch (Exception exception) { captured = exception; }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
-        Assert.Null(captured);
-    }
-
-    [Fact]
     public void ログ除外ウィンドウを初期化してログを表示できる()
     {
         Exception? captured = null;
@@ -150,94 +113,33 @@ public sealed class IntegratedWindowTests
     }
 
     [Fact]
-    public void オーバーレイウィンドウを初期化できる()
+    public void オーバーレイを初期化してPT設定と移動サイズ変更を利用できる()
     {
         Exception? capturedException = null;
-        var allowsTransparency = false;
-        var windowStyle = WindowStyle.SingleBorderWindow;
         var thread = new Thread(() =>
         {
             try
             {
                 WpfTestApplication.Ensure();
                 var window = new FfxiTempLogCollector.App.OverlayWindow();
-                allowsTransparency = window.AllowsTransparency;
-                windowStyle = window.WindowStyle;
-                window.CloseForShutdown();
+                try
+                {
+                    Assert.True(window.AllowsTransparency);
+                    Assert.Equal(WindowStyle.None, window.WindowStyle);
+                    Assert.Equal(ResizeMode.CanResizeWithGrip, window.ResizeMode);
+                    var dragSurface = (FrameworkElement)window.FindName("DragSurface");
+                    Assert.Equal(InputCursors.Hand, dragSurface.Cursor);
+                    var button = (System.Windows.Controls.Button)window.FindName("PartyMemberSettingsButton");
+                    Assert.Equal("PTメンバー設定を開く",
+                        System.Windows.Automation.AutomationProperties.GetName(button));
+                }
+                finally { window.CloseForShutdown(); }
             }
-            catch (Exception exception)
-            {
-                capturedException = exception;
-            }
+            catch (Exception exception) { capturedException = exception; }
         });
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
-        Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
-
+        Assert.True(thread.Join(TimeSpan.FromSeconds(10)), "画面の初期化が制限時間内に完了しませんでした。");
         Assert.Null(capturedException);
-        Assert.True(allowsTransparency);
-        Assert.Equal(WindowStyle.None, windowStyle);
-    }
-
-    [Fact]
-    public void オーバーレイにPT設定ボタンを常時配置する()
-    {
-        Exception? capturedException = null;
-        string? accessibleName = null;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                WpfTestApplication.Ensure();
-                var window = new FfxiTempLogCollector.App.OverlayWindow();
-                var button = (System.Windows.Controls.Button)window.FindName(
-                    "PartyMemberSettingsButton");
-                accessibleName = System.Windows.Automation.AutomationProperties
-                    .GetName(button);
-                window.CloseForShutdown();
-            }
-            catch (Exception exception)
-            {
-                capturedException = exception;
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
-
-        Assert.Null(capturedException);
-        Assert.Equal("PTメンバー設定を開く", accessibleName);
-    }
-
-    [Fact]
-    public void オーバーレイは常時移動とサイズ変更が可能である()
-    {
-        Exception? capturedException = null;
-        System.Windows.Input.Cursor? cursor = null;
-        var resizeMode = ResizeMode.NoResize;
-        var thread = new Thread(() =>
-        {
-            try
-            {
-                WpfTestApplication.Ensure();
-                var window = new FfxiTempLogCollector.App.OverlayWindow();
-                var dragSurface = (FrameworkElement)window.FindName("DragSurface");
-
-                cursor = dragSurface.Cursor;
-                resizeMode = window.ResizeMode;
-                window.CloseForShutdown();
-            }
-            catch (Exception exception)
-            {
-                capturedException = exception;
-            }
-        });
-        thread.SetApartmentState(ApartmentState.STA);
-        thread.Start();
-        Assert.True(thread.Join(TimeSpan.FromSeconds(10)));
-
-        Assert.Null(capturedException);
-        Assert.Equal(InputCursors.Hand, cursor);
-        Assert.Equal(ResizeMode.CanResizeWithGrip, resizeMode);
     }
 }

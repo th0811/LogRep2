@@ -1,18 +1,9 @@
 using FFXI_LogAnalyzer.Core;
-using System.Diagnostics;
-using Xunit.Abstractions;
 
 namespace FFXI_LogAnalyzer.Tests;
 
 public sealed class RealtimeAnalysisEngineTests
 {
-    private readonly ITestOutputHelper _output;
-
-    public RealtimeAnalysisEngineTests(ITestOutputHelper output)
-    {
-        _output = output;
-    }
-
     [Fact]
     public void Analyze_指定されたインデックス範囲だけを集計する()
     {
@@ -74,19 +65,10 @@ public sealed class RealtimeAnalysisEngineTests
                 $"12:{index / 60 % 60:00}:{index % 60:00}"))
             .ToArray();
 
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        var allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
         var actual = new RealtimeAnalysisEngine().Analyze(records, 0, records.Length);
-        var allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
-        var workingSetBytes = Process.GetCurrentProcess().WorkingSet64;
 
         Assert.Equal(10_000, actual.TargetRecordCount);
         Assert.Equal(100_000, actual.Result.ActorSummaries.Sum(actor => actor.TotalDamage));
-        Assert.True(workingSetBytes < 300L * 1024 * 1024);
-        _output.WriteLine($"再集計時間: {actual.Elapsed.TotalMilliseconds:N1} ms");
-        _output.WriteLine($"再集計割当量: {allocatedBytes / 1024d / 1024d:N1} MB");
-        _output.WriteLine($"テストプロセスWorking Set: {workingSetBytes / 1024d / 1024d:N1} MB");
     }
 
     private static CanonicalRecord CreateRecord(

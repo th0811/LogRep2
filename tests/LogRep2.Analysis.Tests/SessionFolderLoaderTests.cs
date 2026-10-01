@@ -13,56 +13,28 @@ public sealed class SessionFolderLoaderTests : IDisposable
     }
 
     [Fact]
-    public void Load_ReadsValidSessionJson()
-    {
-        var folderPath = CreateSessionFolder("completed");
-        var result = new SessionFolderLoader().Load(folderPath);
-
-        Assert.True(result.IsSuccess);
-        Assert.NotNull(result.Session);
-        Assert.Equal("session-001", result.Session.SessionInfo.SessionId);
-        Assert.Equal(SessionStatus.Completed, result.Session.SessionInfo.Status);
-        Assert.Equal("1.0", result.Session.SessionInfo.SchemaVersions.SchemaVersion);
-        Assert.Equal("utf-8", result.Session.SessionInfo.Encoding);
-        Assert.Equal(["1_0.log", "2_0.log"], result.Session.SessionInfo.WatchFiles);
-    }
-
-    [Fact]
-    public void Load_ReadsStatsJson()
-    {
-        var folderPath = CreateSessionFolder("completed");
-        var result = new SessionFolderLoader().Load(folderPath);
-
-        Assert.True(result.IsSuccess);
-        Assert.NotNull(result.Session);
-        Assert.Equal(10, result.Session.StatsInfo.RawRecordsWritten);
-        Assert.Equal(8, result.Session.StatsInfo.CanonicalRecordsWritten);
-        Assert.Equal(2, result.Session.StatsInfo.ParseErrors);
-        Assert.Equal(3, result.Session.StatsInfo.DecodeErrors);
-        Assert.Equal(4, result.Session.StatsInfo.GapWarnings);
-        Assert.Equal(DateTimeOffset.Parse("2026-06-23T12:34:56+09:00"), result.Session.StatsInfo.LastSeenAt);
-    }
-
-    [Fact]
-    public void Load_ChecksCanonicalRecordsExists()
-    {
-        var folderPath = CreateSessionFolder("completed");
-        var result = new SessionFolderLoader().Load(folderPath);
-
-        Assert.True(result.IsSuccess);
-        Assert.NotNull(result.Session);
-        Assert.EndsWith("canonical_records.jsonl", result.Session.CanonicalRecordsPath);
-        Assert.True(File.Exists(result.Session.CanonicalRecordsPath));
-    }
-
-    [Fact]
-    public void Load_CompletedStatus_HasNoWarnings()
+    public void 完了セッションの情報と統計とログパスを読み込める()
     {
         var folderPath = CreateSessionFolder("completed");
         var result = new SessionFolderLoader().Load(folderPath);
 
         Assert.True(result.IsSuccess);
         Assert.Empty(result.Warnings);
+        Assert.NotNull(result.Session);
+        var session = result.Session;
+        Assert.Equal("session-001", session.SessionInfo.SessionId);
+        Assert.Equal(SessionStatus.Completed, session.SessionInfo.Status);
+        Assert.Equal("1.0", session.SessionInfo.SchemaVersions.SchemaVersion);
+        Assert.Equal("utf-8", session.SessionInfo.Encoding);
+        Assert.Equal(["1_0.log", "2_0.log"], session.SessionInfo.WatchFiles);
+        Assert.Equal(10, session.StatsInfo.RawRecordsWritten);
+        Assert.Equal(8, session.StatsInfo.CanonicalRecordsWritten);
+        Assert.Equal(2, session.StatsInfo.ParseErrors);
+        Assert.Equal(3, session.StatsInfo.DecodeErrors);
+        Assert.Equal(4, session.StatsInfo.GapWarnings);
+        Assert.Equal(DateTimeOffset.Parse("2026-06-23T12:34:56+09:00"), session.StatsInfo.LastSeenAt);
+        Assert.Equal(Path.Combine(folderPath, "canonical_records.jsonl"), session.CanonicalRecordsPath);
+        Assert.True(File.Exists(session.CanonicalRecordsPath));
     }
 
     [Theory]
