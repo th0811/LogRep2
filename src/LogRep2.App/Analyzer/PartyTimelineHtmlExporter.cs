@@ -69,7 +69,19 @@ public static class PartyTimelineHtmlExporter
                         .Append(E(item.ActionName)).Append("</strong>");
                     if (item.Damage is not null)
                         html.Append("<span>").Append(N(item.Damage)).Append(" ダメージ</span>");
-                    else if (item.Status is not ("実行・結果未確認" or "効果確認"))
+                    if (item.RollTotal is int rollTotal)
+                        html.Append("<span>合計: ").Append(N(rollTotal)).Append("</span>");
+                    foreach (var resource in item.ResourceResults.GroupBy(result => result.Kind))
+                    {
+                        var label = resource.Key switch
+                        {
+                            TimelineResourceKind.HpRecovery => "HP回復",
+                            TimelineResourceKind.TpAbsorb => "TP吸収",
+                            _ => "MP吸収",
+                        };
+                        html.Append("<span>").Append(N(resource.Sum(result => (long)result.Amount))).Append(' ').Append(label).Append("</span>");
+                    }
+                    if (item.Damage is null && item.ResourceResults.Count == 0 && item.Status is not ("実行・結果未確認" or "効果確認"))
                         html.Append("<span>").Append(E(item.Status)).Append("</span>");
                     html.Append("</button>");
                 }

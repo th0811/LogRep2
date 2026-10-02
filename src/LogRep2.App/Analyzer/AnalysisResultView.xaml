@@ -87,9 +87,9 @@
                 <Border Style="{StaticResource CardBorderStyle}" CornerRadius="0,6,6,6">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="3*" MinWidth="380" />
+                            <ColumnDefinition Width="2.8*" MinWidth="380" />
                             <ColumnDefinition Width="5" />
-                            <ColumnDefinition Width="7*" MinWidth="520" />
+                            <ColumnDefinition Width="7.2*" MinWidth="520" />
                         </Grid.ColumnDefinitions>
 
                         <!-- キャラクター選択 -->
@@ -205,14 +205,14 @@
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                                 <DataGridTextColumn Header="総被ダメージ" Width="118" Binding="{Binding IncomingDamage}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                                <DataGridTextColumn Header="回避率" Width="128" Binding="{Binding EvasionRate}"
-                                                    ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                                 <DataGridTextColumn Header="DPS" Width="96" Binding="{Binding Dps}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                                 <DataGridTextColumn Header="DPS時間精度" Width="110" Binding="{Binding DpsTimeConfidence}" />
                                 <DataGridTextColumn Header="通常攻撃命中率" Width="128" Binding="{Binding NormalAttackHitRate}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                                 <DataGridTextColumn Header="通常攻撃クリティカル率" Width="150" Binding="{Binding NormalAttackCriticalRate}"
+                                                    ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                                <DataGridTextColumn Header="回避率" Width="128" Binding="{Binding EvasionRate}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                                 <DataGridTextColumn Header="未分類件数" Width="100" Binding="{Binding UnknownCount}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
