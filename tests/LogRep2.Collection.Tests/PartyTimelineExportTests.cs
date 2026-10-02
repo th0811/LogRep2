@@ -9,7 +9,7 @@ public sealed class PartyTimelineExportTests
     [Theory]
     [InlineData("Xitraのサムライロール→合計値が5になった！", "→Xitraにサムライロールの効果。", "サムライロール", 5)]
     [InlineData("Xitraのダブルアップ", "→サムライロールの合計値が11になった！", "ダブルアップ", 11)]
-    public void ロールとダブルアップの合計値をカードの出目に表示する(string declaration, string effect, string action, int total)
+    public void ロールとダブルアップの合計値をカードに表示する(string declaration, string effect, string action, int total)
     {
         var records = new[] { Record(1, "roll", declaration), Record(2, "roll", effect) };
         var timeline = new PartyTimelineBuilder().Build(records);
@@ -18,7 +18,7 @@ public sealed class PartyTimelineExportTests
         Assert.Equal(total, item.RollTotal);
         Assert.Null(item.Damage);
         var html = PartyTimelineHtmlExporter.Build(timeline, ["Xitra"], "戦闘", "全区間", 0);
-        Assert.Contains($"<span>出目: {total}</span>", html);
+        Assert.Contains($"<span>合計: {total}</span>", html);
     }
 
     [Fact]
