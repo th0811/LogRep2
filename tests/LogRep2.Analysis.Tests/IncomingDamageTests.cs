@@ -4,6 +4,46 @@ namespace FFXI_LogAnalyzer.Tests;
 
 public sealed class IncomingDamageTests
 {
+    [Theory]
+    [InlineData("Enemyの攻撃→Aliceに、15ダメージ。", 15)]
+    [InlineData("Enemyの攻撃→Aliceに、0ダメージ。", 0)]
+    [InlineData("Enemyの攻撃。→Aliceに、15ダメージ。", 15)]
+    public void 宣言と結果が一行でも被ダメージを対象に集計する(string line, int damage)
+    {
+        var result = Analyze([line]);
+        var target = result.ActorSummaries.Single(item => item.Actor == "Alice");
+        Assert.Equal(damage, target.IncomingDamage.TotalDamage);
+        Assert.Equal(1, target.IncomingHitCount);
+        Assert.Equal(damage, Assert.Single(target.IncomingDamage.DamageValues));
+        Assert.Equal(0, result.ActorSummaries.Single(item => item.Actor == "Enemy").IncomingDamage.TotalDamage);
+    }
+
+    [Fact]
+    public void 一行の魔法や回避も対象を識別し魔法は回避率に含めない()
+    {
+        var result = Analyze(
+            ["Enemyの攻撃→Aliceは攻撃をかわした。"],
+            ["Enemyのファイアが発動。→Aliceに、200ダメージ。"]);
+        var target = result.ActorSummaries.Single(item => item.Actor == "Alice");
+        Assert.Equal(200, target.IncomingDamage.TotalDamage);
+        Assert.Equal(0, target.IncomingHitCount);
+        Assert.Equal(1, target.EvadeCount);
+        Assert.Equal(1d, target.EvasionRate);
+    }
+
+    [Fact]
+    public void 対象付きミスを回避に数え魔法や効果なしは除外する()
+    {
+        var result = Analyze(
+            ["Enemyの攻撃→Aliceに、ミス。"],
+            ["Enemyのファイアが発動→Aliceに、ミス。"],
+            ["Enemyの弱体技！", "→Aliceに、効果なし。"]);
+        var target = result.ActorSummaries.Single(item => item.Actor == "Alice");
+        Assert.Equal(1, target.EvadeCount);
+        Assert.Equal(0, target.IncomingHitCount);
+        Assert.Equal(0, target.IncomingDamage.TotalDamage);
+    }
+
     [Fact]
     public void 範囲攻撃と魔法を対象別に集計し回避の分母から魔法を除く()
     {
