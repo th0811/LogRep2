@@ -179,10 +179,51 @@
                                 </StackPanel>
                             </Border>
                             <StackPanel DockPanel.Dock="Top" Margin="12,8">
-                                <DockPanel>
+                                <Grid HorizontalAlignment="Left" MaxWidth="500">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" MaxWidth="380" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Text="エイリアス・ID検索" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <TextBox Text="{Binding SessionSearchText, UpdateSourceTrigger=PropertyChanged}" />
-                                </DockPanel>
+                                    <Border Grid.Column="1" Width="380" Height="32">
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource SearchInputFrameStyle}">
+                                                <Setter Property="CornerRadius" Value="6" />
+                                                <Setter Property="BorderThickness" Value="1" />
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                                        <Setter Property="BorderThickness" Value="2" />
+                                                        <Setter Property="Padding" Value="9,0,5,0" />
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <DockPanel>
+                                            <Path DockPanel.Dock="Left" Width="13" Height="13" Margin="0,0,8,0"
+                                                  VerticalAlignment="Center" Stretch="Uniform"
+                                                  Stroke="{StaticResource TextMutedBrush}" StrokeThickness="1.6"
+                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                                  Data="{StaticResource SearchIconGeometry}" />
+                                            <Button x:Name="ClearSessionSearchButton" DockPanel.Dock="Right"
+                                                    Click="OnClearSessionSearchClick" ToolTip="検索をクリア"
+                                                    AutomationProperties.Name="エイリアス・ID検索をクリア">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource ClearSearchButtonBaseStyle}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding SessionSearchText}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <TextBox x:Name="SessionSearchBox" Style="{StaticResource BareTextBoxStyle}"
+                                                     Text="{Binding SessionSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                                     AutomationProperties.Name="エイリアス・ID検索"
+                                                     ToolTip="エイリアスまたはセッションIDを入力すると絞り込みます。" />
+                                        </DockPanel>
+                                    </Border>
+                                </Grid>
                                 <TextBlock Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" Text="{Binding SessionSearchSummary}" />
                                 <TextBlock Margin="0,6,0,0" Text="{Binding SessionExclusionSummary}" TextWrapping="Wrap"
                                            Foreground="{StaticResource WarningBrush}" FontSize="12">

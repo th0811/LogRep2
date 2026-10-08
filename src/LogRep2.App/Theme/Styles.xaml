@@ -797,8 +797,8 @@
         </Setter>
     </Style>
 
-    <!-- クリアボタン（丸 16px、SearchText が空なら非表示） -->
-    <Style x:Key="ClearSearchButtonStyle" TargetType="{x:Type Button}">
+    <!-- 検索クリアボタンの共通外観（丸 16px） -->
+    <Style x:Key="ClearSearchButtonBaseStyle" TargetType="{x:Type Button}">
         <Setter Property="Width" Value="16" />
         <Setter Property="Height" Value="16" />
         <Setter Property="Margin" Value="6,0,0,0" />
@@ -820,6 +820,9 @@
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
+    </Style>
+
+    <Style x:Key="ClearSearchButtonStyle" BasedOn="{StaticResource ClearSearchButtonBaseStyle}" TargetType="{x:Type Button}">
         <Style.Triggers>
             <DataTrigger Binding="{Binding SearchText}" Value="">
                 <Setter Property="Visibility" Value="Collapsed" />

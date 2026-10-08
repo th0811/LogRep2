@@ -43,6 +43,13 @@ public partial class MainWindow : Window
         };
     }
 
+    private void OnClearSessionSearchClick(object sender, RoutedEventArgs e)
+    {
+        if (DataContext is not MainViewModel viewModel) return;
+        viewModel.SessionSearchText = string.Empty;
+        SessionSearchBox.Focus();
+    }
+
     private void OnExclusionBadgeClick(object sender, RoutedEventArgs e)
     {
         if (sender is FrameworkElement { DataContext: SessionSelectionViewModel session }
