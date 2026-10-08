@@ -43,6 +43,13 @@ public partial class MainWindow : Window
         };
     }
 
+    private void OnExclusionBadgeClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { DataContext: SessionSelectionViewModel session }
+            && DataContext is MainViewModel viewModel)
+            viewModel.OpenSessionLogExclusions(session);
+    }
+
     // ---- 編集開始 ----------------------------------------------------------
 
     // エイリアス列のセルは 1 クリックで編集開始（未選択行でも）。

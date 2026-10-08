@@ -4,8 +4,11 @@ namespace FFXI_LogAnalyzer.App;
 
 public sealed class LevelingPointSummaryViewModel
 {
+    public LevelingPointSummary Summary { get; }
+
     public LevelingPointSummaryViewModel(LevelingPointSummary summary)
     {
+        Summary = summary;
         PointName = summary.PointName;
         TotalPoints = summary.TotalPoints.ToString("N0");
         MaxChainCount = summary.MaxChainCount.ToString("N0");

@@ -4,8 +4,11 @@ namespace FFXI_LogAnalyzer.App;
 
 public sealed class ActionSummaryViewModel
 {
+    public ActionSummary Summary { get; }
+
     public ActionSummaryViewModel(ActionSummary summary)
     {
+        Summary = summary;
         Actor = summary.Actor;
         ActionName = summary.ActionName;
         ActionType = AnalysisDisplayText.ToText(summary.ActionType);

@@ -4,8 +4,11 @@ namespace FFXI_LogAnalyzer.App;
 
 public sealed class ActorSummaryViewModel
 {
+    public ActorSummary Summary { get; }
+
     public ActorSummaryViewModel(ActorSummary summary)
     {
+        Summary = summary;
         Actor = summary.Actor;
         TotalDamage = summary.TotalDamage.ToString("N0");
         IncomingDamage = summary.IncomingDamage.TotalDamage.ToString("N0");
