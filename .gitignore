@@ -43,7 +43,9 @@ collector.log
 sessions/
 
 # Local documentation outputs
-docs/
+docs/*
+!docs/architecture.md
+!docs/ui-guidelines.md
 
 # Temporary and backup files
 *.tmp

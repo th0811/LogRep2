@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: pwsh
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+
+jobs:
+  build-test:
+    name: Windows ${{ matrix.configuration }}
+    runs-on: windows-2022
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Debug, Release]
+    steps:
+      - name: ソースを取得
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: .NET SDKを準備
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: 依存関係を復元
+        run: dotnet restore LogRep2.sln
+      - name: ビルドと型チェック
+        run: dotnet build LogRep2.sln --no-restore --configuration ${{ matrix.configuration }}
+      - name: .NETテスト
+        run: dotnet test LogRep2.sln --no-build --no-restore --configuration ${{ matrix.configuration }}
+
+  format:
+    name: Windows Format
+    runs-on: windows-2022
+    timeout-minutes: 15
+    # WPF生成ファイルの競合を避けるため、ビルドとは別の環境で確認する。
+    steps:
+      - name: ソースを取得
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: .NET SDKを準備
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+      - name: 依存関係を復元
+        run: dotnet restore LogRep2.sln
+      - name: フォーマット確認
+        run: dotnet format LogRep2.sln --verify-no-changes --no-restore
+
+  javascript:
+    name: Windows JavaScript
+    runs-on: windows-2022
+    timeout-minutes: 10
+    steps:
+      - name: ソースを取得
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+      - name: Node.jsを準備
+        uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: PT行動HTMLのJavaScriptテスト
+        run: node --test tests/LogRep2.Collection.Tests/PartyTimelinePanel.test.cjs

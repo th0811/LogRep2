@@ -356,6 +356,8 @@ show_tray_notifications
 
 ## 開発用コマンド
 
+開発・PR提出の手順は [CONTRIBUTING.md](CONTRIBUTING.md)、責務分担は [基本設計](docs/architecture.md)、画面変更の基準は [UIガイド](docs/ui-guidelines.md) を参照してください。AIを利用する場合は [AGENTS.md](AGENTS.md) も確認してください。
+
 ### Debugのビルドとテスト
 
 ```powershell
