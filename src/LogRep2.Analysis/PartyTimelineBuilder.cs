@@ -64,6 +64,8 @@ public sealed partial class PartyTimelineBuilder
                 ? group.Records.First(record => (record.VisibleText ?? string.Empty).Contains("中断", StringComparison.Ordinal))
                 : declaration.Record;
             var results = new List<TimelineTargetResult>();
+            var resourceResults = new List<TimelineResourceResult>();
+            var rollTotals = new HashSet<int>();
             var chainSection = false;
             foreach (var record in group.Records)
             {
@@ -82,12 +84,25 @@ public sealed partial class PartyTimelineBuilder
                     continue;
                 }
                 // 結果行の対象と数値を一緒に保持し、連携や通常攻撃の数値は混ぜません。
+                if (declaration.Action.ActionType == ActionType.Ability
+                    && AbilityLogClassifier.TryParseRollTotal(text, declaration.Action.Actor!, declaration.Action.ActionName!, out var total))
+                    rollTotals.Add(total);
                 var match = DamageResultRegex().Match(text);
                 if (match.Success && int.TryParse(match.Groups["damage"].Value,
                     NumberStyles.None, CultureInfo.InvariantCulture, out var damage))
                 {
                     results.Add(new TimelineTargetResult(match.Groups["target"].Value, damage));
                 }
+                var resource = RecoveryResultRegex().Match(text);
+                var kind = TimelineResourceKind.HpRecovery;
+                if (!resource.Success)
+                {
+                    resource = AbsorbResultRegex().Match(text);
+                    kind = resource.Groups["resource"].Value == "TP" ? TimelineResourceKind.TpAbsorb : TimelineResourceKind.MpAbsorb;
+                }
+                if (resource.Success && int.TryParse(resource.Groups["amount"].Value,
+                    NumberStyles.None, CultureInfo.InvariantCulture, out var amount))
+                    resourceResults.Add(new TimelineResourceResult(resource.Groups["target"].Value, kind, amount));
             }
 
             var status = interrupted && executed is null ? "中断"
@@ -117,7 +132,12 @@ public sealed partial class PartyTimelineBuilder
             events.Add(new PartyTimelineEvent(group.SessionId, group.EventGroup, anchor.Order,
                 declaration.Action.Actor!, declaration.Action.ActionName!, declaration.Action.ActionType,
                 status, executed is not null, time?.MessageTimeText, time?.Order,
-                results, group.Records.Select(record => record.Record).ToArray()));
+                results, group.Records.Select(record => record.Record).ToArray())
+            {
+                ResourceResults = resourceResults,
+                // 異なる合計値が混在する場合は、推測で表示しません。
+                RollTotal = rollTotals.Count == 1 ? rollTotals.Single() : null,
+            });
         }
 
         return new PartyTimeline(events.OrderBy(item => item.Order ?? long.MaxValue).ToArray(), warnings);
@@ -127,4 +147,10 @@ public sealed partial class PartyTimelineBuilder
 
     [GeneratedRegex(@"^\s*→?(?<target>[^→、]+?)(?:に、|は、)(?<damage>\d+)(?:ダメージ|HP吸収)[。！!]?$", RegexOptions.CultureInvariant)]
     private static partial Regex DamageResultRegex();
+
+    [GeneratedRegex(@"^\s*→?(?<target>[^→、]+?)のHPが、(?<amount>\d+)回復[。！!]?$", RegexOptions.CultureInvariant)]
+    private static partial Regex RecoveryResultRegex();
+
+    [GeneratedRegex(@"^\s*→?(?<target>[^→、]+?)から、(?<amount>\d+)(?<resource>TP|MP)吸収[。！!]?$", RegexOptions.CultureInvariant)]
+    private static partial Regex AbsorbResultRegex();
 }

@@ -6,6 +6,61 @@ namespace FfxiTempLogCollector.Tests;
 
 public sealed class PartyTimelineExportTests
 {
+    [Theory]
+    [InlineData("Xitraのサムライロール→合計値が5になった！", "→Xitraにサムライロールの効果。", "サムライロール", 5)]
+    [InlineData("Xitraのダブルアップ", "→サムライロールの合計値が11になった！", "ダブルアップ", 11)]
+    public void ロールとダブルアップの合計値をカードに表示する(string declaration, string effect, string action, int total)
+    {
+        var records = new[] { Record(1, "roll", declaration), Record(2, "roll", effect) };
+        var timeline = new PartyTimelineBuilder().Build(records);
+        var item = Assert.Single(timeline.Events);
+        Assert.Equal(action, item.ActionName);
+        Assert.Equal(total, item.RollTotal);
+        Assert.Null(item.Damage);
+        var html = PartyTimelineHtmlExporter.Build(timeline, ["Xitra"], "戦闘", "全区間", 0);
+        Assert.Contains($"<span>合計: {total}</span>", html);
+    }
+
+    [Fact]
+    public void 別グループの出目や異なる合計値を推測で表示しない()
+    {
+        var separate = new PartyTimelineBuilder().Build(new[]
+        {
+            Record(1, "a", "Xitraのダブルアップ"), Record(2, "b", "→サムライロールの合計値が8になった！"),
+        });
+        Assert.Null(Assert.Single(separate.Events).RollTotal);
+        var ambiguous = new PartyTimelineBuilder().Build(new[]
+        {
+            Record(1, "a", "Xitraのダブルアップ"), Record(2, "a", "→サムライロールの合計値が8になった！"),
+            Record(3, "a", "→サムライロールの合計値が11になった！"),
+        });
+        Assert.Null(Assert.Single(ambiguous.Events).RollTotal);
+    }
+
+    [Theory]
+    [InlineData("ケアルII", "→AlegreのHPが、22回復。", "22 HP回復", TimelineResourceKind.HpRecovery, 22)]
+    [InlineData("アブゾタック", "→Skomoraから、30TP吸収。", "30 TP吸収", TimelineResourceKind.TpAbsorb, 30)]
+    [InlineData("アスピルII", "→Skomoraから、30MP吸収。", "30 MP吸収", TimelineResourceKind.MpAbsorb, 30)]
+    public void 回復と資源吸収はダメージに含めずカードに量を表示する(string action, string resultLine, string label, TimelineResourceKind kind, int amount)
+    {
+        var records = new[] { Record(1, "resource", $"Alegreの{action}が発動。"), Record(2, "resource", resultLine) };
+        var analysis = new RealtimeAnalysisEngine().Analyze(records, 0, records.Length).Result;
+        Assert.All(analysis.ActorSummaries, summary =>
+        {
+            Assert.Equal(0, summary.TotalDamage);
+            Assert.Equal(0, summary.IncomingDamage.TotalDamage);
+        });
+        var timeline = new PartyTimelineBuilder().Build(records);
+        var item = Assert.Single(timeline.Events);
+        Assert.Null(item.Damage);
+        var resource = Assert.Single(item.ResourceResults);
+        Assert.Equal(kind, resource.Kind);
+        Assert.Equal(amount, resource.Amount);
+        var html = PartyTimelineHtmlExporter.Build(timeline, ["Alegre"], "戦闘", "全区間", 0, analysis.ActorSummaries);
+        Assert.Contains($"<span>{label}</span>", html);
+        Assert.DoesNotContain(" ダメージ</span>", html);
+    }
+
     [Fact]
     public void 被攻撃のみのPCにも被ダメージ統計と回避率を表示する()
     {

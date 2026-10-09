@@ -87,9 +87,9 @@
                 <Border Style="{StaticResource CardBorderStyle}" CornerRadius="0,6,6,6">
                     <Grid>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="3*" MinWidth="380" />
+                            <ColumnDefinition Width="2.8*" MinWidth="380" />
                             <ColumnDefinition Width="5" />
-                            <ColumnDefinition Width="7*" MinWidth="520" />
+                            <ColumnDefinition Width="7.2*" MinWidth="520" />
                         </Grid.ColumnDefinitions>
 
                         <!-- キャラクター選択 -->
@@ -201,20 +201,20 @@
                                   ItemsSource="{Binding ActorSummaries}">
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="キャラクター名" Width="150" Binding="{Binding Actor}" />
-                                <DataGridTextColumn Header="総与ダメージ" Width="118" Binding="{Binding TotalDamage}"
+                                <DataGridTextColumn Header="総与ダメージ" Width="118" SortMemberPath="Summary.TotalDamage" Binding="{Binding TotalDamage}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                                <DataGridTextColumn Header="総被ダメージ" Width="118" Binding="{Binding IncomingDamage}"
+                                <DataGridTextColumn Header="総被ダメージ" Width="118" SortMemberPath="Summary.IncomingDamage.TotalDamage" Binding="{Binding IncomingDamage}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                                <DataGridTextColumn Header="回避率" Width="128" Binding="{Binding EvasionRate}"
-                                                    ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                                <DataGridTextColumn Header="DPS" Width="96" Binding="{Binding Dps}"
+                                <DataGridTextColumn Header="DPS" Width="96" SortMemberPath="Summary.Dps" Binding="{Binding Dps}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                                 <DataGridTextColumn Header="DPS時間精度" Width="110" Binding="{Binding DpsTimeConfidence}" />
-                                <DataGridTextColumn Header="通常攻撃命中率" Width="128" Binding="{Binding NormalAttackHitRate}"
+                                <DataGridTextColumn Header="通常攻撃命中率" Width="128" SortMemberPath="Summary.NormalAttackSummary.HitRate" Binding="{Binding NormalAttackHitRate}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                                <DataGridTextColumn Header="通常攻撃クリティカル率" Width="150" Binding="{Binding NormalAttackCriticalRate}"
+                                <DataGridTextColumn Header="通常攻撃クリティカル率" Width="150" SortMemberPath="Summary.NormalAttackSummary.CriticalRate" Binding="{Binding NormalAttackCriticalRate}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                                <DataGridTextColumn Header="未分類件数" Width="100" Binding="{Binding UnknownCount}"
+                                <DataGridTextColumn Header="回避率" Width="128" SortMemberPath="Summary.EvasionRate" Binding="{Binding EvasionRate}"
+                                                    ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                                <DataGridTextColumn Header="未分類件数" Width="100" SortMemberPath="Summary.UnknownCount" Binding="{Binding UnknownCount}"
                                                     ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                             </DataGrid.Columns>
                         </DataGrid>
@@ -229,15 +229,15 @@
                             <DataGridTextColumn Header="キャラクター名" Width="140" Binding="{Binding Actor}" />
                             <DataGridTextColumn Header="アクション名" Width="170" Binding="{Binding ActionName}" />
                             <DataGridTextColumn Header="種別" Width="140" Binding="{Binding ActionType}" />
-                            <DataGridTextColumn Header="使用回数" Width="90" Binding="{Binding UseCount}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                            <DataGridTextColumn Header="命中回数" Width="90" Binding="{Binding HitCount}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                            <DataGridTextColumn Header="非命中回数" Width="100" Binding="{Binding MissCount}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                            <DataGridTextColumn Header="未分類件数" Width="100" Binding="{Binding UnknownCount}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                            <DataGridTextColumn Header="命中率" Width="90" Binding="{Binding HitRate}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                            <DataGridTextColumn Header="総ダメージ" Width="100" Binding="{Binding TotalDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                            <DataGridTextColumn Header="最大ダメージ" Width="100" Binding="{Binding MaxDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                            <DataGridTextColumn Header="最小ダメージ" Width="100" Binding="{Binding MinDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                            <DataGridTextColumn Header="平均ダメージ" Width="110" Binding="{Binding AverageDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="使用回数" Width="90" SortMemberPath="Summary.UseCount" Binding="{Binding UseCount}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="命中回数" Width="90" SortMemberPath="Summary.HitCount" Binding="{Binding HitCount}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="非命中回数" Width="100" SortMemberPath="Summary.MissCount" Binding="{Binding MissCount}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="未分類件数" Width="100" SortMemberPath="Summary.UnknownCount" Binding="{Binding UnknownCount}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="命中率" Width="90" SortMemberPath="Summary.HitRate" Binding="{Binding HitRate}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="総ダメージ" Width="100" SortMemberPath="Summary.Damage.TotalDamage" Binding="{Binding TotalDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="最大ダメージ" Width="100" SortMemberPath="Summary.Damage.MaxDamage" Binding="{Binding MaxDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="最小ダメージ" Width="100" SortMemberPath="Summary.Damage.MinDamage" Binding="{Binding MinDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="平均ダメージ" Width="110" SortMemberPath="Summary.Damage.AverageDamage" Binding="{Binding AverageDamage}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Border>
@@ -248,9 +248,9 @@
                     <DataGrid Style="{StaticResource AppDataGridStyle}" IsReadOnly="True" ItemsSource="{Binding LevelingPointSummaries}">
                         <DataGrid.Columns>
                             <DataGridTextColumn Header="ポイント種別" Width="220" Binding="{Binding PointName}" />
-                            <DataGridTextColumn Header="総合計" Width="140" Binding="{Binding TotalPoints}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                            <DataGridTextColumn Header="最大チェーン" Width="140" Binding="{Binding MaxChainCount}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
-                            <DataGridTextColumn Header="時給" Width="140" Binding="{Binding PointsPerHour}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="総合計" Width="140" SortMemberPath="Summary.TotalPoints" Binding="{Binding TotalPoints}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="最大チェーン" Width="140" SortMemberPath="Summary.MaxChainCount" Binding="{Binding MaxChainCount}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
+                            <DataGridTextColumn Header="時給" Width="140" SortMemberPath="Summary.PointsPerHour" Binding="{Binding PointsPerHour}" ElementStyle="{StaticResource NumericCellStyle}" HeaderStyle="{StaticResource NumericColumnHeaderStyle}" />
                         </DataGrid.Columns>
                     </DataGrid>
                 </Border>

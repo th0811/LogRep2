@@ -7,12 +7,12 @@ namespace FfxiTempLogCollector.Tests;
 public sealed class OverlayViewModelTests
 {
     [Fact]
-    public void Apply_PTメンバーを登録順で個人別表示へ変換する()
+    public void Apply_PTメンバーをDPS降順で個人別表示へ変換する()
     {
         var settings = new OverlaySettings();
         var viewModel = new OverlayViewModel(
             settings,
-            ["Bob", "Alice", "未登場"],
+            ["未登場", "Alice", "Bob"],
             () => { },
             () => { });
         var result = new AnalysisResult(

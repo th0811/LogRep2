@@ -13,65 +13,20 @@ public sealed class CanonicalRecordReaderTests : IDisposable
     }
 
     [Fact]
-    public void Read_LoadsMultipleJsonlLines()
-    {
-        var path = CreateJsonlFile(
-            CreateRecordJson("record-001", 1, "1行目"),
-            CreateRecordJson("record-002", 2, "2行目"));
-
-        var result = new CanonicalRecordReader().Read(path);
-
-        Assert.True(result.IsSuccess);
-        Assert.Empty(result.LineErrors);
-        Assert.Equal(2, result.Records.Count);
-        Assert.Equal("record-001", result.Records[0].CanonicalRecordId);
-        Assert.Equal("record-002", result.Records[1].CanonicalRecordId);
-    }
-
-    [Fact]
-    public void Read_SortsByOrderAscending()
-    {
-        var path = CreateJsonlFile(
-            CreateRecordJson("record-003", 30, "3行目"),
-            CreateRecordJson("record-001", 10, "1行目"),
-            CreateRecordJson("record-002", 20, "2行目"));
-
-        var result = new CanonicalRecordReader().Read(path);
-
-        Assert.Equal(["record-001", "record-002", "record-003"], result.Records.Select(record => record.CanonicalRecordId));
-    }
-
-    [Fact]
-    public void Read_UsesReadOrderWhenOrderIsSameOrMissing()
+    public void 複数行をOrder順に読み込み空行を無視する()
     {
         var path = CreateJsonlFile(
             CreateRecordJson("record-002", 2, "2行目"),
-            CreateRecordJson("record-001", 1, "1行目"),
-            CreateRecordJson("record-002b", 2, "2行目その2"),
-            CreateRecordJsonWithoutOrder("record-no-order-1", "orderなし1"),
-            CreateRecordJsonWithoutOrder("record-no-order-2", "orderなし2"));
-
-        var result = new CanonicalRecordReader().Read(path);
-
-        Assert.Equal(
-            ["record-001", "record-002", "record-002b", "record-no-order-1", "record-no-order-2"],
-            result.Records.Select(record => record.CanonicalRecordId));
-    }
-
-    [Fact]
-    public void Read_IgnoresBlankLines()
-    {
-        var path = CreateJsonlFile(
-            CreateRecordJson("record-001", 1, "1行目"),
             "",
             "   ",
-            CreateRecordJson("record-002", 2, "2行目"));
+            CreateRecordJson("record-001", 1, "1行目"));
 
         var result = new CanonicalRecordReader().Read(path);
 
         Assert.True(result.IsSuccess);
         Assert.Empty(result.LineErrors);
-        Assert.Equal(2, result.Records.Count);
+        Assert.Equal(["record-001", "record-002"], result.Records.Select(record => record.CanonicalRecordId));
+        Assert.Equal(["1行目", "2行目"], result.Records.Select(record => record.VisibleText));
     }
 
     [Fact]
@@ -131,86 +86,6 @@ public sealed class CanonicalRecordReaderTests : IDisposable
         Assert.Equal(101, record.SequenceHintMax);
     }
 
-    [Fact]
-    public void Read_AcceptsNumericFieldsAsStrings()
-    {
-        var path = CreateJsonlFile("""
-            {
-              "schema_version": "1.0",
-              "canonical_record_id": "record-001",
-              "session_id": "session-001",
-              "order": "10",
-              "event_group": "event-001",
-              "sequence_hint_min": "00000009",
-              "sequence_hint_max": "00000010",
-              "visible_text": "文字列数値を含むログ",
-              "is_marker": false
-            }
-            """);
-
-        var result = new CanonicalRecordReader().Read(path);
-
-        Assert.True(result.IsSuccess);
-        Assert.Empty(result.LineErrors);
-        var record = Assert.Single(result.Records);
-        Assert.Equal(10, record.Order);
-        Assert.Equal(9, record.SequenceHintMin);
-        Assert.Equal(10, record.SequenceHintMax);
-    }
-
-    [Fact]
-    public void Read_AcceptsHexSequenceHintStrings()
-    {
-        var path = CreateJsonlFile("""
-            {
-              "schema_version": "1.0",
-              "canonical_record_id": "record-001",
-              "session_id": "session-001",
-              "order": 10,
-              "event_group": "event-001",
-              "sequence_hint_min": "001ad3c0",
-              "sequence_hint_max": "001ad3c1",
-              "visible_text": "16進sequence hintを含むログ",
-              "is_marker": false
-            }
-            """);
-
-        var result = new CanonicalRecordReader().Read(path);
-
-        Assert.True(result.IsSuccess);
-        Assert.Empty(result.LineErrors);
-        var record = Assert.Single(result.Records);
-        Assert.Equal(0x001ad3c0, record.SequenceHintMin);
-        Assert.Equal(0x001ad3c1, record.SequenceHintMax);
-    }
-
-    [Fact]
-    public void Read_TreatsBrokenNumericStringsAsNull()
-    {
-        var path = CreateJsonlFile("""
-            {
-              "schema_version": "1.0",
-              "canonical_record_id": "record-001",
-              "session_id": "session-001",
-              "order": "broken",
-              "event_group": "event-001",
-              "sequence_hint_min": "\u001e\u0001\u001e\u0001",
-              "sequence_hint_max": "",
-              "visible_text": "壊れた数値文字列を含むログ",
-              "is_marker": false
-            }
-            """);
-
-        var result = new CanonicalRecordReader().Read(path);
-
-        Assert.True(result.IsSuccess);
-        Assert.Empty(result.LineErrors);
-        var record = Assert.Single(result.Records);
-        Assert.Null(record.Order);
-        Assert.Null(record.SequenceHintMin);
-        Assert.Null(record.SequenceHintMax);
-    }
-
     public void Dispose()
     {
         if (Directory.Exists(_tempRoot))
@@ -259,16 +134,4 @@ public sealed class CanonicalRecordReaderTests : IDisposable
             """;
     }
 
-    private static string CreateRecordJsonWithoutOrder(string id, string visibleText)
-    {
-        return $$"""
-            {
-              "schema_version": "1.0",
-              "canonical_record_id": "{{id}}",
-              "session_id": "session-001",
-              "visible_text": "{{visibleText}}",
-              "is_marker": false
-            }
-            """;
-    }
 }

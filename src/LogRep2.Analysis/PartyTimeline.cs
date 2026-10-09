@@ -4,6 +4,10 @@ namespace FFXI_LogAnalyzer.Core;
 
 public sealed record TimelineTargetResult(string? Target, int Damage);
 
+public enum TimelineResourceKind { HpRecovery, TpAbsorb, MpAbsorb }
+
+public sealed record TimelineResourceResult(string Target, TimelineResourceKind Kind, int Amount);
+
 public sealed record PartyTimelineEvent(
     string SessionId,
     string EventGroup,
@@ -18,6 +22,8 @@ public sealed record PartyTimelineEvent(
     IReadOnlyList<TimelineTargetResult> Results,
     IReadOnlyList<ICanonicalRecord> SourceRecords)
 {
+    public IReadOnlyList<TimelineResourceResult> ResourceResults { get; init; } = [];
+    public int? RollTotal { get; init; }
     public long? Damage => Results.Count == 0 ? null : Results.Sum(result => (long)result.Damage);
 }
 

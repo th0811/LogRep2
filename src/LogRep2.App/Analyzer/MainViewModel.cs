@@ -106,6 +106,26 @@ public sealed class MainViewModel : INotifyPropertyChanged
 
     public IReadOnlyList<SessionSelectionViewModel> FilteredSessions => _filteredSessions;
     public string SessionSearchSummary => $"表示 {_filteredSessions.Count:N0} / 全 {Sessions.Count:N0}件・対象 {Sessions.Count(session => session.IsEnabled):N0}件（非表示分を含む）";
+    public string SessionExclusionSummary
+    {
+        get
+        {
+            var excluded = Sessions.Count(session => session.IsEnabled && session.HasExclusionSettings && !session.HasExclusionsLoadError);
+            var errors = Sessions.Count(session => session.IsEnabled && session.HasExclusionsLoadError);
+            var messages = new List<string>();
+            if (excluded > 0) messages.Add($"分析対象のうち{excluded:N0}セッションに除外設定があります。");
+            if (errors > 0) messages.Add($"分析対象のうち{errors:N0}セッションの除外設定を読み込めません。");
+            return string.Join(" ", messages);
+        }
+    }
+    public bool HasSessionExclusionSummary => !string.IsNullOrEmpty(SessionExclusionSummary);
+
+    private void RefreshExclusionSummary()
+    {
+        OnPropertyChanged(nameof(SessionExclusionSummary));
+        OnPropertyChanged(nameof(HasSessionExclusionSummary));
+    }
+
     public string SessionSearchText
     {
         get => _sessionSearchText;
@@ -126,6 +146,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
             || session.SessionId.Contains(search, StringComparison.OrdinalIgnoreCase)).ToArray();
         OnPropertyChanged(nameof(FilteredSessions));
         OnPropertyChanged(nameof(SessionSearchSummary));
+        RefreshExclusionSummary();
         SelectedSession = selected is not null && _filteredSessions.Contains(selected) ? selected : null;
     }
 
@@ -779,6 +800,13 @@ public sealed class MainViewModel : INotifyPropertyChanged
             errors.Length == 0 ? null : "除外設定を確認できないため分析できません。" + Environment.NewLine + string.Join(Environment.NewLine, errors));
     }
 
+    public void OpenSessionLogExclusions(SessionSelectionViewModel session)
+    {
+        if (!Sessions.Contains(session) || !OpenLogExclusionsCommand.CanExecute(null)) return;
+        SelectedSession = session;
+        OpenLogExclusions();
+    }
+
     private void OpenLogExclusions()
     {
         var editor = new LogExclusionViewModel(Sessions.ToArray(), SelectedSession);
@@ -842,6 +870,10 @@ public sealed class MainViewModel : INotifyPropertyChanged
         object? sender,
         PropertyChangedEventArgs e)
     {
+        if (e.PropertyName is nameof(SessionSelectionViewModel.HasExclusionSettings)
+            or nameof(SessionSelectionViewModel.HasExclusionsLoadError))
+            RefreshExclusionSummary();
+
         if (e.PropertyName == nameof(SessionSelectionViewModel.IsAliasEditing)
             && sender is SessionSelectionViewModel { IsAliasEditing: false } && _aliasRefreshPending)
         {
@@ -863,6 +895,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (e.PropertyName == nameof(SessionSelectionViewModel.IsEnabled))
         {
             OnPropertyChanged(nameof(SessionSearchSummary));
+            RefreshExclusionSummary();
             try
             {
                 var saveError = sender is SessionSelectionViewModel session
@@ -990,6 +1023,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     private void RefreshCommandStates()
     {
         OnPropertyChanged(nameof(SessionSearchSummary));
+        RefreshExclusionSummary();
         OpenLogExclusionsCommand.RaiseCanExecuteChanged();
         OnPropertyChanged(nameof(HasSession));
         OnPropertyChanged(nameof(HasSessionRootFolder));

@@ -43,7 +43,10 @@ collector.log
 sessions/
 
 # Local documentation outputs
-docs/
+/GITHUB_RELEASE_UPDATE_GUIDE.md
+docs/*
+!docs/architecture.md
+!docs/ui-guidelines.md
 
 # Temporary and backup files
 *.tmp

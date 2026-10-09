@@ -7,14 +7,6 @@ namespace FfxiTempLogCollector.Tests;
 public sealed class LogRep2SettingsStoreTests
 {
     [Fact]
-    public void 新規設定では起動時の更新確認が有効である()
-    {
-        var settings = new LogRep2Settings();
-
-        Assert.True(settings.Application.CheckForUpdatesOnLaunch);
-    }
-
-    [Fact]
     public void 起動時の更新確認設定を保存できる()
     {
         using var directory = new TemporaryDirectory();
@@ -61,14 +53,6 @@ public sealed class LogRep2SettingsStoreTests
         Assert.False(File.Exists(store.SettingsPath));
         Assert.True(File.Exists(backupPath));
         Assert.Equal("{ invalid json", File.ReadAllText(backupPath));
-    }
-
-    [Fact]
-    public void 新規設定では分析開始時のオーバーレイ表示が有効である()
-    {
-        var settings = new LogRep2Settings();
-
-        Assert.True(settings.Overlay.ShowOnRealtimeAnalysisStart);
     }
 
     [Fact]

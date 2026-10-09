@@ -40,6 +40,25 @@ public sealed class SessionSelectionViewModel : INotifyPropertyChanged
 
     public string? ExclusionsLoadError { get; private set; }
 
+    public bool HasExclusionSettings => Exclusions.Records.Count > 0 || Exclusions.Groups.Count > 0;
+    public bool HasExclusionsLoadError => ExclusionsLoadError is not null;
+    public bool HasExclusionBadge => HasExclusionSettings || HasExclusionsLoadError;
+    public string ExclusionBadgeText => HasExclusionsLoadError ? "除外設定エラー" : HasExclusionSettings ? "除外あり" : string.Empty;
+    public string ExclusionBadgeToolTip => HasExclusionsLoadError
+        ? $"除外設定を読み込めません。{Environment.NewLine}{ExclusionsLoadError}{Environment.NewLine}クリックしてログ確認・除外を開きます。"
+        : $"行単位：{Exclusions.Records.Count:N0}件／グループ単位：{Exclusions.Groups.Count:N0}件（設定件数）{Environment.NewLine}クリックしてログ確認・除外を開きます。";
+
+    private void NotifyExclusionsChanged()
+    {
+        OnPropertyChanged(nameof(Exclusions));
+        OnPropertyChanged(nameof(ExclusionsLoadError));
+        OnPropertyChanged(nameof(HasExclusionSettings));
+        OnPropertyChanged(nameof(HasExclusionsLoadError));
+        OnPropertyChanged(nameof(HasExclusionBadge));
+        OnPropertyChanged(nameof(ExclusionBadgeText));
+        OnPropertyChanged(nameof(ExclusionBadgeToolTip));
+    }
+
     public void LoadExclusions()
     {
         try
@@ -51,6 +70,7 @@ public sealed class SessionSelectionViewModel : INotifyPropertyChanged
         {
             ExclusionsLoadError = exception.Message;
         }
+        NotifyExclusionsChanged();
     }
 
     public void SaveExclusions(AnalysisExclusions exclusions)
@@ -62,6 +82,7 @@ public sealed class SessionSelectionViewModel : INotifyPropertyChanged
 
         new AnalysisExclusionsStore().Save(FolderPath, exclusions);
         Exclusions = exclusions;
+        NotifyExclusionsChanged();
     }
 
     public bool IsEnabled

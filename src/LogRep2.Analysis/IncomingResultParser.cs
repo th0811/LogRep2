@@ -22,15 +22,19 @@ public static partial class IncomingResultParser
             }
             // 効果なし・レジスト・分身による無効化は回避として数えません。
             var evade = EvadeRegex().Match(text);
+            if (!evade.Success) evade = TargetMissRegex().Match(text);
             if (evade.Success)
                 yield return new IncomingResult(evade.Groups["target"].Value.Trim(), null,
                     physical && !chain ? HitStatus.Miss : HitStatus.Unknown);
         }
     }
 
-    [GeneratedRegex(@"(?:^|。)\s*→?(?<target>[^→、。]+?)(?:に、|は、)(?<damage>\d+)(?:ダメージ|HP吸収)[。！!]?$")]
+    [GeneratedRegex(@"(?:^|。|→)\s*→?(?<target>[^→、。]+?)(?:に、|は、)(?<damage>\d+)(?:ダメージ|HP吸収)[。！!]?$")]
     private static partial Regex DamageRegex();
 
-    [GeneratedRegex(@"(?:^|。)\s*(?:ミス[！!]\s*)?→?(?<target>[^→、。！!]+?)は、?(?:攻撃を)?(?:回避した|かわした)[。！!]?$")]
+    [GeneratedRegex(@"(?:^|。|→)\s*(?:ミス[！!]\s*)?→?(?<target>[^→、。！!]+?)は、?(?:攻撃を)?(?:回避した|かわした)[。！!]?$")]
     private static partial Regex EvadeRegex();
+
+    [GeneratedRegex(@"(?:^|。|→)\s*→?(?<target>[^→、。]+?)に、ミス[。！!]?$")]
+    private static partial Regex TargetMissRegex();
 }

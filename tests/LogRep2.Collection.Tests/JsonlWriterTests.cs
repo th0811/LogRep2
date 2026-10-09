@@ -36,7 +36,7 @@ public sealed class JsonlWriterTests
     }
 
     [Fact]
-    public void CanonicalRecordをOrder順で全体再書き込みできる()
+    public void CanonicalRecordをOrder順で保存して分析側で読み戻し全体置換できる()
     {
         using var temporaryDirectory = new TemporaryDirectory();
         var factory = new CanonicalRecordFactory();
@@ -49,7 +49,8 @@ public sealed class JsonlWriterTests
         var second = factory.Create(
             RawRecordTestData.Create(
                 rawRecordId: "raw-2",
-                visibleText: "second"),
+                visibleText: "second",
+                sequenceHint: "001ad3c0"),
             2);
 
         writer.WriteAll(temporaryDirectory.Path, [second, first]);
@@ -73,7 +74,18 @@ public sealed class JsonlWriterTests
             2,
             secondLine.RootElement.GetProperty("order").GetInt64());
 
+        var loaded = new FFXI_LogAnalyzer.Core.CanonicalRecordReader().Read(path);
+        Assert.True(loaded.IsSuccess);
+        Assert.Empty(loaded.LineErrors);
+        Assert.Equal([first.CanonicalRecordId, second.CanonicalRecordId],
+            loaded.Records.Select(record => record.CanonicalRecordId));
+        Assert.Equal(["first", "second"], loaded.Records.Select(record => record.VisibleText));
+        Assert.Equal(new long?[] { 10, 0x001ad3c0 }, loaded.Records.Select(record => record.SequenceHintMin));
+        Assert.Equal(new long?[] { 10, 0x001ad3c0 }, loaded.Records.Select(record => record.SequenceHintMax));
+
         writer.WriteAll(temporaryDirectory.Path, [second]);
         Assert.Single(File.ReadAllLines(path));
+        Assert.Equal(second.CanonicalRecordId,
+            Assert.Single(new FFXI_LogAnalyzer.Core.CanonicalRecordReader().Read(path).Records).CanonicalRecordId);
     }
 }

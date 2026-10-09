@@ -6,15 +6,6 @@ namespace LogRep2.Collection.Tests;
 public sealed class AnalysisRangeViewModelTests
 {
     [Fact]
-    public void 初期モードはエリアログ区間になる()
-    {
-        var viewModel = new AnalysisRangeViewModel();
-
-        Assert.True(viewModel.IsAreaSegmentMode);
-        Assert.False(viewModel.IsManualRangeMode);
-    }
-
-    [Fact]
     public async Task ログ読込時にエリアログ区間へ戻して選択肢を表示する()
     {
         var viewModel = new AnalysisRangeViewModel

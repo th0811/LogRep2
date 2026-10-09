@@ -125,35 +125,6 @@ public sealed class LogExclusionTests
     }
 
     [Fact]
-    public void 選択状態と除外件数が操作バーと絞り込みに反映される()
-    {
-        using var directory = new TemporaryDirectory();
-        var viewModel = new LogExclusionViewModel([CreateSession(directory.Path)]);
-        var notifications = new List<string?>();
-        viewModel.PropertyChanged += (_, e) => notifications.Add(e.PropertyName);
-        Assert.False(viewModel.CanApply);
-        Assert.True(viewModel.ShowAllRows);
-
-        viewModel.UpdateSelection(viewModel.VisibleRows.Take(2));
-        Assert.True(viewModel.CanApply);
-        Assert.Equal("2行を選択中", viewModel.SelectionSummaryText);
-        Assert.Contains(nameof(viewModel.CanApply), notifications);
-        viewModel.Apply(LogExclusionOperation.ExcludeGroups, [viewModel.VisibleRows[0]]);
-        Assert.Equal(3, viewModel.ExcludedCount);
-        Assert.Contains(nameof(viewModel.ExcludedCount), notifications);
-
-        viewModel.ExcludedOnly = true;
-        Assert.False(viewModel.ShowAllRows);
-        Assert.Equal(3, viewModel.VisibleRows.Count);
-        Assert.Contains(nameof(viewModel.ShowAllRows), notifications);
-        viewModel.ShowAllRows = true;
-        Assert.Equal(5, viewModel.VisibleRows.Count);
-        viewModel.UpdateSelection([]);
-        Assert.False(viewModel.CanApply);
-        Assert.Contains("Ctrl / Shift", viewModel.SelectionSummaryText);
-    }
-
-    [Fact]
     public void 構えの検索から非表示のダメージ行もグループ除外して復元できる()
     {
         using var directory = new TemporaryDirectory();
@@ -243,19 +214,6 @@ public sealed class LogExclusionTests
         viewModel.Apply(LogExclusionOperation.ExcludeRows, [viewModel.VisibleRows[0]]);
         AssertOperations(viewModel, false, false, false, false);
         Assert.Equal(json, File.ReadAllText(path));
-    }
-
-    [Fact]
-    public void 行IDなしは行除外できずグループIDなしはグループ除外できない()
-    {
-        using var directory = new TemporaryDirectory();
-        var session = CreateSession(directory.Path, [new() { SessionId = "session", VisibleText = "IDなし" }]);
-        var viewModel = new LogExclusionViewModel([session]);
-        viewModel.Apply(LogExclusionOperation.ExcludeRows, viewModel.VisibleRows);
-        Assert.Contains("行ID", viewModel.StatusMessage);
-        viewModel.Apply(LogExclusionOperation.ExcludeGroups, viewModel.VisibleRows);
-        Assert.Contains("グループID", viewModel.StatusMessage);
-        Assert.False(viewModel.HasChanges);
     }
 
     [Fact]

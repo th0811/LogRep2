@@ -179,11 +179,65 @@
                                 </StackPanel>
                             </Border>
                             <StackPanel DockPanel.Dock="Top" Margin="12,8">
-                                <DockPanel>
+                                <Grid HorizontalAlignment="Left" MaxWidth="500">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" MaxWidth="380" />
+                                    </Grid.ColumnDefinitions>
                                     <TextBlock Text="エイリアス・ID検索" VerticalAlignment="Center" Margin="0,0,8,0" />
-                                    <TextBox Text="{Binding SessionSearchText, UpdateSourceTrigger=PropertyChanged}" />
-                                </DockPanel>
+                                    <Border Grid.Column="1" Width="380" Height="32">
+                                        <Border.Style>
+                                            <Style TargetType="Border" BasedOn="{StaticResource SearchInputFrameStyle}">
+                                                <Setter Property="CornerRadius" Value="6" />
+                                                <Setter Property="BorderThickness" Value="1" />
+                                                <Style.Triggers>
+                                                    <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                                                        <Setter Property="BorderThickness" Value="2" />
+                                                        <Setter Property="Padding" Value="9,0,5,0" />
+                                                    </Trigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </Border.Style>
+                                        <DockPanel>
+                                            <Path DockPanel.Dock="Left" Width="13" Height="13" Margin="0,0,8,0"
+                                                  VerticalAlignment="Center" Stretch="Uniform"
+                                                  Stroke="{StaticResource TextMutedBrush}" StrokeThickness="1.6"
+                                                  StrokeStartLineCap="Round" StrokeEndLineCap="Round"
+                                                  Data="{StaticResource SearchIconGeometry}" />
+                                            <Button x:Name="ClearSessionSearchButton" DockPanel.Dock="Right"
+                                                    Click="OnClearSessionSearchClick" ToolTip="検索をクリア"
+                                                    AutomationProperties.Name="エイリアス・ID検索をクリア">
+                                                <Button.Style>
+                                                    <Style TargetType="Button" BasedOn="{StaticResource ClearSearchButtonBaseStyle}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding SessionSearchText}" Value="">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Button.Style>
+                                            </Button>
+                                            <TextBox x:Name="SessionSearchBox" Style="{StaticResource BareTextBoxStyle}"
+                                                     Text="{Binding SessionSearchText, UpdateSourceTrigger=PropertyChanged}"
+                                                     AutomationProperties.Name="エイリアス・ID検索"
+                                                     ToolTip="エイリアスまたはセッションIDを入力すると絞り込みます。" />
+                                        </DockPanel>
+                                    </Border>
+                                </Grid>
                                 <TextBlock Margin="0,6,0,0" Style="{StaticResource CaptionTextStyle}" Text="{Binding SessionSearchSummary}" />
+                                <TextBlock Margin="0,6,0,0" Text="{Binding SessionExclusionSummary}" TextWrapping="Wrap"
+                                           Foreground="{StaticResource WarningBrush}" FontSize="12">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Visibility" Value="Collapsed" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding HasSessionExclusionSummary}" Value="True">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
                             </StackPanel>
                             <DataGrid Style="{StaticResource AppDataGridStyle}"
                                       IsReadOnly="False"
@@ -369,6 +423,65 @@
                                                 </DataTemplate.Triggers>
                                             </DataTemplate>
                                         </DataGridTemplateColumn.CellEditingTemplate>
+                                    </DataGridTemplateColumn>
+                                    <DataGridTemplateColumn Header="除外設定" Width="130" IsReadOnly="True">
+                                        <DataGridTemplateColumn.CellTemplate>
+                                            <DataTemplate>
+                                                <Button Content="{Binding ExclusionBadgeText}" ToolTip="{Binding ExclusionBadgeToolTip}"
+                                                        Click="OnExclusionBadgeClick" HorizontalAlignment="Left" VerticalAlignment="Center"
+                                                        AutomationProperties.Name="{Binding ExclusionBadgeText}">
+                                                    <Button.Style>
+                                                        <Style TargetType="Button">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Setter Property="Background" Value="{StaticResource WarningSoftBrush}" />
+                                                            <Setter Property="BorderBrush" Value="{StaticResource WarningBorderBrush}" />
+                                                            <Setter Property="Foreground" Value="{StaticResource WarningBrush}" />
+                                                            <Setter Property="FontSize" Value="11" />
+                                                            <Setter Property="Padding" Value="7,2" />
+                                                            <Setter Property="Cursor" Value="Hand" />
+                                                            <Setter Property="Template">
+                                                                <Setter.Value>
+                                                                    <ControlTemplate TargetType="Button">
+                                                                        <Border x:Name="Badge" Background="{TemplateBinding Background}"
+                                                                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1"
+                                                                                CornerRadius="9" Padding="{TemplateBinding Padding}">
+                                                                            <ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" />
+                                                                        </Border>
+                                                                        <ControlTemplate.Triggers>
+                                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                                <Setter TargetName="Badge" Property="Opacity" Value="0.8" />
+                                                                            </Trigger>
+                                                                            <Trigger Property="IsKeyboardFocused" Value="True">
+                                                                                <Setter TargetName="Badge" Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                                                            </Trigger>
+                                                                            <Trigger Property="IsEnabled" Value="False">
+                                                                                <Setter TargetName="Badge" Property="Opacity" Value="0.5" />
+                                                                            </Trigger>
+                                                                        </ControlTemplate.Triggers>
+                                                                    </ControlTemplate>
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding HasExclusionBadge}" Value="True">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding HasExclusionsLoadError}" Value="True">
+                                                                    <Setter Property="Background" Value="{StaticResource DangerSoftBrush}" />
+                                                                    <Setter Property="BorderBrush" Value="{StaticResource DangerBrush}" />
+                                                                    <Setter Property="Foreground" Value="{StaticResource DangerBrush}" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding DataContext.IsBusy, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                                    <Setter Property="IsEnabled" Value="False" />
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding DataContext.AnalysisRange.IsBusy, RelativeSource={RelativeSource AncestorType=Window}}" Value="True">
+                                                                    <Setter Property="IsEnabled" Value="False" />
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                </Button>
+                                            </DataTemplate>
+                                        </DataGridTemplateColumn.CellTemplate>
                                     </DataGridTemplateColumn>
                                     <DataGridTextColumn Header="セッションID" Width="152" IsReadOnly="True" Binding="{Binding SessionId}" />
                                     <DataGridTextColumn Header="開始" Width="170" IsReadOnly="True" Binding="{Binding StartedAt}" />
