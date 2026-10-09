@@ -236,7 +236,7 @@ stats.json
 
 `config.example.json`は開発時の参照用としてリポジトリにのみ保持し、リリース成果物には含めません。
 
-GitHub Releasesを使った開発者向けの公開手順と、利用者向けの詳しい更新手順は、[LogRep2のバージョンアップと更新手順](GITHUB_RELEASE_UPDATE_GUIDE.md)を参照してください。
+共同開発は作業ブランチから`dev`へのPRで進め、統合確認後に`dev`から`main`へのリリースPRを作成します。開発・マージ条件は[CONTRIBUTING.md](CONTRIBUTING.md)を参照してください。メンテナー向けの詳細なリリース手順書はリポジトリ外で管理します。
 
 ## CLI
 
