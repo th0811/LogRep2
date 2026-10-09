@@ -43,6 +43,7 @@ collector.log
 sessions/
 
 # Local documentation outputs
+/GITHUB_RELEASE_UPDATE_GUIDE.md
 docs/*
 !docs/architecture.md
 !docs/ui-guidelines.md
