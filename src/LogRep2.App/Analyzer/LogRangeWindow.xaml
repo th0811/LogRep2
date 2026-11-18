@@ -1,0 +1,115 @@
+<Window x:Class="FFXI_LogAnalyzer.App.LogRangeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LogRep2 - ログから区間を指定" Width="1250" Height="900" MinWidth="940" MinHeight="700"
+        WindowStartupLocation="CenterOwner" FontFamily="{StaticResource UiFontFamily}"
+        Background="{StaticResource AppBackgroundBrush}" UseLayoutRounding="True">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" MinHeight="120" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel>
+            <TextBlock Text="ログから区間を指定" Style="{StaticResource CardHeaderTextStyle}" />
+            <TextBlock Margin="0,6,0,12" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"
+                       Text="開始・終了行を含む区間を指定します。検索は行を探すためのもので、非表示の途中ログも分析に含まれます。除外設定は引き続き適用されます。" />
+            <DockPanel Margin="0,0,0,10">
+                <TextBlock Margin="0,0,10,0" Text="セッション" VerticalAlignment="Center" />
+                <ComboBox ItemsSource="{Binding Sessions}" SelectedItem="{Binding SelectedSession}" DisplayMemberPath="DisplayName" />
+            </DockPanel>
+            <DockPanel Margin="0,0,0,10">
+                <TextBlock Margin="0,0,10,0" Text="保存区間" VerticalAlignment="Center" />
+                <Button DockPanel.Dock="Right" Margin="10,0,0,0" Content="保存区間を削除"
+                        Style="{StaticResource SmallButtonStyle}" Command="{Binding DeleteRangeCommand}" />
+                <ComboBox ItemsSource="{Binding SavedRanges}" SelectedItem="{Binding SelectedSavedRange}" DisplayMemberPath="Name"
+                          ToolTip="保存区間を選ぶと開始・終了位置を復元します。" />
+            </DockPanel>
+            <TextBlock Text="{Binding LoadError}" Foreground="{StaticResource DangerBrush}" TextWrapping="Wrap" />
+        </StackPanel>
+        <StackPanel Grid.Row="1" Margin="0,0,0,10">
+            <WrapPanel Margin="0,0,0,10">
+                <DockPanel Width="380" Margin="0,0,12,0">
+                    <Button DockPanel.Dock="Right" Style="{StaticResource SearchJoinedButtonStyle}" Command="{Binding SearchCommand}" Content="検索" />
+                    <Border Height="32" Style="{StaticResource SearchInputFrameStyle}">
+                        <DockPanel>
+                            <Path DockPanel.Dock="Left" Width="13" Height="13" Margin="0,0,8,0" VerticalAlignment="Center"
+                                  Stretch="Uniform" Stroke="{StaticResource TextMutedBrush}" StrokeThickness="1.6"
+                                  Data="{StaticResource SearchIconGeometry}" />
+                            <Button DockPanel.Dock="Right" Style="{StaticResource ClearSearchButtonStyle}" Click="OnClearSearchClick"
+                                    ToolTip="検索語をクリア（Esc）" AutomationProperties.Name="検索語をクリア" />
+                            <TextBox x:Name="SearchBox" Style="{StaticResource BareTextBoxStyle}"
+                                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
+                                <TextBox.InputBindings>
+                                    <KeyBinding Key="Return" Command="{Binding SearchCommand}" />
+                                </TextBox.InputBindings>
+                            </TextBox>
+                        </DockPanel>
+                    </Border>
+                </DockPanel>
+                <CheckBox VerticalAlignment="Center" IsChecked="{Binding IncludeMatchingGroups}" Content="同じイベントグループも表示" />
+            </WrapPanel>
+            <WrapPanel>
+                <Button Margin="0,0,8,0" Style="{StaticResource SmallButtonStyle}" Command="{Binding SetStartCommand}" Content="この行から開始" />
+                <Button Margin="0,0,8,0" Style="{StaticResource SmallButtonStyle}" Command="{Binding SetEndCommand}" Content="この行まで終了" />
+                <Button Margin="0,0,8,0" Style="{StaticResource SmallButtonStyle}" Command="{Binding AlignGroupsCommand}" Content="グループ全体に合わせる" />
+                <TextBlock VerticalAlignment="Center" Style="{StaticResource CaptionTextStyle}" Text="{Binding SearchSummary}" />
+            </WrapPanel>
+        </StackPanel>
+        <Border Grid.Row="2" Style="{StaticResource CardBorderStyle}">
+            <DataGrid x:Name="LogsGrid" Style="{StaticResource AppDataGridStyle}" IsReadOnly="True" CanUserSortColumns="False"
+                      SelectionMode="Single" ItemsSource="{Binding VisibleRows}" SelectedItem="{Binding SelectedRow}"
+                      SelectionChanged="OnSelectionChanged">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow" BasedOn="{StaticResource AppDataGridRowStyle}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsInRange}" Value="True">
+                                <Setter Property="Background" Value="{StaticResource PrimarySoftBrush}" />
+                            </DataTrigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="BorderBrush" Value="{StaticResource PrimaryBrush}" />
+                                <Setter Property="BorderThickness" Value="2" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="区切り" Binding="{Binding Boundary}" Width="100" />
+                    <DataGridTextColumn Header="ログ順" Binding="{Binding Order, StringFormat={}{0:N0}}" Width="95" />
+                    <DataGridTextColumn Header="時刻" Binding="{Binding Time}" Width="95" />
+                    <DataGridTextColumn Header="グループ" Binding="{Binding EventGroup}" Width="110" />
+                    <DataGridTextColumn Header="ログ本文" Binding="{Binding Text}" Width="*" MinWidth="360">
+                        <DataGridTextColumn.ElementStyle>
+                            <Style TargetType="TextBlock">
+                                <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+                                <Setter Property="ToolTip" Value="{Binding Text}" />
+                            </Style>
+                        </DataGridTextColumn.ElementStyle>
+                    </DataGridTextColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+        </Border>
+        <StackPanel Grid.Row="3" Margin="0,12,0,0">
+            <DockPanel><TextBlock Text="開始：" /><TextBlock Text="{Binding StartText}" TextTrimming="CharacterEllipsis" ToolTip="{Binding StartText}" /></DockPanel>
+            <DockPanel Margin="0,5,0,0"><TextBlock Text="終了：" /><TextBlock Text="{Binding EndText}" TextTrimming="CharacterEllipsis" ToolTip="{Binding EndText}" /></DockPanel>
+            <TextBlock Margin="0,6,0,0" Text="{Binding RangeSummary}" Style="{StaticResource CaptionTextStyle}" />
+            <TextBlock Text="{Binding GroupWarning}" TextWrapping="Wrap" Foreground="{StaticResource WarningBrush}" />
+            <DockPanel Margin="0,10,0,0">
+                <TextBlock Text="区間名" VerticalAlignment="Center" Margin="0,0,8,0" />
+                <Button DockPanel.Dock="Right" Margin="10,0,0,0" Style="{StaticResource SecondaryButtonStyle}"
+                        Content="名前を付けて区間を保存" Command="{Binding SaveRangeCommand}" />
+                <TextBox Text="{Binding RangeName, UpdateSourceTrigger=PropertyChanged}" MaxLength="100" />
+            </DockPanel>
+            <TextBlock Margin="0,5,0,0" Text="{Binding SaveHint}" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap" />
+        </StackPanel>
+        <DockPanel Grid.Row="4" Margin="0,14,0,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button Margin="10,0,0,0" Style="{StaticResource PrimaryButtonStyle}" Content="この区間を使う" Command="{Binding UseRangeCommand}" />
+                <Button Margin="10,0,0,0" Style="{StaticResource SecondaryButtonStyle}" Content="キャンセル" IsCancel="True" />
+            </StackPanel>
+            <TextBlock VerticalAlignment="Center" Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+        </DockPanel>
+    </Grid>
+</Window>

@@ -23,6 +23,9 @@ public partial class MainWindow : Window
         ((MainViewModel)DataContext).LogExclusionsRequested += editor =>
             new LogExclusionWindow(editor) { Owner = this }.ShowDialog();
 
+        ((MainViewModel)DataContext).LogRangeRequested += editor =>
+            new LogRangeWindow(editor) { Owner = this }.ShowDialog() == true;
+
         // エイリアスセルは未選択の行でも1クリックで編集を始めます。
         SessionGrid.PreviewMouseLeftButtonDown += OnSessionGridPreviewMouseLeftButtonDown;
         SessionGrid.PreviewMouseRightButtonDown += (_, e) =>

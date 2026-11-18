@@ -21,6 +21,67 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
     private IReadOnlyList<CanonicalRecord> _records = [];
     private HashSet<LogRep2.Contracts.ICanonicalRecord> _excludedRecords = [];
     private string? _exclusionsError;
+    private bool _isLogRangeMode;
+    private AnalysisRangeSelection? _logRangeSelection;
+    private IReadOnlyList<CanonicalRecord> _logRangeRecords = [];
+    private Func<CanonicalRecord, bool>? _logRangeIsExcluded;
+    private string _logRangeName = "ログ行指定";
+    private string _logRangeDescription = "ログから区間を指定してください。";
+    private bool _canOpenLogRange;
+
+    public event Action? OpenLogRangeRequested;
+    public RelayCommand OpenLogRangeCommand { get; }
+    public bool IsLogRangeMode
+    {
+        get => _isLogRangeMode;
+        set
+        {
+            if (!SetProperty(ref _isLogRangeMode, value)) return;
+            if (value) _isAreaSegmentMode = false;
+            OnPropertyChanged(nameof(IsAreaSegmentMode));
+            OnPropertyChanged(nameof(IsManualRangeMode));
+            RefreshValidation();
+        }
+    }
+    public string LogRangeDescription => _logRangeDescription;
+    public bool LastCompletedUsesLogRange { get; private set; }
+
+    public void SetCanOpenLogRange(bool value)
+    {
+        _canOpenLogRange = value;
+        OpenLogRangeCommand.RaiseCanExecuteChanged();
+    }
+
+    public void SetLogRange(IReadOnlyList<CanonicalRecord> records, CanonicalRecord start, CanonicalRecord end, string name, string sessionName, Func<CanonicalRecord, bool>? isExcluded = null)
+    {
+        if (IsBusy) return;
+        var selection = new AnalysisRangeSelection(AnalysisEndpoint.FromRecord(start), AnalysisEndpoint.FromRecord(end));
+        if (!records.Contains(start) || !records.Contains(end)
+            || !_rangeValidator.IsValid(selection))
+            throw new InvalidOperationException("分析対象のログ行を使って開始・終了を指定してください。");
+        _logRangeRecords = records;
+        _logRangeIsExcluded = isExcluded;
+        _logRangeSelection = selection;
+        _logRangeName = string.IsNullOrWhiteSpace(name) ? "ログ行指定" : name.Trim();
+        _logRangeDescription = $"{sessionName}／{_logRangeName}{Environment.NewLine}開始：{start.MessageTimeText}　{start.VisibleText}{Environment.NewLine}終了：{end.MessageTimeText}　{end.VisibleText}{Environment.NewLine}開始・終了行を含みます。検索で非表示の途中ログも含み、既存の除外設定を適用します。";
+        OnPropertyChanged(nameof(LogRangeDescription));
+        IsLogRangeMode = true;
+        RangeSummary = "ログ行指定の区間を反映しました。分析を実行してください。";
+        RefreshValidation();
+    }
+
+    private void ResetLogRange()
+    {
+        _logRangeSelection = null;
+        _logRangeRecords = [];
+        _logRangeIsExcluded = null;
+        _isLogRangeMode = false;
+        _logRangeDescription = "ログから区間を指定してください。";
+        OnPropertyChanged(nameof(IsLogRangeMode));
+        OnPropertyChanged(nameof(IsManualRangeMode));
+        OnPropertyChanged(nameof(LogRangeDescription));
+    }
+
     private bool _isStartLogStart = true;
     private bool _isEndLogEnd = true;
     private MarkerListViewModel? _selectedStartMarker;
@@ -44,6 +105,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         CancelAnalysisCommand = new RelayCommand(
             CancelAnalysis,
             () => IsBusy);
+        OpenLogRangeCommand = new RelayCommand(() => OpenLogRangeRequested?.Invoke(), () => _canOpenLogRange && !IsBusy);
         GoBackCommand = new RelayCommand(() => GoBackRequested?.Invoke());
     }
 
@@ -100,6 +162,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             {
                 RunAnalysisCommand.RaiseCanExecuteChanged();
                 CancelAnalysisCommand.RaiseCanExecuteChanged();
+                OpenLogRangeCommand.RaiseCanExecuteChanged();
             }
         }
     }
@@ -139,11 +202,12 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
     public bool IsManualRangeMode
     {
-        get => !IsAreaSegmentMode;
+        get => !IsAreaSegmentMode && !IsLogRangeMode;
         set
         {
             if (value)
             {
+                IsLogRangeMode = false;
                 IsAreaSegmentMode = false;
             }
         }
@@ -154,6 +218,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         get => _isAreaSegmentMode;
         set
         {
+            if (value) IsLogRangeMode = false;
             if (SetProperty(ref _isAreaSegmentMode, value))
             {
                 OnPropertyChanged(nameof(IsManualRangeMode));
@@ -314,6 +379,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
                     .ToArray()),
             cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
+        ResetLogRange();
         _records = records;
         Markers.Clear();
         foreach (var marker in prepared.Markers)
@@ -359,6 +425,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
     public void Clear()
     {
+        ResetLogRange();
         _records = [];
         _excludedRecords = [];
         _exclusionsError = null;
@@ -429,7 +496,9 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         var selection = CreateSelection();
         if (selection is null)
         {
-            ValidationMessage = IsAreaSegmentMode
+            ValidationMessage = IsLogRangeMode
+                ? "「ログから区間を指定」で開始行・終了行を選択してください。"
+                : IsAreaSegmentMode
                 ? "分析するエリアログ区間を選択してください。"
                 : "開始markerまたは終了markerを選択してください。";
             RaiseRunAnalysisState();
@@ -438,7 +507,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
         var errors = _rangeValidator.Validate(selection);
         ValidationMessage = errors.Count == 0
-            ? IsAreaSegmentMode
+            ? IsLogRangeMode ? "開始・終了行を含むログ区間を分析できます。" : IsAreaSegmentMode
                 ? "選択したエリアログ区間を分析できます。エリアチェンジ行自体は集計対象外です。"
                 : "分析区間を選択できます。marker行自体は集計対象外です。"
             : string.Join(Environment.NewLine, errors);
@@ -486,6 +555,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
             RangeSummary = $"対象ログ: {calculation.RecordCount:N0}件 / 除外: {calculation.Result.ExcludedRecordCount:N0}行 / 時刻精度: {AnalysisDisplayText.ToText(calculation.Result.AnalysisTime.Confidence)} / 分析時間: {ToDurationText(calculation.Result.AnalysisTime.DurationSeconds)}秒";
             ValidationMessage = "分析が完了しました。";
             _lastCompletedRangeName = rangeName;
+            LastCompletedUsesLogRange = selection.Start.Type == AnalysisEndpointType.Record;
             LastCompletedOrderRangeText = calculation.OrderRangeText;
             LastCompletedRecordCount = calculation.RecordCount;
             AnalysisCompleted?.Invoke(calculation.Result);
@@ -568,13 +638,16 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
         AnalysisRangeSelection selection,
         CancellationToken cancellationToken)
     {
-        var range = _rangeBuilder.Build(_records, selection);
+        var range = _rangeBuilder.Build(selection.Start.Type == AnalysisEndpointType.Record ? _logRangeRecords : _records, selection);
         cancellationToken.ThrowIfCancellationRequested();
         var time = _timeResolver.Resolve(selection, range);
         // 時刻と区間を元ログから確定した後、集計対象だけを除外します。
         var exclusions = _excludedRecords;
-        var excluded = range.Where(exclusions.Contains).ToArray();
-        var included = range.Where(record => !exclusions.Contains(record)).ToArray();
+        bool IsExcluded(LogRep2.Contracts.ICanonicalRecord record) =>
+            selection.Start.Type == AnalysisEndpointType.Record && _logRangeIsExcluded is not null
+                ? _logRangeIsExcluded((CanonicalRecord)record) : exclusions.Contains(record);
+        var excluded = range.Where(IsExcluded).ToArray();
+        var included = range.Where(record => !IsExcluded(record)).ToArray();
         var parseResults = _actionGroupBuilder
             .Build(included)
             .Select(group =>
@@ -636,6 +709,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
     private AnalysisRangeSelection? CreateSelection()
     {
+        if (IsLogRangeMode) return _logRangeSelection;
         if (IsAreaSegmentMode)
         {
             return SelectedAreaSegment?.Segment.CreateSelection();
@@ -664,6 +738,7 @@ public sealed class AnalysisRangeViewModel : INotifyPropertyChanged
 
     private string CreateExportRangeName()
     {
+        if (IsLogRangeMode) return _logRangeName;
         if (IsAreaSegmentMode && SelectedAreaSegment is not null)
         {
             var segment = SelectedAreaSegment.Segment;

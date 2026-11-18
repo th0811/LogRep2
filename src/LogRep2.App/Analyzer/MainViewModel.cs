@@ -61,6 +61,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         AnalysisRange.AnalysisCompleted += OnAnalysisCompleted;
         AnalysisRange.PropertyChanged += OnAnalysisRangePropertyChanged;
         AnalysisRange.GoBackRequested += () => SelectedTabIndex = 0;
+        AnalysisRange.OpenLogRangeRequested += OpenLogRange;
         AnalysisResult.PropertyChanged += OnAnalysisResultPropertyChanged;
         AnalysisResult.GoBackRequested += () => SelectedTabIndex = 1;
         GoToNextStepCommand = new RelayCommand(
@@ -153,6 +154,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
     public RelayCommand OpenLogExclusionsCommand { get; }
 
     public event Action<LogExclusionViewModel>? LogExclusionsRequested;
+    public event Func<LogRangeViewModel, bool>? LogRangeRequested;
 
     public RelayCommand OpenSessionRootFolderCommand { get; }
 
@@ -807,6 +809,26 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OpenLogExclusions();
     }
 
+    private void OpenLogRange()
+    {
+        if (IsBusy || AnalysisRange.IsBusy) return;
+        var sessions = Sessions.Where(session => session.IsEnabled).ToArray();
+        var editor = new LogRangeViewModel(sessions, SelectedSession);
+        if (LogRangeRequested?.Invoke(editor) != true || !editor.CanUseRange) return;
+        var session = editor.SelectedSession!;
+        if (!session.IsEnabled || !Sessions.Contains(session))
+        {
+            StatusMessage = "指定したセッションが分析対象にありません。選択し直してください。";
+            return;
+        }
+        // 結合時に振り直したログ順ではなく、選択したセッション本来のログ順で区切ります。
+        _logRangeSession = session;
+        AnalysisRange.SetLogRange(session.Records, editor.StartRow!.Record, editor.EndRow!.Record,
+            editor.RangeName, session.DisplayName, record => session.Exclusions.IsExcluded(record));
+        AnalysisResult.Clear();
+        SelectedTabIndex = 1;
+    }
+
     private void OpenLogExclusions()
     {
         var editor = new LogExclusionViewModel(Sessions.ToArray(), SelectedSession);
@@ -945,17 +967,21 @@ public sealed class MainViewModel : INotifyPropertyChanged
         }
     }
 
+    private SessionSelectionViewModel? _logRangeSession;
+
     private void OnAnalysisCompleted(AnalysisResult result)
     {
-        var fallbackSessionTime = Sessions
-            .Where(session => session.IsEnabled)
+        var resultSessions = AnalysisRange.LastCompletedUsesLogRange && _logRangeSession is { } rangeSession
+            ? new[] { rangeSession }
+            : Sessions.Where(session => session.IsEnabled).ToArray();
+        var fallbackSessionTime = resultSessions
             .Select(session => session.Session.SessionInfo.StartedAt)
             .Where(startedAt => startedAt.HasValue)
             .OrderBy(startedAt => startedAt)
             .FirstOrDefault();
         AnalysisResult.Load(
             result,
-            SessionInfoRows.ToArray(),
+            BuildSessionRows(resultSessions),
             fallbackSessionTime,
             AnalysisRange.LastCompletedRangeName,
             AnalysisRange.LastCompletedOrderRangeText,
@@ -1025,6 +1051,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(SessionSearchSummary));
         RefreshExclusionSummary();
         OpenLogExclusionsCommand.RaiseCanExecuteChanged();
+        AnalysisRange.SetCanOpenLogRange(!IsBusy && Sessions.Any(session => session.IsEnabled));
         OnPropertyChanged(nameof(HasSession));
         OnPropertyChanged(nameof(HasSessionRootFolder));
         OnPropertyChanged(nameof(AnalysisTargetSummary));
@@ -1072,6 +1099,7 @@ public sealed class MainViewModel : INotifyPropertyChanged
         if (e.PropertyName == nameof(AnalysisRangeViewModel.IsBusy))
         {
             OpenLogExclusionsCommand.RaiseCanExecuteChanged();
+            AnalysisRange.SetCanOpenLogRange(!IsBusy && Sessions.Any(session => session.IsEnabled));
         }
 
         if (e.PropertyName == nameof(AnalysisRangeViewModel.SelectedAreaSegment))
