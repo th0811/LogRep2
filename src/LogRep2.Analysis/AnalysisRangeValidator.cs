@@ -11,6 +11,15 @@ public sealed class AnalysisRangeValidator
         ValidateStart(selection.Start, errors);
         ValidateEnd(selection.End, errors);
         ValidateMarkerOrder(selection, errors);
+        if (selection.Start.Type == AnalysisEndpointType.Record || selection.End.Type == AnalysisEndpointType.Record)
+        {
+            if (selection.Start.Type != AnalysisEndpointType.Record || selection.End.Type != AnalysisEndpointType.Record)
+                errors.Add("ログ行指定では開始・終了の両方にログ行を指定してください。");
+            else if (selection.Start.Record?.Order is not { } start || selection.End.Record?.Order is not { } end)
+                errors.Add("開始・終了行にログ順が必要です。");
+            else if (start > end)
+                errors.Add("終了行は開始行以降を指定してください。");
+        }
 
         return errors;
     }
@@ -22,7 +31,7 @@ public sealed class AnalysisRangeValidator
 
     private static void ValidateStart(AnalysisEndpoint endpoint, ICollection<string> errors)
     {
-        if (endpoint.Type is not (AnalysisEndpointType.LogStart or AnalysisEndpointType.Marker))
+        if (endpoint.Type is not (AnalysisEndpointType.LogStart or AnalysisEndpointType.Marker or AnalysisEndpointType.Record))
         {
             errors.Add("開始ポイントにはログ先頭またはmarkerを指定してください。");
         }
@@ -32,7 +41,7 @@ public sealed class AnalysisRangeValidator
 
     private static void ValidateEnd(AnalysisEndpoint endpoint, ICollection<string> errors)
     {
-        if (endpoint.Type is not (AnalysisEndpointType.Marker or AnalysisEndpointType.LogEnd))
+        if (endpoint.Type is not (AnalysisEndpointType.Marker or AnalysisEndpointType.LogEnd or AnalysisEndpointType.Record))
         {
             errors.Add("終了ポイントにはmarkerまたはログ最後尾を指定してください。");
         }

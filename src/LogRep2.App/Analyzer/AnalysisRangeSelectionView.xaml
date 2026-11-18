@@ -63,7 +63,7 @@
 
         <!-- モード + 説明 -->
         <DockPanel Grid.Row="0" Margin="20,16,20,14">
-            <StackPanel Orientation="Horizontal">
+            <WrapPanel>
                 <RadioButton GroupName="RangeMode" Style="{StaticResource ModeRadioStyle}"
                              Content="エリアログ区間"
                              IsChecked="{Binding IsAreaSegmentMode}"
@@ -71,12 +71,27 @@
                 <RadioButton GroupName="RangeMode" Style="{StaticResource ModeRadioStyle}"
                              Content="手動範囲指定"
                              IsChecked="{Binding IsManualRangeMode}" />
+                <RadioButton GroupName="RangeMode" Style="{StaticResource ModeRadioStyle}"
+                             Content="ログ行指定" IsChecked="{Binding IsLogRangeMode}" />
+                <Button Style="{StaticResource SecondaryButtonStyle}" Margin="0,0,8,0"
+                        Content="ログから区間を指定" Command="{Binding OpenLogRangeCommand}" />
                 <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" MaxWidth="560"
                            Style="{StaticResource FieldLabelStyle}" TextWrapping="Wrap"
-                           Text="エリアチェンジ行の直後から次のエリアチェンジ行の直前まで。時刻ではなくログ順序で区切ります。" />
-            </StackPanel>
+                           Text="エリア・目印・ログ行から、分析する区間を選択します。" />
+            </WrapPanel>
         </DockPanel>
 
+        <Border Grid.Row="1" Margin="20,0" Padding="20" Style="{StaticResource CardBorderStyle}"
+                Visibility="{Binding IsLogRangeMode, Converter={StaticResource BooleanToVisibilityConverter}}">
+            <StackPanel>
+                <TextBlock Style="{StaticResource CardHeaderTextStyle}" Text="ログから指定した分析区間" />
+                <TextBlock Margin="0,12,0,16" Text="{Binding LogRangeDescription}" TextWrapping="Wrap" />
+                <Button HorizontalAlignment="Left" Style="{StaticResource SecondaryButtonStyle}"
+                        Content="区間を指定・保存区間を選択" Command="{Binding OpenLogRangeCommand}" />
+                <TextBlock Margin="0,16,0,0" Style="{StaticResource CaptionTextStyle}" TextWrapping="Wrap"
+                           Text="この区間は1セッション内に限定されます。セッションの分析対象を変更すると区間指定は解除されます。" />
+            </StackPanel>
+        </Border>
         <!-- 本体（エリアログ区間モード） -->
         <Grid Grid.Row="1" Margin="20,0"
               Visibility="{Binding IsAreaSegmentMode, Converter={StaticResource BooleanToVisibilityConverter}}">

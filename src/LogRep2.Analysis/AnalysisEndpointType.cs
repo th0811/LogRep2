@@ -4,5 +4,6 @@ public enum AnalysisEndpointType
 {
     LogStart,
     Marker,
-    LogEnd
+    LogEnd,
+    Record
 }

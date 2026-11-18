@@ -59,6 +59,7 @@ public sealed class AnalysisTimeResolver
         return endpoint.Type switch
         {
             AnalysisEndpointType.Marker => ResolveMarker(endpoint.Marker, isEnd: false),
+            AnalysisEndpointType.Record => ResolveRecord(endpoint.Record, isEnd: false),
             AnalysisEndpointType.LogStart => ResolveFirstRecordTime(analysisRecords),
             _ => null
         };
@@ -71,9 +72,19 @@ public sealed class AnalysisTimeResolver
         return endpoint.Type switch
         {
             AnalysisEndpointType.Marker => ResolveMarker(endpoint.Marker, isEnd: true),
+            AnalysisEndpointType.Record => ResolveRecord(endpoint.Record, isEnd: true),
             AnalysisEndpointType.LogEnd => ResolveLastRecordTime(analysisRecords),
             _ => null
         };
+    }
+
+    private ResolvedEndpointTime? ResolveRecord(ICanonicalRecord? record, bool isEnd)
+    {
+        if (record is null) return null;
+        if (_messageTimeParser.TryParse(record.MessageTimeText, out var time))
+            return FromMessageTime(time, isEnd, estimated: false);
+        var timestamp = isEnd ? record.LastSeenAt ?? record.FirstSeenAt : record.FirstSeenAt;
+        return timestamp is null ? null : new ResolvedEndpointTime(timestamp.Value, null, Estimated: true);
     }
 
     private ResolvedEndpointTime? ResolveMarker(MarkerRecord? marker, bool isEnd)

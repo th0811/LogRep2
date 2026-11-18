@@ -37,6 +37,10 @@ public sealed class AnalysisRangeBuilder
             : null;
 
         return records
+            .Where(record => selection.Start.Type != AnalysisEndpointType.Record
+                || record.Order >= selection.Start.Record!.Order)
+            .Where(record => selection.End.Type != AnalysisEndpointType.Record
+                || record.Order <= selection.End.Record!.Order)
             .Where(record => IsInRange(record, startExclusiveOrder, endExclusiveOrder))
             .Where(record => !record.IsMarker)
             .Where(record => !AreaChangeExtractor.IsAreaChange(record.VisibleText))
